@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:shared="clr-namespace:HeriStep.Shared;assembly=HeriStep.Shared"
+             x:Class="HeriStep.Client.MainPage"
+             Title="Heri Step - Du Lịch"
+             BackgroundColor="#F0F0F0">
+
+    <RefreshView Command="{Binding LoadDataCommand}" IsRefreshing="{Binding IsBusy}">
+
+        <CollectionView ItemsSource="{Binding Points}" Margin="15">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="20"/>
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="shared:PointOfInterest">
+
+                    <Frame CornerRadius="20" 
+                           HasShadow="True" 
+                           Padding="0" 
+                           BorderColor="White"
+                           HeightRequest="300"
+                           IsClippedToBounds="True">
+
+                        <Grid RowDefinitions="2*,Auto">
+                            <Image Grid.Row="0" 
+                                   Source="{Binding ImageUrl}" 
+                                   Aspect="AspectFill"
+                                   BackgroundColor="LightGray"/>
+
+                            <StackLayout Grid.Row="1" Padding="15" BackgroundColor="White">
+                                <Label Text="{Binding Name}" 
+                                       FontSize="20" 
+                                       FontAttributes="Bold" 
+                                       TextColor="Black"/>
+
+                                <Label Text="{Binding Description}" 
+                                       FontSize="14" 
+                                       TextColor="Gray" 
+                                       MaxLines="2" 
+                                       LineBreakMode="TailTruncation"
+                                       Margin="0,5,0,0"/>
+                            </StackLayout>
+                        </Grid>
+                    </Frame>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </RefreshView>
+</ContentPage>

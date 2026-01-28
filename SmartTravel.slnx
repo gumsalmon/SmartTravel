@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="HeriStep.API/HeriStep.API.csproj" />
+  <Project Path="HeriStep.Client/HeriStep.Client.csproj" />
+  <Project Path="HeriStep.Shared/HeriStep.Shared.csproj" />
+</Solution>
