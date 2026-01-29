@@ -65,4 +65,10 @@
 	  <ProjectReference Include="..\HeriStep.Shared\HeriStep.Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <MauiXaml Update="Views\ShopView.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
 </Project>

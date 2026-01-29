@@ -4,11 +4,25 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:HeriStep.Client"
-    Title="HeriStep.Client">
+    xmlns:views="clr-namespace:HeriStep.Client.Views"
+    Title="HeriStep - Du Lịch Thông Minh">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+
+        <Tab Title="Bản đồ" Icon="dotnet_bot.svg">
+            <ShellContent
+                Title="Bản đồ"
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="MainPage" />
+        </Tab>
+
+        <Tab Title="Cửa hàng" Icon="dotnet_bot.svg">
+            <ShellContent
+                Title="Cửa hàng"
+                ContentTemplate="{DataTemplate views:HomePage}"
+                Route="HomePage" />
+        </Tab>
+
+    </TabBar>
 
 </Shell>

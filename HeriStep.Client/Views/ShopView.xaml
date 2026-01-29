@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:HeriStep.Shared.Models;assembly=HeriStep.Shared"
+             x:Class="HeriStep.Client.Views.ShopView">
+
+    <VerticalStackLayout Spacing="10" Padding="10">
+        <Label Text="📍 Cửa hàng gần bạn" 
+               FontSize="18" 
+               FontAttributes="Bold" />
+
+        <CollectionView ItemsSource="{Binding NearbyShops}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Shop">
+                    <Frame Margin="0,5" HasShadow="True" CornerRadius="12">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="{Binding Name}" 
+                                   FontSize="16" 
+                                   FontAttributes="Bold"/>
+                            
+                            <Label Text="{Binding Distance, StringFormat='{0:F2} km'}" 
+                                   Color="Gray"/>
+
+                            <Label Text="Món nổi bật:" 
+                                   FontSize="12" 
+                                   Margin="0,5,0,0"/>
+                            
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding FeaturedDishes}" 
+                                                 Spacing="10">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Dish">
+                                        <Border Padding="5" 
+                                                StrokeShape="RoundRectangle 5" 
+                                                BackgroundColor="#F0F0F0">
+                                            <Label Text="{Binding Name}" 
+                                                   FontSize="11"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentView>

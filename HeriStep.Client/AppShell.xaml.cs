@@ -1,10 +1,12 @@
-﻿namespace HeriStep.Client
+﻿namespace HeriStep.Client;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    public AppShell()
     {
-        public AppShell()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+
+        // Đăng ký đường dẫn cho các trang để dễ điều hướng
+        Routing.RegisterRoute(nameof(Views.HomePage), typeof(Views.HomePage));
     }
 }

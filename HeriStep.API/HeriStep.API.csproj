@@ -23,4 +23,8 @@
     <ProjectReference Include="..\HeriStep.Shared\HeriStep.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NewFolder\" />
+  </ItemGroup>
+
 </Project>
