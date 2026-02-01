@@ -25,7 +25,7 @@ public partial class HomePage : ContentPage
         // Điều này giúp tiết kiệm 4G/Pin cho khách du lịch khi sử dụng app
         if (_viewModel.Points.Count == 0)
         {
-            await _viewModel.LoadPoints();
+            await _viewModel.LoadPointsAsync();
         }
     }
 }

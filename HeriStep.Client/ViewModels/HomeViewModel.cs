@@ -23,7 +23,6 @@ namespace HeriStep.Client.ViewModels
             }
         }
 
-        // Danh sách hiển thị lên giao diện
         public ObservableCollection<PointOfInterest> Points { get; set; } = new();
 
         public Command LoadDataCommand { get; set; }
@@ -31,46 +30,51 @@ namespace HeriStep.Client.ViewModels
         public HomeViewModel(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            // Lệnh làm mới (Refresh)
-            LoadDataCommand = new Command(async () => await LoadPoints());
+            // Cập nhật lại tên hàm gọi tại đây
+            LoadDataCommand = new Command(async () => await LoadPointsAsync());
         }
 
-        public async Task LoadPoints()
+        // SỬA: Đổi tên thành LoadPointsAsync để khớp với MainPage.xaml.cs
+        public async Task LoadPointsAsync()
         {
             if (IsBusy) return;
 
             IsBusy = true;
             try
             {
-                // 1. LẤY TỌA ĐỘ GPS (Yêu cầu cốt lõi của đồ án SGU)
+                // 1. LẤY TỌA ĐỘ GPS
                 var location = await Geolocation.Default.GetLocationAsync(new GeolocationRequest(
                     GeolocationAccuracy.Medium, TimeSpan.FromSeconds(5)));
 
                 double lat = location?.Latitude ?? 0;
                 double lon = location?.Longitude ?? 0;
 
-                // 2. GỌI API KÈM TỌA ĐỘ (Để Server lọc cửa hàng gần nhất)
-                // Chú ý: Route "api/Points" phải khớp với Controller ở Backend
-                var url = $"api/Points?userLat={lat}&userLon={lon}";
+                // 2. GỌI API
+                // LƯU Ý: Nếu BaseAddress đã có "/api/", ở đây chỉ cần gọi "Points"
+                var url = $"Points?userLat={lat}&userLon={lon}";
+
                 var data = await _httpClient.GetFromJsonAsync<List<PointOfInterest>>(url);
 
                 if (data != null)
                 {
-                    Points.Clear();
-                    foreach (var p in data)
+                    // Cập nhật giao diện trên luồng chính
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        Points.Add(p);
-                    }
+                        Points.Clear();
+                        foreach (var p in data)
+                        {
+                            Points.Add(p);
+                        }
+                    });
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[HeriStep Error]: {ex.Message}");
-                // Có thể dùng Shell.Current.DisplayAlert để báo lỗi cho người dùng
             }
             finally
             {
-                IsBusy = false; // Luôn tắt vòng xoay dù thành công hay thất bại
+                IsBusy = false;
             }
         }
     }

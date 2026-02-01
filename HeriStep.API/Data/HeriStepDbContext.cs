@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared; // Để nhận diện được PointOfInterest và Tour
+﻿using HeriStep.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace HeriStep.API.Data
@@ -9,8 +9,17 @@ namespace HeriStep.API.Data
         {
         }
 
-        // Khai báo 2 bảng dữ liệu chính
-        public DbSet<PointOfInterest> Points { get; set; }
+        // Khai báo bảng cho các điểm dừng (Sạp hàng)
+        public DbSet<PointOfInterest> Stalls { get; set; }
+
+        // Khai báo bảng cho các Chuyến tham quan
         public DbSet<Tour> Tours { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Đảm bảo không còn bất kỳ dòng Ignore("TourId") nào ở đây
+        }
     }
 }
