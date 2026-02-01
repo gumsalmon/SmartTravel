@@ -12,15 +12,15 @@
         <Tab Title="Bản đồ" Icon="dotnet_bot.svg">
             <ShellContent
                 Title="Bản đồ"
-                ContentTemplate="{DataTemplate local:MainPage}"
-                Route="MainPage" />
+                ContentTemplate="{DataTemplate views:HomePage}"
+                Route="HomePage" />
         </Tab>
 
         <Tab Title="Cửa hàng" Icon="dotnet_bot.svg">
             <ShellContent
                 Title="Cửa hàng"
-                ContentTemplate="{DataTemplate views:HomePage}"
-                Route="HomePage" />
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="MainPage" />
         </Tab>
 
     </TabBar>

@@ -1,5 +1,9 @@
 <Solution>
+  <Project Path="HeriStep.Admin/HeriStep.Admin.csproj" Id="a04a142a-481f-4534-8e05-53bea83a26eb" />
   <Project Path="HeriStep.API/HeriStep.API.csproj" />
-  <Project Path="HeriStep.Client/HeriStep.Client.csproj" />
+  <Project Path="HeriStep.Client/HeriStep.Client.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
+  <Project Path="HeriStep.Merchant/HeriStep.Merchant.csproj" Id="a9abe4cf-a8f4-441e-a1ef-8e7caa494d8e" />
   <Project Path="HeriStep.Shared/HeriStep.Shared.csproj" />
 </Solution>

@@ -1,0 +1,44 @@
+﻿@page
+@model HeriStep.Admin.Pages.Stalls.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý sạp hàng";
+}
+
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-shop me-2"></i> Quản lý sạp hàng</h4>
+            <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#stallModal">
+                <i class="bi bi-plus-lg me-1"></i> Thêm sạp mới
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+            </table>
+        </div>
+
+        <div class="p-3 border-top d-flex justify-content-between align-items-center bg-light">
+            <span class="text-muted small">Hiển thị trang @Model.CurrentPage / @Model.TotalPages</span>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="/Stalls/Index?page=@(Model.CurrentPage - 1)">Trước</a>
+                    </li>
+
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                            <a class="page-link" href="/Stalls/Index?page=@i">@i</a>
+                        </li>
+                    }
+
+                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="/Stalls/Index?page=@(Model.CurrentPage + 1)">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>

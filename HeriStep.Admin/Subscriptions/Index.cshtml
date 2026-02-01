@@ -1,0 +1,80 @@
+﻿@page
+@model HeriStep.Admin.Pages.Subscriptions.SubscriptionModel
+@* Sử dụng Namespace đầy đủ để tránh lỗi "SubscriptionModel not found" *@
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark"><i class="bi bi-gem me-2"></i> Quản lý Gói dịch vụ</h3>
+        <button class="btn btn-primary rounded-pill px-4 shadow-sm">+ Gia hạn thủ công</button>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 border-0 bg-white shadow-sm plan-card">
+                <span class="text-muted small uppercase fw-bold">Gói đang hoạt động</span>
+                <span class="h3 fw-bold text-primary">@Model.SubList.Count(s => s.IsActive)</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 border-0 bg-white shadow-sm border-start border-warning border-4">
+                <span class="text-muted small uppercase fw-bold">Sắp hết hạn (7 ngày tới)</span>
+                <span class="h3 fw-bold text-warning">
+                    @Model.SubList.Count(s => s.EndDate > DateTime.Now && s.EndDate <= DateTime.Now.AddDays(7))
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 border-0 bg-white shadow-sm border-start border-danger border-4">
+                <span class="text-muted small uppercase fw-bold">Đã hết hạn</span>
+                <span class="h3 fw-bold text-danger">@Model.SubList.Count(s => !s.IsActive)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <table class="table table-hover align-middle mb-0 sub-table">
+            <thead>
+                <tr>
+                    <th class="ps-4">Sạp hàng</th>
+                    <th>Loại gói</th>
+                    <th>Ngày hết hạn</th>
+                    <th>Trạng thái</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sub in Model.SubList)
+                {
+                    <tr>
+                        <td class="ps-4 fw-bold text-dark">@sub.StallName</td>
+                        <td>
+                            <span class="badge @(sub.PlanName == "Pro" ? "bg-primary" : "bg-info text-dark") rounded-pill px-3">
+                                @sub.PlanName
+                            </span>
+                        </td>
+                        <td class="text-muted">@sub.EndDate.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (sub.EndDate > DateTime.Now.AddDays(7))
+                            {
+                                <span class="badge-sub status-active">● Đang hoạt động</span>
+                            }
+                            else if (sub.EndDate > DateTime.Now)
+                            {
+                                <span class="badge-sub status-warning">● Sắp hết hạn</span>
+                            }
+                            else
+                            {
+                                <span class="badge-sub status-expired">● Đã hết hạn</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-light text-primary rounded-pill px-3">
+                                <i class="bi bi-bell-fill me-1"></i> Nhắc nhở
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+﻿@page
+@model  HeriStep.Admin.Pages.Tours.ToursIndexModel
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">🗺️ Quản lý lộ trình Tour</h3>
+        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addTourModal">
+            + Tạo Tour mới
+        </button>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var t in Model.Tours)
+        {
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+                    <img src="http://localhost:5297/images/@t.ImageUrl" class="card-img-top" style="height:180px; object-fit:cover;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="fw-bold mb-0">@t.TourName</h5>
+                            <span class="badge bg-light text-primary rounded-pill">@t.StallCount sạp</span>
+                        </div>
+                        <p class="text-muted small mb-4">@t.Description</p>
+                        <div class="d-flex justify-content-between border-top pt-3">
+                            <button class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil"></i> Sửa</button>
+                            <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteTour(@t.Id)"><i class="bi bi-trash"></i> Xóa</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    async function deleteTour(id) {
+        if(confirm("Bạn có chắc chắn muốn xóa lộ trình này?")) {
+            const res = await fetch(`http://localhost:5297/api/Tours/${id}`, { method: 'DELETE' });
+            if (res.ok) location.reload();
+            else alert(await res.text());
+        }
+    }
+</script>

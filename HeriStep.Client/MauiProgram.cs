@@ -21,7 +21,7 @@ public static class MauiProgram
         // Đăng ký HttpClient
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://10.0.2.2:5297")
+            BaseAddress = new Uri("http://10.0.2.2:5297/api/")
         });
 
         // Đăng ký Logic (Nhớ tạo file tương ứng trước khi bỏ comment)

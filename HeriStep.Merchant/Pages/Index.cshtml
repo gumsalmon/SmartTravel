@@ -1,0 +1,44 @@
+﻿@page
+@model IndexModel
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 p-3 rounded-4">
+                <h5 class="fw-bold text-success">🎙️ Cập nhật thuyết minh</h5>
+                <form method="post" asp-page-handler="UpdateTts">
+                    <textarea name="tts" class="form-control mb-2" rows="4" maxlength="1000">@Model.MyStall.TtsScript</textarea>
+                    <button class="btn btn-success btn-sm rounded-pill px-4">Lưu thuyết minh</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 p-3 rounded-4">
+                <h5 class="fw-bold text-primary">➕ Thêm món ăn mới</h5>
+                <form method="post" asp-page-handler="AddProduct" enctype="multipart/form-data">
+                    <input name="pName" placeholder="Tên món" class="form-control mb-2" required />
+                    <input name="pPrice" type="number" placeholder="Giá tiền (VNĐ)" class="form-control mb-2" required />
+                    <input name="pImage" type="file" class="form-control mb-2" required />
+                    <button class="btn btn-primary btn-sm rounded-pill px-4">Thêm vào thực đơn</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="fw-bold">🍱 Thực đơn hiện tại</h5>
+    <div class="row">
+        @foreach (var p in Model.MyProducts)
+        {
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <img src="http://localhost:5297/images/@p.ImageUrl" class="card-img-top" style="height:120px; object-fit:cover;">
+                    <div class="card-body p-2 text-center">
+                        <div class="fw-bold">@p.ProductName</div>
+                        <div class="text-danger small">@p.BasePrice.ToString("N0") đ</div>
+                        <button class="btn btn-link text-danger p-0 mt-2">Xóa món</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
