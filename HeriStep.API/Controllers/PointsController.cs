@@ -31,7 +31,7 @@ namespace HeriStep.API.Controllers
                                     Name = s.Name,
                                     Latitude = s.Latitude,
                                     Longitude = s.Longitude,
-                                    Radius = s.Radius,
+                                    RadiusMeter = s.RadiusMeter,
                                     ImageUrl = s.ImageUrl,
                                     IsOpen = s.IsOpen,
                                     UpdatedAt = s.UpdatedAt,
