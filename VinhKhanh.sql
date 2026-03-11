@@ -120,3 +120,15 @@ BEGIN
     END
 END;
 GO
+
+ALTER TABLE Tours ADD is_top_hot BIT DEFAULT 0;
+GO
+
+CREATE TABLE StallVisits (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL,
+    device_id NVARCHAR(255),
+    visited_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_StallVisits_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+GO
