@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared;
+﻿using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;
@@ -10,73 +10,81 @@ namespace HeriStep.Admin.Pages.Stalls
         private readonly HttpClient _http;
         public IndexModel(HttpClient http) => _http = http;
 
-        // --- CÁC BIẾN CHỨA DỮ LIỆU HIỂN THỊ ---
+        // --- DỮ LIỆU HIỂN THỊ ---
         public List<PointOfInterest> Stalls { get; set; } = new();
         public List<UserDto> Owners { get; set; } = new();
 
-        // --- CÁC BIẾN TÌM KIẾM & PHÂN TRANG ---
-        [BindProperty(SupportsGet = true)]
-        public string? SearchTerm { get; set; }
-
-        [BindProperty(SupportsGet = true)]
-        public int PageNumber { get; set; } = 1;
+        [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
+        [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
         public int PageSize { get; set; } = 5;
 
-        // --- CÁC BIẾN HỨNG DỮ LIỆU TỪ FORM ---
-        [BindProperty]
-        public PointOfInterest NewStall { get; set; } = new();
-
-        [BindProperty]
-        public PointOfInterest EditStall { get; set; } = new();
+        [BindProperty] public PointOfInterest NewStall { get; set; } = new();
+        [BindProperty] public PointOfInterest EditStall { get; set; } = new();
 
         // ==========================================
-        // 1. HÀM LẤY DỮ LIỆU (GET)
+        // 1. LẤY DỮ LIỆU (GET)
         // ==========================================
         public async Task OnGetAsync()
         {
             CurrentPage = PageNumber > 0 ? PageNumber : 1;
-
             try
             {
-                // Lấy danh sách Chủ sạp (User có role StallOwner) để đổ vào Dropdown
-                Owners = await _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners") ?? new();
+                // Lấy danh sách Chủ sạp và Sạp hàng cùng lúc
+                var ownersTask = _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners-summary");
+                var stallsTask = _http.GetFromJsonAsync<List<PointOfInterest>>("api/Points");
 
-                // Lấy danh sách Sạp hàng
-                var allStalls = await _http.GetFromJsonAsync<List<PointOfInterest>>("api/Points") ?? new();
+                await Task.WhenAll(ownersTask, stallsTask);
 
-                // Xử lý Tìm kiếm
+                Owners = await ownersTask ?? new();
+                var allStalls = await stallsTask ?? new();
+
                 if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
-                    allStalls = allStalls.Where(s =>
-                        s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+                    allStalls = allStalls.Where(s => s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
                 }
 
-                // Xử lý Phân trang
                 TotalPages = (int)Math.Ceiling(allStalls.Count / (double)PageSize);
-                Stalls = allStalls
-                    .Skip((CurrentPage - 1) * PageSize)
-                    .Take(PageSize)
-                    .ToList();
+                Stalls = allStalls.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
             }
-            catch (Exception ex)
-            {
-                // Log lỗi nếu API chưa chạy
-                Console.WriteLine($"Lỗi gọi API: {ex.Message}");
-            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối API Dashboard."; }
         }
 
         // ==========================================
-        // 2. HÀM THÊM SẠP MỚI (POST)
+        // 2. HÀM THÊM SẠP MỚI (POST) - CƯƠNG CHẾ VALIDATION
         // ==========================================
         public async Task<IActionResult> OnPostCreateAsync()
         {
-            NewStall.UpdatedAt = DateTime.Now;
-            NewStall.IsOpen = true;
+            // BƯỚC 1: Xóa sạch mọi rác rưởi validation cũ
+            ModelState.Clear();
 
-            await _http.PostAsJsonAsync("api/Points", NewStall);
-            return RedirectToPage(); // Tải lại trang sau khi thêm
+            // BƯỚC 2: Chỉ ép buộc kiểm tra dữ liệu của NewStall
+            // Đồng thời lờ đi UpdatedAt vì SQL tự sinh
+            if (!TryValidateModel(NewStall, nameof(NewStall)))
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                TempData["Error"] = "❌ Dữ liệu Thêm mới không hợp lệ: " + string.Join(" | ", errors);
+                await OnGetAsync();
+                return Page();
+            }
+
+            try
+            {
+                NewStall.Id = 0;
+                var response = await _http.PostAsJsonAsync("api/Points", NewStall);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = $"✅ Đã thêm sạp '{NewStall.Name}' thành công!";
+                    return RedirectToPage();
+                }
+                TempData["Error"] = "❌ Lỗi API: " + await response.Content.ReadAsStringAsync();
+            }
+            catch (Exception ex) { TempData["Error"] = "❌ Lỗi hệ thống: " + ex.Message; }
+
+            await OnGetAsync();
+            return Page();
         }
 
         // ==========================================
@@ -84,11 +92,31 @@ namespace HeriStep.Admin.Pages.Stalls
         // ==========================================
         public async Task<IActionResult> OnPostEditAsync()
         {
-            EditStall.UpdatedAt = DateTime.Now;
+            // BƯỚC 1: Xóa sạch validation cũ
+            ModelState.Clear();
 
-            // Gọi API sửa dữ liệu theo ID
-            await _http.PutAsJsonAsync($"api/Points/{EditStall.Id}", EditStall);
-            return RedirectToPage();
+            // BƯỚC 2: Chỉ ép buộc kiểm tra dữ liệu của EditStall
+            if (!TryValidateModel(EditStall, nameof(EditStall)))
+            {
+                TempData["Error"] = "❌ Thông tin chỉnh sửa không hợp lệ!";
+                await OnGetAsync();
+                return Page();
+            }
+
+            try
+            {
+                var response = await _http.PutAsJsonAsync($"api/Points/{EditStall.Id}", EditStall);
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = $"✅ Cập nhật sạp #{EditStall.Id} thành công!";
+                    return RedirectToPage();
+                }
+                TempData["Error"] = "❌ Cập nhật thất bại.";
+            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối khi cập nhật."; }
+
+            await OnGetAsync();
+            return Page();
         }
 
         // ==========================================
@@ -96,7 +124,12 @@ namespace HeriStep.Admin.Pages.Stalls
         // ==========================================
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
-            await _http.DeleteAsync($"api/Points/{id}");
+            var response = await _http.DeleteAsync($"api/Points/{id}");
+            if (response.IsSuccessStatusCode)
+                TempData["Success"] = "🗑️ Đã xóa sạp hàng thành công!";
+            else
+                TempData["Error"] = "❌ Không thể xóa sạp hàng này.";
+
             return RedirectToPage();
         }
     }

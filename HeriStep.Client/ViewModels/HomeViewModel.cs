@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
-using HeriStep.Shared;
 using System.Net.Http.Json;
 using System.Diagnostics;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.ViewModels
 {

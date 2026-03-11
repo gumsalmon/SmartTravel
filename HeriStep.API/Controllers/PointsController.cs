@@ -2,7 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using HeriStep.API.Data;
 using HeriStep.Shared;
-using System.Linq; // Cần thiết để sử dụng lệnh Join
+using System.Linq;
+using HeriStep.Shared.Models; // Cần thiết để sử dụng lệnh Join
 
 namespace HeriStep.API.Controllers
 {

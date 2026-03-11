@@ -1,5 +1,5 @@
 ﻿@page
-@model IndexModel
+@model HeriStep.Admin.Pages.IndexModel
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Tổng quan hệ thống";
@@ -11,15 +11,14 @@
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-primary-light text-primary">
-                        <i class="bi bi-people-fill"></i>
+                        <i class="bi bi-shop"></i>
                     </div>
                     <div class="text-end">
-                        <span class="text-success small fw-bold">+12% ↑</span>
-                        <div class="text-muted extra-small">Tháng này</div>
+                        <div class="text-muted extra-small">Toàn hệ thống</div>
                     </div>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Tổng Khách hàng</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalCustomers.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tổng số sạp hàng</h6>
+                <h2 class="fw-bold mb-0 text-primary">@Model.Stats.TotalStalls.ToString("N0")</h2>
             </div>
         </div>
         <div class="col-md-6">
@@ -28,12 +27,9 @@
                     <div class="stat-icon bg-success-light text-success">
                         <i class="bi bi-person-badge-fill"></i>
                     </div>
-                    <div class="text-end">
-                        <span class="text-muted small">@Model.Stalls.Count sạp</span>
-                    </div>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Tổng Chủ sạp</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalStalls</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tài khoản Chủ sạp</h6>
+                <h2 class="fw-bold mb-0 text-success">@Model.Stats.TotalStallOwners.ToString("N0")</h2>
             </div>
         </div>
     </div>
@@ -43,24 +39,24 @@
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-warning-light text-warning">
-                        <i class="bi bi-qr-code-scan"></i>
+                        <i class="bi bi-map"></i>
                     </div>
-                    <span class="text-danger small fw-bold">-2% ↓</span>
+                    <span class="text-success small fw-bold">Đang hoạt động</span>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Lượt quét QR</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalScans.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Lộ trình Tour</h6>
+                <h2 class="fw-bold mb-0 text-warning">@Model.Stats.TotalTours.ToString("N0")</h2>
             </div>
         </div>
         <div class="col-md-6">
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-info-light text-info">
-                        <i class="bi bi-currency-dollar"></i>
+                        <i class="bi bi-cpu"></i>
                     </div>
-                    <span class="text-muted small">VND</span>
+                    <span class="text-muted small">Đang kích hoạt</span>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Doanh thu phí</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalRevenue.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Thiết bị TTS</h6>
+                <h2 class="fw-bold mb-0 text-info">@Model.Stats.ActiveDevices.ToString("N0")</h2>
             </div>
         </div>
     </div>

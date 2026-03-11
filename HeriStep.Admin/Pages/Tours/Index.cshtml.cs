@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using HeriStep.Shared;
 using System.Net.Http.Json;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Admin.Pages.Tours // Namespace phải là .Tours
 {

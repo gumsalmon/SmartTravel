@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using HeriStep.Shared;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Merchant.Pages;
 

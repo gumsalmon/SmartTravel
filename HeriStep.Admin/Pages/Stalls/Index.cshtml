@@ -8,9 +8,27 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <div class="container-fluid py-4">
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
         <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-shop me-2"></i> Quản lý sạp hàng</h4>
+            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-shop me-2 text-primary"></i> Quản lý sạp hàng</h4>
+
             <div class="d-flex gap-2 align-items-center">
                 <form method="get" class="d-flex m-0">
                     <div class="input-group input-group-sm" style="width: 250px;">
@@ -18,6 +36,7 @@
                         <button type="submit" class="btn btn-light bg-light border-0"><i class="bi bi-search"></i></button>
                     </div>
                 </form>
+
                 <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createStallModal">
                     <i class="bi bi-plus-lg me-1"></i> Thêm sạp mới
                 </button>
@@ -26,11 +45,11 @@
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+                <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4 border-0">Tên Sạp</th>
-                        <th class="border-0">Chủ quản lý</th>
-                        <th class="border-0 text-center">Tọa độ</th>
+                        <th class="ps-4 border-0">Thông tin Sạp</th>
+                        <th class="border-0">Chủ quản lý (SĐT)</th>
+                        <th class="border-0 text-center">Vị trí (Lat, Lng)</th>
                         <th class="border-0 text-center">Bán kính</th>
                         <th class="border-0 text-center">Trạng thái</th>
                         <th class="border-0 text-center">Thao tác</th>
@@ -39,7 +58,7 @@
                 <tbody>
                     @if (!Model.Stalls.Any())
                     {
-                        <tr><td colspan="6" class="text-center py-4 text-muted">Chưa có sạp hàng nào.</td></tr>
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Chưa có sạp hàng nào được tạo.</td></tr>
                     }
                     @foreach (var s in Model.Stalls)
                     {
@@ -47,39 +66,43 @@
                         <tr>
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">@s.Name</div>
-                                <div class="text-muted extra-small">Cập nhật: @s.UpdatedAt.ToString("dd/MM/yyyy")</div>
+                                <div class="text-muted extra-small">Mã: HS-@s.Id.ToString("D4") | @s.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
                             </td>
                             <td>
                                 @if (ownerInfo != null)
                                 {
-                                    <span class="badge bg-primary-light text-primary border border-primary-subtle">
-                                        <i class="bi bi-person-fill me-1"></i> @ownerInfo.Username
-                                    </span>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold small text-dark">@ownerInfo.FullName</span>
+                                        <span class="text-muted extra-small"><i class="bi bi-phone"></i> @ownerInfo.Username</span>
+                                    </div>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-light text-muted">Chưa gán</span>
+                                    <span class="badge bg-light text-muted border px-2">Chưa gán chủ</span>
                                 }
                             </td>
-                            <td class="text-center"><span class="badge bg-light text-muted fw-normal">@s.Latitude, @s.Longitude</span></td>
+                            <td class="text-center">
+                                <code class="small text-secondary">@s.Latitude, @s.Longitude</code>
+                            </td>
                             <td class="text-center">@s.RadiusMeter m</td>
                             <td class="text-center">
-                                <span class="badge @(s.IsOpen ? "bg-success" : "bg-danger") rounded-pill px-3">
+                                <span class="badge @(s.IsOpen ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill px-3">
                                     @(s.IsOpen ? "Đang mở" : "Đã đóng")
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <button type="button" class="btn btn-action-round text-primary bg-light border-0"
+                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle"
                                             data-bs-toggle="modal" data-bs-target="#editStallModal"
                                             data-id="@s.Id" data-name="@s.Name" data-lat="@s.Latitude"
-                                            data-lng="@s.Longitude" data-radius="@s.RadiusMeter" data-owner="@s.OwnerId" data-isopen="@(s.IsOpen ? "true" : "false")"
+                                            data-lng="@s.Longitude" data-radius="@s.RadiusMeter"
+                                            data-owner="@s.OwnerId" data-isopen="@(s.IsOpen ? "true" : "false")"
                                             onclick="fillEditModal(this)">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id"
-                                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa sạp @s.Name? Toàn bộ món ăn của sạp sẽ bị xóa theo!');">
-                                        <button type="submit" class="btn btn-action-round text-danger bg-light border-0">
+                                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa sạp @s.Name?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </form>
@@ -98,16 +121,10 @@
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                            <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm">Trước</a>
+                            <a class="page-link shadow-none" href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm">Trước</a>
                         </li>
-                        @for (int i = 1; i <= Model.TotalPages; i++)
-                        {
-                            <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
-                                <a class="page-link" href="/Stalls/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm">@i</a>
-                            </li>
-                        }
                         <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                            <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm">Sau</a>
+                            <a class="page-link shadow-none" href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm">Sau</a>
                         </li>
                     </ul>
                 </nav>
@@ -120,40 +137,43 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold">Thêm sạp hàng mới</h5>
+                <h5 class="modal-title fw-bold text-primary">🆕 Thêm sạp hàng mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <form method="post" asp-page-handler="Create">
+                    <div asp-validation-summary="All" class="text-danger small mb-3" style="list-style: none;"></div>
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">Giao cho Chủ sạp <span class="text-danger">*</span></label>
-                        <select id="create-owner" asp-for="NewStall.OwnerId" class="form-select" style="width: 100%;">
-                            <option value="">-- Gõ tên hoặc số ĐT để tìm --</option>
+                        <label class="form-label text-muted small fw-bold">Chủ sạp quản lý <span class="text-danger">*</span></label>
+                        <select id="create-owner" asp-for="NewStall.OwnerId" class="form-select select2-modal" style="width: 100%;">
+                            <option value="">-- Chọn chủ sạp (Tìm theo tên/SĐT) --</option>
                             @foreach (var owner in Model.Owners)
                             {
-                                <option value="@owner.Id">@owner.Username - @owner.FullName</option>
+                                <option value="@owner.Id">@owner.FullName (@owner.Username)</option>
                             }
                         </select>
-                        <span asp-validation-for="NewStall.OwnerId" class="text-danger small fw-bold mt-1 d-block"></span>
+                        <span asp-validation-for="NewStall.OwnerId" class="text-danger extra-small fw-bold"></span>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">Tên sạp mặc định <span class="text-danger">*</span></label>
-                        <input type="text" asp-for="NewStall.Name" class="form-control" required>
-                        <span asp-validation-for="NewStall.Name" class="text-danger small fw-bold mt-1 d-block"></span>
+                        <label class="form-label text-muted small fw-bold">Tên sạp <span class="text-danger">*</span></label>
+                        <input type="text" asp-for="NewStall.Name" class="form-control rounded-3" placeholder="Ví dụ: Bún Thái Chị Lan">
+                        <span asp-validation-for="NewStall.Name" class="text-danger extra-small fw-bold"></span>
                     </div>
+
                     <div class="row mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-bold">Vĩ độ <span class="text-danger">*</span></label>
-                            <input type="number" step="any" asp-for="NewStall.Latitude" class="form-control" required>
-                            <span asp-validation-for="NewStall.Latitude" class="text-danger small fw-bold mt-1 d-block"></span>
+                            <label class="form-label small fw-bold">Vĩ độ (Lat) <span class="text-danger">*</span></label>
+                            <input type="number" step="any" asp-for="NewStall.Latitude" class="form-control rounded-3">
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold">Kinh độ <span class="text-danger">*</span></label>
-                            <input type="number" step="any" asp-for="NewStall.Longitude" class="form-control" required>
-                            <span asp-validation-for="NewStall.Longitude" class="text-danger small fw-bold mt-1 d-block"></span>
+                            <label class="form-label small fw-bold">Kinh độ (Lng) <span class="text-danger">*</span></label>
+                            <input type="number" step="any" asp-for="NewStall.Longitude" class="form-control rounded-3">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold mt-2">Thêm sạp hàng</button>
+
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold mt-2 shadow-sm">XÁC NHẬN LƯU SẠP</button>
                 </form>
             </div>
         </div>
@@ -164,54 +184,55 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold">Chỉnh sửa sạp hàng</h5>
+                <h5 class="modal-title fw-bold text-warning">✏️ Chỉnh sửa sạp hàng</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <form method="post" asp-page-handler="Edit">
                     <input type="hidden" id="edit-id" asp-for="EditStall.Id" />
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">Chủ sạp <span class="text-danger">*</span></label>
-                        <select id="edit-owner" asp-for="EditStall.OwnerId" class="form-select" style="width: 100%;">
-                            <option value="">-- Gõ tên hoặc số ĐT để tìm --</option>
+                        <label class="form-label text-muted small fw-bold">Chủ sạp quản lý <span class="text-danger">*</span></label>
+                        <select id="edit-owner" asp-for="EditStall.OwnerId" class="form-select select2-modal" style="width: 100%;">
                             @foreach (var owner in Model.Owners)
                             {
-                                <option value="@owner.Id">@owner.Username - @owner.FullName</option>
+                                <option value="@owner.Id">@owner.FullName (@owner.Username)</option>
                             }
                         </select>
-                        <span asp-validation-for="EditStall.OwnerId" class="text-danger small fw-bold mt-1 d-block"></span>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold">Tên sạp <span class="text-danger">*</span></label>
-                        <input type="text" id="edit-name" asp-for="EditStall.Name" class="form-control" required>
-                        <span asp-validation-for="EditStall.Name" class="text-danger small fw-bold mt-1 d-block"></span>
+                        <input type="text" id="edit-name" asp-for="EditStall.Name" class="form-control rounded-3">
+                        <span asp-validation-for="EditStall.Name" class="text-danger extra-small fw-bold"></span>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">Vĩ độ <span class="text-danger">*</span></label>
-                            <input type="number" step="any" id="edit-lat" asp-for="EditStall.Latitude" class="form-control" required>
-                            <span asp-validation-for="EditStall.Latitude" class="text-danger small fw-bold mt-1 d-block"></span>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">Kinh độ <span class="text-danger">*</span></label>
-                            <input type="number" step="any" id="edit-lng" asp-for="EditStall.Longitude" class="form-control" required>
-                            <span asp-validation-for="EditStall.Longitude" class="text-danger small fw-bold mt-1 d-block"></span>
-                        </div>
-                    </div>
+
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label small fw-bold">Bán kính quét (m)</label>
-                            <input type="number" id="edit-radius" asp-for="EditStall.RadiusMeter" class="form-control" required>
+                            <input type="number" id="edit-radius" asp-for="EditStall.RadiusMeter" class="form-control rounded-3">
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">Trạng thái</label>
-                            <select id="edit-isopen" asp-for="EditStall.IsOpen" class="form-select">
+                            <select id="edit-isopen" asp-for="EditStall.IsOpen" class="form-select rounded-3">
                                 <option value="true">Đang mở</option>
                                 <option value="false">Đã đóng</option>
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-warning w-100 rounded-pill py-2 fw-bold mt-2">Cập nhật thông tin</button>
+
+                    <div class="row mb-3 small">
+                        <div class="col-6">
+                            <label class="text-muted extra-small">Vĩ độ</label>
+                            <input type="number" step="any" id="edit-lat" asp-for="EditStall.Latitude" class="form-control rounded-3 bg-light">
+                        </div>
+                        <div class="col-6">
+                            <label class="text-muted extra-small">Kinh độ</label>
+                            <input type="number" step="any" id="edit-lng" asp-for="EditStall.Longitude" class="form-control rounded-3 bg-light">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 rounded-pill py-2 fw-bold mt-2 shadow-sm text-white">CẬP NHẬT THÔNG TIN</button>
                 </form>
             </div>
         </div>
@@ -220,38 +241,46 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/vi.js"></script>
 
     <script>
         $(document).ready(function() {
-            $('#create-owner').select2({
-                dropdownParent: $('#createStallModal'),
-                placeholder: "-- Gõ tên hoặc số điện thoại để tìm --",
-                language: "vi" // 2. BẬT TIẾNG VIỆT Ở ĐÂY
-            });
+            // Tự động ẩn Alert sau 4 giây
+            window.setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function(){
+                    $(this).remove();
+                });
+            }, 4000);
 
-            $('#edit-owner').select2({
-                dropdownParent: $('#editStallModal'),
-                placeholder: "-- Gõ tên hoặc số điện thoại để tìm --",
-                language: "vi" // BẬT TIẾNG VIỆT Ở ĐÂY
-            });
+            // Khởi tạo Select2 cho cả 2 Modals
+            function initSelect2(modalId, selectId) {
+                $(modalId).on('shown.bs.modal', function () {
+                    $(selectId).select2({
+                        dropdownParent: $(modalId),
+                        language: "vi",
+                        placeholder: "-- Tìm chủ sạp --",
+                        allowClear: true
+                    });
+                });
+            }
+
+            initSelect2('#createStallModal', '#create-owner');
+            initSelect2('#editStallModal', '#edit-owner');
         });
 
-        // Hàm JS tự động đưa dữ liệu từ Bảng vào Form Sửa khi bấm nút
         function fillEditModal(btn) {
             document.getElementById('edit-id').value = btn.getAttribute('data-id');
             document.getElementById('edit-name').value = btn.getAttribute('data-name');
             document.getElementById('edit-lat').value = btn.getAttribute('data-lat');
             document.getElementById('edit-lng').value = btn.getAttribute('data-lng');
             document.getElementById('edit-radius').value = btn.getAttribute('data-radius');
-            document.getElementById('edit-isopen').value = btn.getAttribute('data-isopen');
 
-            let owner = btn.getAttribute('data-owner');
-            $('#edit-owner').val(owner ? owner : "").trigger('change');
+            const isOpen = btn.getAttribute('data-isopen') === "true";
+            document.getElementById('edit-isopen').value = isOpen.toString();
+
+            let ownerId = btn.getAttribute('data-owner');
+            $('#edit-owner').val(ownerId ? ownerId : "").trigger('change');
         }
     </script>
-}
 }

@@ -1,12 +1,21 @@
-﻿namespace HeriStep.Shared
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+[Table("Users")]
+public class User
 {
-    public class User
-    {
-        public int Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty; // Lưu chuỗi đã băm
-        public string? FullName { get; set; }
-        public string Role { get; set; } = "StallOwner";
-        public int? StallId { get; set; }
-    }
+    [Key]
+    public int Id { get; set; }
+
+    [Column("username")] // Khớp với SQL
+    public string Username { get; set; } = string.Empty;
+
+    [Column("password_hash")] // Khớp với SQL
+    public string PasswordHash { get; set; } = string.Empty;
+
+    [Column("full_name")] // Khớp với SQL - ĐÂY LÀ CHỖ GÂY LỖI LÚC NÃY
+    public string? FullName { get; set; }
+
+    [Column("role")]
+    public string Role { get; set; } = "StallOwner";
 }

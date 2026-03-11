@@ -3,37 +3,42 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace HeriStep.Shared
+namespace HeriStep.Shared.Models
 {
-    [Table("Stalls")] // Ánh xạ đúng tên bảng trong SQL Server
+    [Table("Stalls")]
     public class PointOfInterest
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        // BẮT BUỘC NHẬP CHỦ SẠP: Nếu để trống, web sẽ báo lỗi ngay lập tức
-        [Required(ErrorMessage = "❌ Vui lòng chọn tài khoản Chủ sạp!")]
         [Column("owner_id")]
         [JsonPropertyName("ownerId")]
         public int? OwnerId { get; set; }
 
-        // BẮT BUỘC NHẬP TÊN SẠP
+        [Column("TourID")]
+        [JsonPropertyName("tourId")]
+        public int? TourID { get; set; }
+
         [Required(ErrorMessage = "❌ Vui lòng nhập tên sạp!")]
         [Column("name_default")]
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; } // Thêm ? để linh hoạt hơn cho Model Binder
 
-        // CHẶN LỖI SQL: Giới hạn Vĩ độ từ -90 đến 90
-        [Range(-90.0, 90.0, ErrorMessage = "❌ Vĩ độ (Latitude) phải nằm trong khoảng -90 đến 90")]
+        [Required(ErrorMessage = "❌ Thiếu tọa độ vĩ độ!")]
+        [Range(-90.0, 90.0, ErrorMessage = "❌ Vĩ độ phải từ -90 đến 90")]
+        [Column("latitude")]
         [JsonPropertyName("latitude")]
         public double Latitude { get; set; }
 
-        // CHẶN LỖI SQL: Giới hạn Kinh độ từ -180 đến 180
-        [Range(-180.0, 180.0, ErrorMessage = "❌ Kinh độ (Longitude) phải nằm trong khoảng -180 đến 180")]
+        [Required(ErrorMessage = "❌ Thiếu tọa độ kinh độ!")]
+        [Range(-180.0, 180.0, ErrorMessage = "❌ Kinh độ phải từ -180 đến 180")]
+        [Column("longitude")]
         [JsonPropertyName("longitude")]
         public double Longitude { get; set; }
 
+        [Range(0, 500, ErrorMessage = "❌ Bán kính phải từ 0 đến 500m")]
         [Column("radius_meter")]
         [JsonPropertyName("radiusMeter")]
         public int RadiusMeter { get; set; } = 50;
@@ -47,15 +52,12 @@ namespace HeriStep.Shared
         public bool IsOpen { get; set; } = true;
 
         [Column("updated_at")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         [JsonPropertyName("updatedAt")]
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
-
-        [Column("TourID")]
-        [JsonPropertyName("tourId")]
-        public int? TourID { get; set; }
+        public DateTime? UpdatedAt { get; set; } // Đã để DateTime? là rất chuẩn
 
         [NotMapped]
         [JsonPropertyName("ttsScript")]
-        public string TtsScript { get; set; } = string.Empty;
+        public string TtsScript { get; set; } = "Chào mừng bạn đến với sạp hàng của chúng tôi!";
     }
 }
