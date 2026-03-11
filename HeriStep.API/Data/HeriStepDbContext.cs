@@ -16,6 +16,9 @@ namespace HeriStep.API.Data
         public DbSet<StallContent> StallContents { get; set; }
         public DbSet<Language> Languages { get; set; }
 
+        // 💡 1. THÊM BẢNG LƯU VẾT KHÁCH GHÉ THĂM (Để đếm Tour Hot)
+        public DbSet<StallVisit> StallVisits { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -30,16 +33,16 @@ namespace HeriStep.API.Data
                 entity.Property(u => u.Role).HasColumnName("role");
             });
 
-            // 2. Cấu hình bảng Tours (ĐÃ SỬA LỖI IMAGEURL TẠI ĐÂY)
+            // 2. Cấu hình bảng Tours
             modelBuilder.Entity<Tour>(entity => {
                 entity.ToTable("Tours");
                 entity.Property(t => t.TourName).HasColumnName("tour_name");
-
-                // 💡 Dòng quan trọng nhất để hết lỗi 'Invalid column name ImageUrl'
                 entity.Property(t => t.ImageUrl).HasColumnName("image_url");
                 entity.Property(t => t.Description).HasColumnName("description");
-
                 entity.Property(t => t.IsActive).HasColumnName("is_active");
+
+                // 💡 2. THÊM CỘT CỜ ĐÁNH DẤU TOUR HOT CHO BOT CHẠY NGẦM
+                entity.Property(t => t.IsTopHot).HasColumnName("is_top_hot");
             });
 
             // 3. Cấu hình bảng PointOfInterest (Stalls)
@@ -47,10 +50,7 @@ namespace HeriStep.API.Data
                 entity.ToTable("Stalls");
                 entity.Property(p => p.Name).HasColumnName("name_default");
                 entity.Property(p => p.OwnerId).HasColumnName("owner_id");
-
-                // 💡 Ánh xạ chính xác TourID để liên kết lộ trình
                 entity.Property(p => p.TourID).HasColumnName("TourID");
-
                 entity.Property(p => p.RadiusMeter).HasColumnName("radius_meter");
                 entity.Property(p => p.IsOpen).HasColumnName("is_open");
                 entity.Property(p => p.ImageUrl).HasColumnName("image_thumb");
@@ -92,6 +92,15 @@ namespace HeriStep.API.Data
                 entity.Property(p => p.BasePrice).HasColumnType("decimal(18,2)").HasColumnName("base_price");
                 entity.Property(p => p.ImageUrl).HasColumnName("image_url");
                 entity.Property(p => p.IsSignature).HasColumnName("is_signature");
+            });
+
+            // 💡 8. CẤU HÌNH BẢNG MỚI: StallVisits (Log lượt khách)
+            modelBuilder.Entity<StallVisit>(entity => {
+                entity.ToTable("StallVisits");
+                entity.HasKey(v => v.Id);
+                entity.Property(v => v.StallId).HasColumnName("stall_id");
+                entity.Property(v => v.DeviceId).HasColumnName("device_id");
+                entity.Property(v => v.VisitedAt).HasColumnName("visited_at");
             });
         }
     }

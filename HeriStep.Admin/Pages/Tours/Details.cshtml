@@ -1,0 +1,78 @@
+﻿@page "{id:int}"
+@model HeriStep.Admin.Pages.Tours.DetailsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chi tiết Lộ trình";
+}
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <a href="/Tours/Index" class="text-decoration-none text-muted small">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-primary text-white">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="fw-bold mb-1">@Model.Tour.TourName</h2>
+                    <p class="mb-0 opacity-75">@Model.Tour.Description</p>
+                </div>
+                <span class="badge rounded-pill bg-white text-primary px-3 py-2">
+                    @(Model.Tour.StallCount < 4 ? "Lộ trình Ngắn" : "Lộ trình Dài")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-bottom-0 p-4">
+                    <h5 class="fw-bold m-0"><i class="bi bi-list-ul me-2 text-primary"></i> Thứ tự ghé thăm (@Model.Tour.Stalls.Count quán)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @if (!Model.Tour.Stalls.Any())
+                        {
+                            <li class="list-group-item text-center py-5 text-muted">Lộ trình này hiện chưa có sạp hàng nào.</li>
+                        }
+                        @for (int i = 0; i < Model.Tour.Stalls.Count; i++)
+                        {
+                            var s = Model.Tour.Stalls[i];
+                            <li class="list-group-item p-4 border-start border-4 @(i == 0 ? "border-success" : "border-primary")">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 bg-light rounded-circle d-flex align-items-center justify-content-center fw-bold text-primary shadow-sm" style="width: 40px; height: 40px;">
+                                        @(i + 1)
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="fw-bold mb-0">@s.Name</h6>
+                                        <small class="text-muted"><i class="bi bi-geo-alt me-1"></i> Tọa độ: @s.Latitude, @s.Longitude</small>
+                                    </div>
+                                    <span class="badge @(s.IsOpen == true ? "bg-success" : "bg-secondary") rounded-pill">
+                                        @(s.IsOpen == true ? "Đang mở" : "Đóng cửa")
+                                    </span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-light">
+                <div class="card-body p-4 text-center">
+                    <i class="bi bi-info-circle fs-1 text-primary mb-3"></i>
+                    <h6 class="fw-bold">Thông tin thêm</h6>
+                    <p class="small text-muted">Lộ trình này bao gồm các điểm đến được sắp xếp tối ưu theo khoảng cách đi bộ.</p>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill">In danh sách</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

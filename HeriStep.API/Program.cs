@@ -1,7 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using HeriStep.API.Data;
+using HeriStep.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHostedService<HeriStep.API.Services.DailyTourUpdateService>();
+
 
 // 1. Cấu hình Database (Giữ nguyên)
 builder.Services.AddDbContext<HeriStep.API.Data.HeriStepDbContext>(options =>

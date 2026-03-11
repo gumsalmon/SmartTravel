@@ -12,74 +12,66 @@ namespace HeriStep.API.Controllers
         private readonly HeriStepDbContext _context;
         public ToursController(HeriStepDbContext context) => _context = context;
 
-        // ==========================================
-        // 1. LẤY DANH SÁCH LỘ TRÌNH
-        // ==========================================
+        // [GET] Dành cho Admin: Kéo tất cả Tour và đếm luôn số sạp hàng
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Tour>>> GetTours()
+        public async Task<ActionResult<IEnumerable<Tour>>> GetAllTours()
         {
-            // 💡 Dùng toán tử ?? ngay trong Select để ép SQL xử lý NULL
+            // Logic dựa trên DB: Lấy tour_name, image_url, is_active
             return await _context.Tours
                 .Select(t => new Tour
                 {
                     Id = t.Id,
-                    TourName = t.TourName ?? "Lộ trình không tên",
-                    // Nếu Description hoặc ImageUrl trong DB là NULL, gán giá trị mặc định ngay
-                    Description = t.Description ?? "",
-                    ImageUrl = t.ImageUrl ?? "default-tour.jpg",
-                    IsActive = t.IsActive ?? true,
-
-                    // Đếm số sạp liên kết trực tiếp trong 1 câu Query
+                    TourName = t.TourName, // Tự động map từ cột tour_name
+                    Description = t.Description,
+                    ImageUrl = t.ImageUrl, // Tự động map từ cột image_url
+                    IsActive = t.IsActive, // Tự động map từ cột is_active
+                    IsTopHot = t.IsTopHot, // Tự động map từ cột is_top_hot
+                    // Đếm số sạp dựa trên FK TourID trong bảng Stalls
                     StallCount = _context.Stalls.Count(s => s.TourID == t.Id)
                 })
+                .OrderByDescending(t => t.Id)
                 .ToListAsync();
         }
 
-        // ==========================================
-        // 2. LẤY CHI TIẾT THEO ID
-        // ==========================================
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Tour>> GetTour(int id)
+        // [GET] Dành cho App Mobile: Trả về Top 10 Tour Hot (Dùng cho trang chủ App)
+        [HttpGet("top-hot")]
+        public async Task<ActionResult<IEnumerable<Tour>>> GetTopHotTours()
         {
-            var tour = await _context.Tours.FindAsync(id);
+            // 1. Lấy những tour được Bot đánh dấu IsTopHot = true
+            var hotTours = await _context.Tours
+                .Where(t => t.IsActive == true && t.IsTopHot == true)
+                .ToListAsync();
 
-            if (tour == null) return NotFound();
+            // 2. FALLBACK: Nếu DB mới tinh chưa có tour hot, lấy 10 tour mới nhất để App không bị trống
+            if (!hotTours.Any())
+            {
+                hotTours = await _context.Tours
+                    .Where(t => t.IsActive == true)
+                    .OrderByDescending(t => t.Id)
+                    .Take(10)
+                    .ToListAsync();
+            }
 
-            // Xử lý an toàn dữ liệu sau khi lấy từ DB
-            tour.Description ??= "";
-            tour.ImageUrl ??= "default-tour.jpg";
-            tour.IsActive ??= true;
-
-            tour.StallCount = await _context.Stalls.CountAsync(s => s.TourID == id);
-
-            return tour;
+            return Ok(hotTours);
         }
 
-        // ==========================================
-        // 3. THÊM LỘ TRÌNH MỚI
-        // ==========================================
+        // [POST] Thêm Tour mới (Dành cho Admin)
         [HttpPost]
-        public async Task<ActionResult<Tour>> PostTour(Tour tour)
+        public async Task<IActionResult> CreateTour([FromBody] Tour tour)
         {
-            // Đảm bảo dữ liệu gửi lên không bị NULL các trường quan trọng
-            tour.IsActive ??= true;
-            tour.Description ??= "";
-            tour.ImageUrl ??= "default-tour.jpg";
-
+            // DB IDENTITY(1,1) nên không cần truyền ID
             _context.Tours.Add(tour);
             await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTour), new { id = tour.Id }, tour);
+            return Ok(tour);
         }
 
-        // ==========================================
-        // 4. CẬP NHẬT LỘ TRÌNH
-        // ==========================================
+        // [PUT] Cập nhật lộ trình
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTour(int id, Tour tour)
+        public async Task<IActionResult> UpdateTour(int id, [FromBody] Tour tour)
         {
             if (id != tour.Id) return BadRequest();
 
+            // Entity Framework sẽ tự động sinh lệnh UPDATE khớp với tên cột trong DB
             _context.Entry(tour).State = EntityState.Modified;
 
             try
@@ -92,27 +84,27 @@ namespace HeriStep.API.Controllers
                 else throw;
             }
 
-            return NoContent();
+            return Ok();
         }
 
-        // ==========================================
-        // 5. XÓA LỘ TRÌNH (Kèm ràng buộc nghiệp vụ)
-        // ==========================================
+        // [DELETE] Xóa Lộ trình (Ràng buộc ON DELETE SET NULL trong DB của bạn)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTour(int id)
         {
+            // Kiểm tra xem lộ trình có sạp nào không trước khi cho xóa (để an toàn cho dữ liệu)
+            var hasStalls = await _context.Stalls.AnyAsync(s => s.TourID == id);
+            if (hasStalls)
+            {
+                return BadRequest("Lộ trình này đang chứa sạp hàng. Vui lòng gỡ sạp trước khi xóa lộ trình!");
+            }
+
             var tour = await _context.Tours.FindAsync(id);
             if (tour == null) return NotFound();
 
-            // Ràng buộc: Không cho xóa nếu lộ trình này đang có sạp hàng hoạt động
-            if (await _context.Stalls.AnyAsync(s => s.TourID == id))
-            {
-                return BadRequest("❌ Không thể xóa! Đang có sạp hàng thuộc lộ trình này.");
-            }
-
             _context.Tours.Remove(tour);
             await _context.SaveChangesAsync();
-            return NoContent();
+
+            return Ok();
         }
     }
 }

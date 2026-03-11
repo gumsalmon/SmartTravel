@@ -1,29 +1,34 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HeriStep.Shared.Models
 {
-    [Table("Tours")] // Ánh xạ đúng tên bảng trong SQL
     public class Tour
     {
-        [Key]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "❌ Tên Tour không được để trống")]
-        // tour_name trong SQL là NOT NULL nên giữ nguyên string
         public string TourName { get; set; } = string.Empty;
 
-        // 💡 GIẢI PHÁP: Thêm dấu ? để C# chấp nhận giá trị NULL từ SQL
-        public string? Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
-        // 💡 GIẢI PHÁP: Thêm dấu ? để xử lý các tour chưa có ảnh
-        public string? ImageUrl { get; set; } = "default-tour.jpg";
+        public string? ImageUrl { get; set; }
 
-        // IsActive đã là bool? là rất chuẩn để tránh lỗi Data is Null
         public bool? IsActive { get; set; } = true;
 
-        // Thuộc tính phụ để đếm số sạp hàng trong Tour (không lưu xuống DB)
+        public bool IsTopHot { get; set; } = false;
+
+        // --- CÁC THUỘC TÍNH BỔ SUNG ĐỂ HIỂN THỊ (KHÔNG LƯU DB) ---
+
+        // 1. Đếm số lượng sạp để phân loại Ngắn/Dài
         [NotMapped]
         public int StallCount { get; set; }
+
+        // 2. 💡 QUAN TRỌNG: Danh sách chi tiết các quán trong lộ trình
+        // Dùng để hiển thị ở trang Details.cshtml
+        [NotMapped]
+        public List<PointOfInterest> Stalls { get; set; } = new();
+
+        // 3. Phân loại loại lộ trình dựa trên số lượng quán
+        [NotMapped]
+        public string DurationType => StallCount < 4 ? "Ngắn" : "Dài";
     }
 }
