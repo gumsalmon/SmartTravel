@@ -10,6 +10,8 @@ builder.Services.AddHostedService<HeriStep.API.Services.DailyTourUpdateService>(
 // 1. Cấu hình Database (Giữ nguyên)
 builder.Services.AddDbContext<HeriStep.API.Data.HeriStepDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// 💡 THÊM DÒNG NÀY: Đăng ký TranslationService có dùng HttpClient
+builder.Services.AddHttpClient<HeriStep.API.Services.TranslationService>();
 
 // --- SỬA BƯỚC 3: Đăng ký dịch vụ CORS ---
 builder.Services.AddCors(options => {

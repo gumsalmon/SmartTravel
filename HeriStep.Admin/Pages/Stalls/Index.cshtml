@@ -37,9 +37,9 @@
                     </div>
                 </form>
 
-                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createStallModal">
-                    <i class="bi bi-plus-lg me-1"></i> Thêm sạp mới
-                </button>
+                <a href="/AdminMap" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-geo-alt-fill me-1"></i> Thêm sạp trên Bản đồ
+                </a>
             </div>
         </div>
 
@@ -133,53 +133,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="createStallModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold text-primary">🆕 Thêm sạp hàng mới</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form method="post" asp-page-handler="Create">
-                    <div asp-validation-summary="All" class="text-danger small mb-3" style="list-style: none;"></div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">Chủ sạp quản lý <span class="text-danger">*</span></label>
-                        <select id="create-owner" asp-for="NewStall.OwnerId" class="form-select select2-modal" style="width: 100%;">
-                            <option value="">-- Chọn chủ sạp (Tìm theo tên/SĐT) --</option>
-                            @foreach (var owner in Model.Owners)
-                            {
-                                <option value="@owner.Id">@owner.FullName (@owner.Username)</option>
-                            }
-                        </select>
-                        <span asp-validation-for="NewStall.OwnerId" class="text-danger extra-small fw-bold"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">Tên sạp <span class="text-danger">*</span></label>
-                        <input type="text" asp-for="NewStall.Name" class="form-control rounded-3" placeholder="Ví dụ: Bún Thái Chị Lan">
-                        <span asp-validation-for="NewStall.Name" class="text-danger extra-small fw-bold"></span>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">Vĩ độ (Lat) <span class="text-danger">*</span></label>
-                            <input type="number" step="any" asp-for="NewStall.Latitude" class="form-control rounded-3">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">Kinh độ (Lng) <span class="text-danger">*</span></label>
-                            <input type="number" step="any" asp-for="NewStall.Longitude" class="form-control rounded-3">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold mt-2 shadow-sm">XÁC NHẬN LƯU SẠP</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="editStallModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
@@ -253,7 +206,7 @@
                 });
             }, 4000);
 
-            // Khởi tạo Select2 cho cả 2 Modals
+            // Khởi tạo Select2 cho Modal Edit
             function initSelect2(modalId, selectId) {
                 $(modalId).on('shown.bs.modal', function () {
                     $(selectId).select2({
@@ -265,7 +218,6 @@
                 });
             }
 
-            initSelect2('#createStallModal', '#create-owner');
             initSelect2('#editStallModal', '#edit-owner');
         });
 

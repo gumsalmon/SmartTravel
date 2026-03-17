@@ -26,57 +26,35 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-4">
-                <div class="card login-card p-4">
+                <div class="card login-card p-4 bg-white">
                     <div class="text-center mb-4">
                         <h3 class="fw-bold text-primary">HeriStep</h3>
                         <p class="text-muted">Dành cho Chủ sạp hàng</p>
                     </div>
+
                     <form method="post">
-                        <div class="mb-3">
-                            <label class="form-label">Tên đăng nhập</label>
-                            <input type="text" asp-for="Username" class="form-control rounded-pill px-3" required />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Mật khẩu</label>
-                            <input type="password" asp-for="Password" class="form-control rounded-pill px-3" required />
-                        </div>
                         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                         {
-                            <div class="alert alert-danger py-2 small">@Model.ErrorMessage</div>
+                            <div id="error-alert" class="alert alert-danger py-2 small shadow-sm mb-3">
+                                @Model.ErrorMessage
+                            </div>
                         }
-                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">ĐĂNG NHẬP</button>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small">Tên đăng nhập</label>
+                            <input type="text" asp-for="Username" class="form-control rounded-pill px-3" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small">Mật khẩu</label>
+                            <input type="password" asp-for="Password" class="form-control rounded-pill px-3" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">ĐĂNG NHẬP</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
-            <div class="card shadow-lg border-0 rounded-4 p-4">
-                <h3 class="text-center fw-bold mb-4">HeriStep Login</h3>
-                
-                <form method="post">
-                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                    {
-                        <div id="error-alert" class="alert alert-danger py-2 shadow-sm mb-3">
-                            <i class="oi oi-warning me-2"></i> @Model.ErrorMessage
-                        </div>
-                    }
-
-                    <input type="text" asp-for="Username" class="form-control mb-3 rounded-pill px-3" placeholder="Tên đăng nhập" required />
-                    <input type="password" asp-for="Password" class="form-control mb-4 rounded-pill px-3" placeholder="Mật khẩu" required />
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">ĐĂNG NHẬP</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
     <script>
         // Tự động ẩn thông báo lỗi sau 5 giây (5000ms)
         window.onload = function() {
@@ -92,4 +70,5 @@
             }
         };
     </script>
-}
+</body>
+</html>

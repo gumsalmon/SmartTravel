@@ -5,30 +5,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HeriStep.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]")] // Đường dẫn sẽ là: api/Stats
     [ApiController]
     public class StatsController : ControllerBase
     {
         private readonly HeriStepDbContext _context;
         public StatsController(HeriStepDbContext context) => _context = context;
 
-        [HttpGet]
-        public async Task<ActionResult<DashboardStats>> GetStats()
+        [HttpGet] // Gọi trực tiếp api/Stats
+        public async Task<ActionResult<DashboardStats>> GetSystemStats()
         {
-            return new DashboardStats
+            var stats = new DashboardStats
             {
-                // 1. Đếm tổng số sạp hàng đang có trong hệ thống
                 TotalStalls = await _context.Stalls.CountAsync(),
-
-                // 2. Lọc và đếm số lượng tài khoản có quyền Chủ sạp
                 TotalStallOwners = await _context.Users.CountAsync(u => u.Role == "StallOwner"),
-
-                // 3. Đếm số Lộ trình (Tours) đang trong trạng thái Hoạt động
                 TotalTours = await _context.Tours.CountAsync(t => t.IsActive == true),
-
-                // 4. Đếm số lượng Gói cước / Thiết bị đang được kích hoạt
-                ActiveDevices = await _context.Subscriptions.CountAsync(s => s.IsActive == true)
+                ActiveDevices = await _context.Subscriptions
+                    .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > DateTime.Now)),
+                TotalVisits = await _context.StallVisits.CountAsync(),
+                TotalLanguages = await _context.Languages.CountAsync()
             };
+
+            return Ok(stats);
         }
     }
 }

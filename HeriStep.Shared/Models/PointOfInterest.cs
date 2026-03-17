@@ -10,12 +10,17 @@ namespace HeriStep.Shared.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Column("id")] // 💡 THÊM DÒNG NÀY ĐỂ KHỚP 100% VỚI SQL
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
         [Column("owner_id")]
         [JsonPropertyName("ownerId")]
         public int? OwnerId { get; set; }
+
+        [Column("sort_order")]
+        [JsonPropertyName("sortOrder")]
+        public int SortOrder { get; set; } = 0;
 
         [Column("TourID")]
         [JsonPropertyName("tourId")]
@@ -24,7 +29,7 @@ namespace HeriStep.Shared.Models
         [Required(ErrorMessage = "❌ Vui lòng nhập tên sạp!")]
         [Column("name_default")]
         [JsonPropertyName("name")]
-        public string? Name { get; set; } // Thêm ? để linh hoạt hơn cho Model Binder
+        public string? Name { get; set; }
 
         [Required(ErrorMessage = "❌ Thiếu tọa độ vĩ độ!")]
         [Range(-90.0, 90.0, ErrorMessage = "❌ Vĩ độ phải từ -90 đến 90")]
@@ -54,10 +59,14 @@ namespace HeriStep.Shared.Models
         [Column("updated_at")]
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         [JsonPropertyName("updatedAt")]
-        public DateTime? UpdatedAt { get; set; } // Đã để DateTime? là rất chuẩn
+        public DateTime? UpdatedAt { get; set; }
 
         [NotMapped]
         [JsonPropertyName("ttsScript")]
         public string TtsScript { get; set; } = "Chào mừng bạn đến với sạp hàng của chúng tôi!";
+
+        [NotMapped]
+        [JsonPropertyName("ownerName")]
+        public string? OwnerName { get; set; }
     }
 }

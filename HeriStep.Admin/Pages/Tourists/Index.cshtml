@@ -1,0 +1,74 @@
+﻿@page
+@model HeriStep.Admin.Pages.Tourists.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Khách du lịch";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0 text-dark">Khách Du Lịch (Users)</h3>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-people-fill me-2"></i>Danh sách vé đã bán</h5>
+            <div class="input-group" style="width: 300px;">
+                <input type="text" class="form-control" placeholder="Tìm mã vé hoặc mã thiết bị...">
+                <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="px-4 py-3">Mã Vé</th>
+                            <th class="py-3">Mã Thiết Bị (Khách)</th>
+                            <th class="py-3">Gói Sử Dụng</th>
+                            <th class="py-3">Số Tiền</th>
+                            <th class="py-3">Ngày Kích Hoạt</th>
+                            <th class="py-3">Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tourists.Any())
+                        {
+                            foreach (var item in Model.Tourists)
+                            {
+                                <tr>
+                                    <td class="px-4 fw-bold text-dark">@item.TicketCode</td>
+                                    <td>
+                                        <span class="text-secondary"><i class="bi bi-phone me-1"></i>@item.DeviceId</span>
+                                    </td>
+                                    <td><span class="badge bg-info text-dark">@item.PackageName</span></td>
+                                    <td class="fw-bold text-success">+@item.AmountPaid.ToString("N0") đ</td>
+                                    <td class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (item.ExpiryDate > DateTime.Now)
+                                        {
+                                            <span class="badge bg-success">Đang hiệu lực</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Hết hạn</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Chưa có khách hàng nào mua vé!
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

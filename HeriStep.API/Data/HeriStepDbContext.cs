@@ -15,9 +15,11 @@ namespace HeriStep.API.Data
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<StallContent> StallContents { get; set; }
         public DbSet<Language> Languages { get; set; }
-
-        // 💡 1. THÊM BẢNG LƯU VẾT KHÁCH GHÉ THĂM (Để đếm Tour Hot)
         public DbSet<StallVisit> StallVisits { get; set; }
+
+        // 💡 ĐÃ THÊM: 2 DbSet cho phần quản lý khách du lịch
+        public DbSet<TicketPackage> TicketPackages { get; set; }
+        public DbSet<TouristTicket> TouristTickets { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,16 +42,17 @@ namespace HeriStep.API.Data
                 entity.Property(t => t.ImageUrl).HasColumnName("image_url");
                 entity.Property(t => t.Description).HasColumnName("description");
                 entity.Property(t => t.IsActive).HasColumnName("is_active");
-
-                // 💡 2. THÊM CỘT CỜ ĐÁNH DẤU TOUR HOT CHO BOT CHẠY NGẦM
                 entity.Property(t => t.IsTopHot).HasColumnName("is_top_hot");
             });
 
             // 3. Cấu hình bảng PointOfInterest (Stalls)
             modelBuilder.Entity<PointOfInterest>(entity => {
-                entity.ToTable("Stalls");
+                // Fix lỗi Trigger cho EF Core 7+
+                entity.ToTable("Stalls", tb => tb.HasTrigger("SomeTriggerName"));
+
                 entity.Property(p => p.Name).HasColumnName("name_default");
                 entity.Property(p => p.OwnerId).HasColumnName("owner_id");
+                entity.Property(p => p.SortOrder).HasColumnName("sort_order");
                 entity.Property(p => p.TourID).HasColumnName("TourID");
                 entity.Property(p => p.RadiusMeter).HasColumnName("radius_meter");
                 entity.Property(p => p.IsOpen).HasColumnName("is_open");
@@ -57,6 +60,7 @@ namespace HeriStep.API.Data
                 entity.Property(p => p.UpdatedAt).HasColumnName("updated_at");
 
                 entity.Ignore(p => p.TtsScript);
+                entity.Ignore(p => p.OwnerName); // Tránh lỗi EF cố tìm cột ảo này
             });
 
             // 4. Cấu hình bảng StallContents
@@ -94,13 +98,38 @@ namespace HeriStep.API.Data
                 entity.Property(p => p.IsSignature).HasColumnName("is_signature");
             });
 
-            // 💡 8. CẤU HÌNH BẢNG MỚI: StallVisits (Log lượt khách)
+            // 8. Cấu hình bảng StallVisits
             modelBuilder.Entity<StallVisit>(entity => {
                 entity.ToTable("StallVisits");
                 entity.HasKey(v => v.Id);
                 entity.Property(v => v.StallId).HasColumnName("stall_id");
                 entity.Property(v => v.DeviceId).HasColumnName("device_id");
                 entity.Property(v => v.VisitedAt).HasColumnName("visited_at");
+            });
+
+            // 💡 ĐÃ THÊM: 9. Cấu hình bảng TicketPackages
+            modelBuilder.Entity<TicketPackage>(entity => {
+                entity.ToTable("TicketPackages");
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.PackageName).HasColumnName("package_name");
+                entity.Property(t => t.Price).HasColumnType("decimal(18,2)").HasColumnName("price");
+                entity.Property(t => t.DurationHours).HasColumnName("duration_hours");
+                entity.Property(t => t.IsActive).HasColumnName("is_active");
+            });
+
+            // 💡 ĐÃ THÊM: 10. Cấu hình bảng TouristTickets
+            modelBuilder.Entity<TouristTicket>(entity => {
+                entity.ToTable("TouristTickets");
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.TicketCode).HasColumnName("ticket_code");
+                entity.Property(t => t.DeviceId).HasColumnName("device_id");
+                entity.Property(t => t.PackageId).HasColumnName("package_id");
+                entity.Property(t => t.AmountPaid).HasColumnType("decimal(18,2)").HasColumnName("amount_paid");
+                entity.Property(t => t.PaymentMethod).HasColumnName("payment_method");
+                entity.Property(t => t.CreatedAt).HasColumnName("created_at");
+                entity.Property(t => t.ExpiryDate).HasColumnName("expiry_date");
+
+                entity.Ignore(t => t.PackageName); // Bỏ qua biến ảo để ghép tên
             });
         }
     }

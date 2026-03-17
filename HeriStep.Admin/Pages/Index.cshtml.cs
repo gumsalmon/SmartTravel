@@ -16,13 +16,12 @@ namespace HeriStep.Admin.Pages
         {
             try
             {
-                // Gọi ĐÚNG cái đường dẫn API mà bạn vừa viết bên DashboardController
-                Stats = await _http.GetFromJsonAsync<DashboardStats>("api/Dashboard/stats") ?? new();
+                // 💡 ĐÃ SỬA: Đổi từ "api/Dashboard/stats" thành "api/Stats" cho khớp với Controller của bạn
+                Stats = await _http.GetFromJsonAsync<DashboardStats>("api/Stats") ?? new DashboardStats();
             }
-            catch (Exception ex)
+            catch
             {
-                // Ghi log lỗi nếu API không phản hồi hoặc chưa chạy
-                Console.WriteLine($"❌ Lỗi tải dữ liệu Dashboard: {ex.Message}");
+                Stats = new DashboardStats();
             }
         }
     }

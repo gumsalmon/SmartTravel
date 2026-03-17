@@ -20,7 +20,6 @@ namespace HeriStep.Admin.Pages.Stalls
         public int TotalPages { get; set; }
         public int PageSize { get; set; } = 5;
 
-        [BindProperty] public PointOfInterest NewStall { get; set; } = new();
         [BindProperty] public PointOfInterest EditStall { get; set; } = new();
 
         // ==========================================
@@ -52,43 +51,7 @@ namespace HeriStep.Admin.Pages.Stalls
         }
 
         // ==========================================
-        // 2. HÀM THÊM SẠP MỚI (POST) - CƯƠNG CHẾ VALIDATION
-        // ==========================================
-        public async Task<IActionResult> OnPostCreateAsync()
-        {
-            // BƯỚC 1: Xóa sạch mọi rác rưởi validation cũ
-            ModelState.Clear();
-
-            // BƯỚC 2: Chỉ ép buộc kiểm tra dữ liệu của NewStall
-            // Đồng thời lờ đi UpdatedAt vì SQL tự sinh
-            if (!TryValidateModel(NewStall, nameof(NewStall)))
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                TempData["Error"] = "❌ Dữ liệu Thêm mới không hợp lệ: " + string.Join(" | ", errors);
-                await OnGetAsync();
-                return Page();
-            }
-
-            try
-            {
-                NewStall.Id = 0;
-                var response = await _http.PostAsJsonAsync("api/Points", NewStall);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = $"✅ Đã thêm sạp '{NewStall.Name}' thành công!";
-                    return RedirectToPage();
-                }
-                TempData["Error"] = "❌ Lỗi API: " + await response.Content.ReadAsStringAsync();
-            }
-            catch (Exception ex) { TempData["Error"] = "❌ Lỗi hệ thống: " + ex.Message; }
-
-            await OnGetAsync();
-            return Page();
-        }
-
-        // ==========================================
-        // 3. HÀM CẬP NHẬT SẠP (PUT)
+        // 2. HÀM CẬP NHẬT SẠP (PUT)
         // ==========================================
         public async Task<IActionResult> OnPostEditAsync()
         {
@@ -120,7 +83,7 @@ namespace HeriStep.Admin.Pages.Stalls
         }
 
         // ==========================================
-        // 4. HÀM XÓA SẠP (DELETE)
+        // 3. HÀM XÓA SẠP (DELETE)
         // ==========================================
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {

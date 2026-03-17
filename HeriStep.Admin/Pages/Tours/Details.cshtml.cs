@@ -8,25 +8,101 @@ namespace HeriStep.Admin.Pages.Tours
     public class DetailsModel : PageModel
     {
         private readonly HttpClient _http;
-        public DetailsModel(HttpClient http) => _http = http;
 
+        public DetailsModel(HttpClient http)
+        {
+            _http = http;
+        }
+
+        [BindProperty]
         public Tour Tour { get; set; } = new();
+
+        // 💡 ĐÃ THÊM: Biến chứa danh sách các quán có sẵn để hiện ở Modal
+        public List<PointOfInterest> AvailableStalls { get; set; } = new();
+
+        // 💡 ĐÃ THÊM: Biến lưu cái ID quán mà bạn vừa chọn trong Modal để gửi đi
+        [BindProperty]
+        public int SelectedStallId { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
+            // 1. Lấy thông tin Lộ trình
             try
             {
-                // Gọi API lấy chi tiết Tour kèm danh sách sạp
                 var data = await _http.GetFromJsonAsync<Tour>($"api/Tours/{id}");
-                if (data == null) return NotFound();
+
+                if (data == null)
+                {
+                    TempData["Error"] = "❌ Không tìm thấy lộ trình này trong cơ sở dữ liệu.";
+                    return RedirectToPage("./Index");
+                }
 
                 Tour = data;
-                return Page();
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "❌ Lỗi kết nối đến máy chủ API. Vui lòng thử lại sau.";
+                return RedirectToPage("./Index");
+            }
+
+            // 2. 💡 Gọi API lấy danh sách Sạp tự do đổ vào Modal
+            try
+            {
+                AvailableStalls = await _http.GetFromJsonAsync<List<PointOfInterest>>("api/Tours/available-stalls") ?? new();
             }
             catch
             {
-                return RedirectToPage("/Tours/Index");
+                // Nếu API bị lỗi thì để danh sách rỗng, không làm sập trang
+                AvailableStalls = new List<PointOfInterest>();
             }
+
+            return Page();
+        }
+
+        // HÀM 1: Thêm sạp có sẵn vào lộ trình
+        public async Task<IActionResult> OnPostAddStallAsync(int tourId)
+        {
+            if (SelectedStallId <= 0) return RedirectToPage(new { id = tourId });
+
+            try
+            {
+                var response = await _http.PutAsync($"api/Tours/{tourId}/AddStall/{SelectedStallId}", null);
+                if (response.IsSuccessStatusCode)
+                    TempData["Success"] = "✅ Đã thêm sạp vào lộ trình thành công!";
+                else
+                    TempData["Error"] = "❌ Không thể thêm sạp. Vui lòng kiểm tra lại.";
+            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối đến Server."; }
+
+            return RedirectToPage(new { id = tourId });
+        }
+
+        // HÀM 2: Thay đổi thứ tự Lên/Xuống
+        public async Task<IActionResult> OnPostMoveStallAsync(int tourId, int stallId, string direction)
+        {
+            try
+            {
+                var response = await _http.PutAsync($"api/Tours/{tourId}/MoveStall/{stallId}?direction={direction}", null);
+                if (response.IsSuccessStatusCode) TempData["Success"] = "↕️ Đã cập nhật thứ tự thành công!";
+                else TempData["Error"] = "❌ Không thể thay đổi thứ tự. Dữ liệu có thể đang lỗi.";
+            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối đến Server."; }
+
+            return RedirectToPage(new { id = tourId });
+        }
+
+        // HÀM 3: Gỡ sạp khỏi lộ trình
+        public async Task<IActionResult> OnPostRemoveStallAsync(int tourId, int stallId)
+        {
+            try
+            {
+                var response = await _http.PutAsync($"api/Tours/{tourId}/RemoveStall/{stallId}", null);
+                if (response.IsSuccessStatusCode) TempData["Success"] = "✅ Đã gỡ quán khỏi lộ trình thành công!";
+                else TempData["Error"] = "❌ Không thể gỡ quán này. Có thể quán đã bị gỡ từ trước hoặc không tồn tại.";
+            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối đến máy chủ API khi gỡ sạp."; }
+
+            return RedirectToPage(new { id = tourId });
         }
     }
 }

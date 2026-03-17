@@ -1,51 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿
 using HeriStep.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
+using System.Net.Http.Json;
 
-namespace HeriStep.Merchant.Pages;
-
-public class IndexModel : PageModel
+namespace HeriStep.Merchant.Pages // (Đổi Merchant thành tên project của bạn)
 {
-    private readonly HttpClient _http;
-    public IndexModel(HttpClient http) => _http = http;
-
-    public PointOfInterest MyStall { get; set; } = new();
-    public List<Product> MyProducts { get; set; } = new();
-
-    public async Task<IActionResult> OnGetAsync()
+    [Authorize] // Bắt buộc phải đăng nhập mới được vào trang này
+    public class IndexModel : PageModel
     {
-        // BƯỚC QUAN TRỌNG: Kiểm tra Session
-        var stallId = HttpContext.Session.GetInt32("MyStallID");
-        if (stallId == null) return RedirectToPage("Login");
+        private readonly HttpClient _http;
+        public IndexModel(HttpClient http) => _http = http;
 
-        // Lấy dữ liệu hiển thị
-        MyStall = await _http.GetFromJsonAsync<PointOfInterest>($"api/Points/{stallId}") ?? new();
-        MyProducts = await _http.GetFromJsonAsync<List<Product>>($"api/Stalls/{stallId}/products") ?? new();
-        return Page();
-    }
+        public List<PointOfInterest> MyStalls { get; set; } = new();
 
-    // Xử lý thêm món ăn mới
-    public async Task<IActionResult> OnPostAddProductAsync(string pName, decimal pPrice, IFormFile pImage)
-    {
-        var stallId = HttpContext.Session.GetInt32("MyStallID");
-
-        // 1. Upload ảnh lên API
-        var content = new MultipartFormDataContent();
-        content.Add(new StreamContent(pImage.OpenReadStream()), "file", pImage.FileName);
-        var uploadRes = await _http.PostAsync("api/Points/upload", content);
-
-        if (uploadRes.IsSuccessStatusCode)
+        public async Task<IActionResult> OnGetAsync()
         {
-            // 2. Lưu thông tin món ăn vào SQL qua API
-            var newProduct = new Product
+            // 1. Lấy ID của chủ sạp đang đăng nhập từ Cookie
+            var ownerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(ownerIdString))
+                return RedirectToPage("/Login"); // Lỗi thì đuổi ra login lại
+
+            // 2. Gọi API lấy danh sách sạp
+            try
             {
-                StallId = stallId ?? 0,
-                BasePrice = pPrice,
-                ProductName = pName,
-                ImageUrl = pImage.FileName
-            };
-            await _http.PostAsJsonAsync("api/Products", newProduct);
+                MyStalls = await _http.GetFromJsonAsync<List<PointOfInterest>>($"api/Points/owner/{ownerIdString}") ?? new();
+            }
+            catch
+            {
+                MyStalls = new();
+            }
+
+            return Page();
         }
-        return RedirectToPage();
     }
 }

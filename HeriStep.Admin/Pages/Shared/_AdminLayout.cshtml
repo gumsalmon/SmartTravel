@@ -70,12 +70,20 @@
                     <i class="bi bi-shop"></i> Quản lý sạp hàng
                 </a>
 
+                <a href="/AdminMap" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/AdminMap") == true ? "active" : "")">
+                    <i class="bi bi-map"></i> Bản đồ quy hoạch
+                </a>
+
                 <a href="/Subscriptions/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Subscriptions/") == true ? "active" : "")">
                     <i class="bi bi-card-checklist"></i> Gói Subscription
                 </a>
 
                 <a href="/Users/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Users/") == true ? "active" : "")">
-                    <i class="bi bi-people"></i> Tài khoản chủ sạp
+                    <i class="bi bi-person-badge"></i> Tài khoản chủ sạp
+                </a>
+
+                <a href="/Tourists/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Tourists/") == true ? "active" : "")">
+                    <i class="bi bi-people"></i> Quản lý khách du lịch
                 </a>
             </div>
 
@@ -88,7 +96,8 @@
                         <p class="mb-0 text-white small text-truncate">Quản trị viên</p>
                     </div>
                 </div>
-                <a href="/Login" class="btn btn-outline-danger btn-sm w-100">
+
+                <a href="/Logout" class="btn btn-outline-danger btn-sm w-100">
                     <i class="bi bi-box-arrow-right"></i> Đăng xuất
                 </a>
             </div>
