@@ -1,0 +1,152 @@
+﻿@page
+@model HeriStep.Merchant.Pages.StallDashboardModel
+@{
+    ViewData["Title"] = "Quản lý Sạp";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary">⚙️ Bảng điều khiển Sạp</h2>
+        <a asp-page="/Index" class="btn btn-outline-secondary">⬅ Quay lại danh sách</a>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="stallTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
+                📝 Thông tin & Lời chào (TTS)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="menu-tab" data-bs-toggle="tab" data-bs-target="#menu" type="button" role="tab">
+                🍜 Quản lý Thực đơn (AI)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="stallTabContent">
+
+        <div class="tab-pane fade show active" id="info" role="tabpanel">
+            <div class="card p-4 shadow-sm" style="max-width: 700px;">
+                <form id="editStallForm">
+                    <input type="hidden" id="editStallId" value="@Model.CurrentStallId" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên Sạp</label>
+                        <input type="text" id="stallName" class="form-control" value="@Model.StallInfo.Name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Link Hình Ảnh (Banner sạp)</label>
+                        <input type="text" id="stallImage" class="form-control" value="@Model.StallInfo.ImageUrl" placeholder="https://...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Trạng thái hoạt động</label>
+                        <select class="form-select" id="stallStatus">
+                            <option value="true" selected="@(Model.StallInfo.IsOpen ? "selected" : null)">🟢 Đang mở cửa</option>
+                            <option value="false" selected="@(!Model.StallInfo.IsOpen ? "selected" : null)">🔴 Tạm đóng cửa</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-success">🔊 Lời chào tự động (TTS Script)</label>
+                        <div class="form-text mb-2">Lời chào này sẽ được AI đọc lên khi du khách đi ngang qua sạp của bạn.</div>
+                        <textarea id="stallTts" class="form-control" rows="3" placeholder="Xin chào! Mời bạn ghé thử món bánh xèo miền Tây siêu ngon của chúng tôi...">@Model.StallInfo.TtsScript</textarea>
+                    </div>
+
+                    <button type="button" class="btn btn-success fw-bold w-100" onclick="updateStallInfo()">
+                        💾 LƯU THÔNG TIN SẠP
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="menu" role="tabpanel">
+            <div class="card p-4 shadow-sm" style="max-width: 700px;">
+                <div class="alert alert-info py-2 small">
+                    ✨ <b>Tính năng AI:</b> Thêm món bằng tiếng Việt, hệ thống sẽ tự dịch ra 9 ngôn ngữ (Anh, Hàn, Nhật...)
+                </div>
+                <form id="addMenuForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên món ăn (Tiếng Việt)</label>
+                        <input type="text" id="foodName" class="form-control" placeholder="VD: Bánh xèo miền Tây" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Giá bán (VNĐ)</label>
+                        <input type="number" id="foodPrice" class="form-control" placeholder="VD: 35000" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary fw-bold" id="btnSubmitMenu">
+                        ✨ THÊM MÓN & DỊCH TỰ ĐỘNG
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // 1. Hàm Xử lý Lưu Thông tin sạp & TTS
+    async function updateStallInfo() {
+        const stallId = document.getElementById('editStallId').value;
+        const reqData = {
+            id: parseInt(stallId),
+            name: document.getElementById('stallName').value,
+            imageUrl: document.getElementById('stallImage').value,
+            isOpen: document.getElementById('stallStatus').value === 'true',
+            ttsScript: document.getElementById('stallTts').value
+        };
+
+        try {
+            // (Bạn sẽ cần viết thêm 1 API PUT /api/Stalls để nhận dữ liệu này)
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqData)
+            });
+
+            if (response.ok) alert("✅ Đã cập nhật thông tin sạp & TTS thành công!");
+            else alert("❌ Lỗi cập nhật (API chưa sẵn sàng)!");
+        } catch (err) {
+            alert("❌ Không kết nối được API!");
+        }
+    }
+
+    // 2. Hàm Xử lý Thêm món & Dịch (Như cũ)
+    document.getElementById('addMenuForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitMenu');
+        btn.innerHTML = '⏳ Đang dùng AI dịch thuật...';
+        btn.disabled = true;
+
+        const requestData = {
+            stallId: parseInt(document.getElementById('editStallId').value),
+            nameVi: document.getElementById('foodName').value,
+            price: parseFloat(document.getElementById('foodPrice').value),
+            imageUrl: "",
+            isSignature: false
+        };
+
+        try {
+            const response = await fetch('http://127.0.0.1:5297/api/Products/add-with-translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                alert("🎉 Tuyệt vời! Món ăn đã được lưu và tự động dịch ra 9 thứ tiếng!");
+                document.getElementById('foodName').value = '';
+                document.getElementById('foodPrice').value = '';
+            } else {
+                alert("❌ Có lỗi xảy ra khi thêm món.");
+            }
+        } catch (error) {
+            alert("❌ Không kết nối được API!");
+        } finally {
+            btn.innerHTML = '✨ THÊM MÓN & DỊCH TỰ ĐỘNG';
+            btn.disabled = false;
+        }
+    });
+</script>

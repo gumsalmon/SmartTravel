@@ -1,23 +1,32 @@
 ﻿using HeriStep.API.Data;
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-[Route("api/[controller]")]
-[ApiController]
-public class StatsController : ControllerBase
+namespace HeriStep.API.Controllers
 {
-    private readonly HeriStepDbContext _context;
-    public StatsController(HeriStepDbContext context) => _context = context;
-
-    [HttpGet]
-    public async Task<ActionResult<DashboardStats>> GetStats()
+    [Route("api/[controller]")] // Đường dẫn sẽ là: api/Stats
+    [ApiController]
+    public class StatsController : ControllerBase
     {
-        return new DashboardStats
+        private readonly HeriStepDbContext _context;
+        public StatsController(HeriStepDbContext context) => _context = context;
+
+        [HttpGet] // Gọi trực tiếp api/Stats
+        public async Task<ActionResult<DashboardStats>> GetSystemStats()
         {
-            TotalCustomers = await _context.Users.CountAsync(u => u.Role == "Customer"),
-            TotalStalls = await _context.Stalls.CountAsync(),
-            TotalScans = 8920, // Sau này lấy từ bảng Logs
-            TotalRevenue = 24500000 // Sau này lấy từ bảng Payments
-        };
+            var stats = new DashboardStats
+            {
+                TotalStalls = await _context.Stalls.CountAsync(),
+                TotalStallOwners = await _context.Users.CountAsync(u => u.Role == "StallOwner"),
+                TotalTours = await _context.Tours.CountAsync(t => t.IsActive == true),
+                ActiveDevices = await _context.Subscriptions
+                    .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > DateTime.Now)),
+                TotalVisits = await _context.StallVisits.CountAsync(),
+                TotalLanguages = await _context.Languages.CountAsync()
+            };
+
+            return Ok(stats);
+        }
     }
 }

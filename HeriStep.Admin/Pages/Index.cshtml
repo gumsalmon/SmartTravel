@@ -1,5 +1,5 @@
 ﻿@page
-@model IndexModel
+@model HeriStep.Admin.Pages.IndexModel
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Tổng quan hệ thống";
@@ -11,15 +11,14 @@
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-primary-light text-primary">
-                        <i class="bi bi-people-fill"></i>
+                        <i class="bi bi-shop"></i>
                     </div>
                     <div class="text-end">
-                        <span class="text-success small fw-bold">+12% ↑</span>
-                        <div class="text-muted extra-small">Tháng này</div>
+                        <div class="text-muted extra-small">Toàn hệ thống</div>
                     </div>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Tổng Khách hàng</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalCustomers.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tổng số sạp hàng</h6>
+                <h2 class="fw-bold mb-0 text-primary">@Model.Stats.TotalStalls.ToString("N0")</h2>
             </div>
         </div>
         <div class="col-md-6">
@@ -28,12 +27,9 @@
                     <div class="stat-icon bg-success-light text-success">
                         <i class="bi bi-person-badge-fill"></i>
                     </div>
-                    <div class="text-end">
-                        <span class="text-muted small">@Model.Stalls.Count sạp</span>
-                    </div>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Tổng Chủ sạp</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalStalls</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tài khoản Chủ sạp</h6>
+                <h2 class="fw-bold mb-0 text-success">@Model.Stats.TotalStallOwners.ToString("N0")</h2>
             </div>
         </div>
     </div>
@@ -43,92 +39,25 @@
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-warning-light text-warning">
-                        <i class="bi bi-qr-code-scan"></i>
+                        <i class="bi bi-map"></i>
                     </div>
-                    <span class="text-danger small fw-bold">-2% ↓</span>
+                    <span class="text-success small fw-bold">Đang hoạt động</span>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Lượt quét QR</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalScans.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Lộ trình Tour</h6>
+                <h2 class="fw-bold mb-0 text-warning">@Model.Stats.TotalTours.ToString("N0")</h2>
             </div>
         </div>
         <div class="col-md-6">
             <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div class="stat-icon bg-info-light text-info">
-                        <i class="bi bi-currency-dollar"></i>
+                        <i class="bi bi-cpu"></i>
                     </div>
-                    <span class="text-muted small">VND</span>
+                    <span class="text-muted small">Đang kích hoạt</span>
                 </div>
-                <h6 class="text-muted mb-1 small uppercase fw-bold">Doanh thu phí</h6>
-                <h2 class="fw-bold mb-0">@Model.Stats.TotalRevenue.ToString("N0")</h2>
+                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Thiết bị TTS</h6>
+                <h2 class="fw-bold mb-0 text-info">@Model.Stats.ActiveDevices.ToString("N0")</h2>
             </div>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-shop me-2"></i> Quản lý sạp hàng</h4>
-            <div class="d-flex gap-2">
-                <div class="input-group input-group-sm" style="width: 250px;">
-                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control bg-light border-0 ps-0" placeholder="Tìm tên sạp...">
-                </div>
-                <select class="form-select form-select-sm w-auto border-0 bg-light shadow-none">
-                    <option value="">Tất cả Tours</option>
-                    @foreach (var t in Model.Tours)
-                    {
-                        <option value="@t.Id">@t.TourName</option>
-                    }
-                </select>
-                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#stallModal">
-                    <i class="bi bi-plus-lg me-1"></i> Thêm sạp
-                </button>
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4 border-0">Ảnh</th>
-                        <th class="border-0">Thông tin sạp</th>
-                        <th class="border-0 text-center">Tọa độ</th>
-                        <th class="border-0">Tour</th>
-                        <th class="border-0 text-center">Trạng thái</th>
-                        <th class="border-0 text-center">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model.Stalls)
-                    {
-                        <tr>
-                            <td class="ps-4">
-                                <img src="http://localhost:5297/images/@s.ImageUrl"
-                                     class="rounded-3 shadow-sm object-fit-cover"
-                                     width="48" height="48"
-                                     onerror="this.src='/images/default-stall.jpg'">
-                            </td>
-                            <td>
-                                <div class="fw-bold text-dark">@s.Name</div>
-                                <div class="text-muted extra-small">Cập nhật: @s.UpdatedAt.ToString("dd/MM/yyyy")</div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-muted fw-normal">@s.Latitude, @s.Longitude</span>
-                            </td>
-                            <td><span class="badge bg-blue-light text-blue rounded-pill px-3">ID: @s.TourID</span></td>
-                            <td class="text-center">
-                                <div class="form-check form-switch d-inline-block">
-                                    <input class="form-check-input" type="checkbox" @(s.IsOpen ? "checked" : "")>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <button class="btn btn-action-round text-primary me-1"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-action-round text-danger" onclick="confirmDelete(@s.Id, '@s.Name')"><i class="bi bi-trash3"></i></button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
         </div>
     </div>
 </div>

@@ -1,236 +1,180 @@
-��USE [VinhKhanhTourDB]
+-- ==========================================
+-- SCRIPT TẠO DATABASE VINHKHANHTOUR (FINAL VERSION)
+-- Tính năng: Đa ngôn ngữ, Quản lý sạp, Bán vé khách du lịch (1 tuần), Thống kê
+-- ==========================================
+
+USE master;
 GO
-/****** Object:  Table [dbo].[Languages]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
+
+-- Xóa database cũ nếu đã tồn tại để làm mới hoàn toàn
+IF DB_ID('VinhKhanhTourDB') IS NOT NULL
+BEGIN
+    ALTER DATABASE VinhKhanhTourDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE VinhKhanhTourDB;
+END
 GO
-SET QUOTED_IDENTIFIER ON
+
+CREATE DATABASE VinhKhanhTourDB;
 GO
-CREATE TABLE [dbo].[Languages](
-	[lang_code] [nvarchar](10) NOT NULL,
-	[lang_name] [nvarchar](50) NOT NULL,
-	[flag_icon_url] [nvarchar](255) NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[lang_code] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
+USE VinhKhanhTourDB;
 GO
-/****** Object:  Table [dbo].[Products]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
+
+-- ==========================================
+-- PHẦN 1: TẠO CÁC BẢNG ĐỘC LẬP (KHÔNG CÓ KHÓA NGOẠI)
+-- ==========================================
+
+-- 1. Bảng Ngôn ngữ
+CREATE TABLE Languages (
+    lang_code NVARCHAR(10) PRIMARY KEY,
+    lang_name NVARCHAR(50) NOT NULL,
+    flag_icon_url NVARCHAR(255)
+);
+
+-- 2. Bảng Lộ trình Tour
+CREATE TABLE Tours (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    tour_name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX),
+    image_url NVARCHAR(500),
+    is_active BIT DEFAULT 1,
+    is_top_hot BIT DEFAULT 0
+);
+
+-- 3. Bảng Tài khoản (Admin & Chủ sạp)
+CREATE TABLE Users (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    username NVARCHAR(50) NOT NULL UNIQUE,
+    password_hash NVARCHAR(255) NOT NULL,
+    full_name NVARCHAR(100),
+    role NVARCHAR(20) DEFAULT 'StallOwner'
+);
+
+-- 4. Bảng Gói Vé Du Khách (Ticket Packages)
+CREATE TABLE TicketPackages (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    package_name NVARCHAR(100) NOT NULL,
+    price DECIMAL(18, 2) NOT NULL,
+    duration_hours INT NOT NULL, -- Thời hạn tính bằng giờ (VD: 168h = 1 tuần)
+    is_active BIT DEFAULT 1,
+    updated_at DATETIME DEFAULT GETDATE()
+);
+
+-- 5. Bảng Gói Cước Thiết Bị Chủ Sạp (Subscriptions)
+CREATE TABLE Subscriptions (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    device_id NVARCHAR(255) NOT NULL,
+    activation_code NVARCHAR(100) UNIQUE,
+    start_date DATETIME DEFAULT GETDATE(),
+    expiry_date DATETIME, 
+    is_active BIT DEFAULT 1
+);
+
+-- ==========================================
+-- PHẦN 2: TẠO CÁC BẢNG CÓ LIÊN KẾT KHÓA NGOẠI (CẤP 1)
+-- ==========================================
+
+-- 6. Bảng Sạp Hàng (Liên kết Users và Tours)
+CREATE TABLE Stalls (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    owner_id INT NULL,
+    TourID INT NULL,
+    name_default NVARCHAR(255) NOT NULL,
+    latitude FLOAT NOT NULL,
+    longitude FLOAT NOT NULL,
+    radius_meter INT DEFAULT 50,
+    is_open BIT DEFAULT 1,
+    image_thumb NVARCHAR(500),
+    sort_order INT DEFAULT 0 NOT NULL,
+    updated_at DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT CHK_Stall_Coords CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
+    CONSTRAINT FK_Stalls_Users FOREIGN KEY (owner_id) REFERENCES Users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT FK_Stalls_Tours FOREIGN KEY (TourID) REFERENCES Tours(id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- 7. Bảng Lịch Sử Mua Vé Của Khách (Liên kết TicketPackages)
+CREATE TABLE TouristTickets (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    ticket_code NVARCHAR(50) UNIQUE NOT NULL, 
+    device_id NVARCHAR(255) NOT NULL,
+    package_id INT NOT NULL,
+    amount_paid DECIMAL(18,2) NOT NULL, 
+    payment_method NVARCHAR(50) DEFAULT 'Mock_VNPay',
+    created_at DATETIME DEFAULT GETDATE(),
+    expiry_date DATETIME NOT NULL, 
+
+    CONSTRAINT FK_Tickets_Packages FOREIGN KEY (package_id) REFERENCES TicketPackages(id) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- PHẦN 3: TẠO CÁC BẢNG LIÊN KẾT CẤP 2 (CHI TIẾT SẠP)
+-- ==========================================
+
+-- 8. Bảng Nội dung thuyết minh TTS (Liên kết Stalls và Languages)
+CREATE TABLE StallContents (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL,
+    lang_code NVARCHAR(10) NOT NULL,
+    tts_script NVARCHAR(1000),
+    is_active BIT DEFAULT 1,
+
+    CONSTRAINT FK_StallContent_Stall FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT FK_StallContent_Lang FOREIGN KEY (lang_code) REFERENCES Languages(lang_code) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT UQ_Stall_Lang UNIQUE (stall_id, lang_code)
+);
+
+-- 9. Bảng Món Ăn / Sản Phẩm
+CREATE TABLE Products (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL,
+    base_price DECIMAL(18, 2) DEFAULT 0,
+    image_url NVARCHAR(500),
+    is_signature BIT DEFAULT 0,
+
+    CONSTRAINT FK_Product_Stall FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 10. Bảng Thống Kê Lượt Khách Ghé Sạp
+CREATE TABLE StallVisits (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL,
+    device_id NVARCHAR(255),
+    visited_at DATETIME DEFAULT GETDATE(),
+    
+    CONSTRAINT FK_StallVisits_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 11. Bảng Dịch Thuật Món Ăn
+CREATE TABLE ProductTranslations (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id INT NOT NULL,
+    lang_code NVARCHAR(10) NOT NULL,
+    product_name NVARCHAR(255) NOT NULL,
+    product_desc NVARCHAR(500),
+
+    CONSTRAINT FK_ProdTrans_Prod FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT FK_ProdTrans_Lang FOREIGN KEY (lang_code) REFERENCES Languages(lang_code) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT UQ_Prod_Lang UNIQUE (product_id, lang_code)
+);
+
+-- ==========================================
+-- PHẦN 4: TRIGGER CẬP NHẬT THỜI GIAN VÀ DỮ LIỆU MỒI
+-- ==========================================
 GO
-SET QUOTED_IDENTIFIER ON
+
+-- Trigger cho bảng Stalls
+CREATE TRIGGER TRG_UpdateStallTime
+ON Stalls
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(updated_at)
+    BEGIN
+        UPDATE s
+        SET updated_at = GETDATE()
+        FROM Stalls s
+        INNER JOIN inserted i ON s.id = i.id;
+    END
+END;
 GO
-CREATE TABLE [dbo].[Products](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[stall_id] [int] NOT NULL,
-	[base_price] [decimal](18, 2) NULL,
-	[image_url] [nvarchar](500) NULL,
-	[is_signature] [bit] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[ProductTranslations]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[ProductTranslations](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[product_id] [int] NOT NULL,
-	[lang_code] [nvarchar](10) NOT NULL,
-	[product_name] [nvarchar](255) NOT NULL,
-	[product_desc] [nvarchar](500) NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
- CONSTRAINT [UQ_Prod_Lang] UNIQUE NONCLUSTERED 
-(
-	[product_id] ASC,
-	[lang_code] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[StallContents]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[StallContents](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[stall_id] [int] NOT NULL,
-	[lang_code] [nvarchar](10) NOT NULL,
-	[tts_script] [nvarchar](1000) NULL,
-	[is_active] [bit] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
- CONSTRAINT [UQ_Stall_Lang] UNIQUE NONCLUSTERED 
-(
-	[stall_id] ASC,
-	[lang_code] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[Stalls]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[Stalls](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[TourID] [int] NULL,
-	[name_default] [nvarchar](255) NOT NULL,
-	[latitude] [float] NOT NULL,
-	[longitude] [float] NOT NULL,
-	[radius_meter] [int] NULL,
-	[is_open] [bit] NULL,
-	[image_thumb] [nvarchar](500) NULL,
-	[updated_at] [datetime] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[Subscriptions]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[Subscriptions](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[device_id] [nvarchar](255) NOT NULL,
-	[activation_code] [nvarchar](100) NULL,
-	[start_date] [datetime] NULL,
-	[expiry_date] [datetime] NULL,
-	[is_active] [bit] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
-UNIQUE NONCLUSTERED 
-(
-	[activation_code] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[Tours]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[Tours](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[tour_name] [nvarchar](255) NOT NULL,
-	[description] [nvarchar](max) NULL,
-	[image_url] [nvarchar](500) NULL,
-	[is_active] [bit] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[Users]    Script Date: 3/5/2026 3:35:38 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[Users](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[username] [nvarchar](50) NOT NULL,
-	[password_hash] [nvarchar](255) NOT NULL,
-	[full_name] [nvarchar](100) NULL,
-	[role] [nvarchar](20) NULL,
-	[stall_id] [int] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[id] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
-UNIQUE NONCLUSTERED 
-(
-	[username] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[Products] ADD  DEFAULT ((0)) FOR [base_price]
-GO
-ALTER TABLE [dbo].[Products] ADD  DEFAULT ((0)) FOR [is_signature]
-GO
-ALTER TABLE [dbo].[StallContents] ADD  DEFAULT ((1)) FOR [is_active]
-GO
-ALTER TABLE [dbo].[Stalls] ADD  DEFAULT ((50)) FOR [radius_meter]
-GO
-ALTER TABLE [dbo].[Stalls] ADD  DEFAULT ((1)) FOR [is_open]
-GO
-ALTER TABLE [dbo].[Stalls] ADD  DEFAULT (getdate()) FOR [updated_at]
-GO
-ALTER TABLE [dbo].[Subscriptions] ADD  DEFAULT (getdate()) FOR [start_date]
-GO
-ALTER TABLE [dbo].[Subscriptions] ADD  DEFAULT ((1)) FOR [is_active]
-GO
-ALTER TABLE [dbo].[Tours] ADD  DEFAULT ((1)) FOR [is_active]
-GO
-ALTER TABLE [dbo].[Users] ADD  DEFAULT ('StallOwner') FOR [role]
-GO
-ALTER TABLE [dbo].[Products]  WITH CHECK ADD  CONSTRAINT [FK_Product_Stall] FOREIGN KEY([stall_id])
-REFERENCES [dbo].[Stalls] ([id])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[Products] CHECK CONSTRAINT [FK_Product_Stall]
-GO
-ALTER TABLE [dbo].[ProductTranslations]  WITH CHECK ADD  CONSTRAINT [FK_ProdTrans_Lang] FOREIGN KEY([lang_code])
-REFERENCES [dbo].[Languages] ([lang_code])
-GO
-ALTER TABLE [dbo].[ProductTranslations] CHECK CONSTRAINT [FK_ProdTrans_Lang]
-GO
-ALTER TABLE [dbo].[ProductTranslations]  WITH CHECK ADD  CONSTRAINT [FK_ProdTrans_Prod] FOREIGN KEY([product_id])
-REFERENCES [dbo].[Products] ([id])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[ProductTranslations] CHECK CONSTRAINT [FK_ProdTrans_Prod]
-GO
-ALTER TABLE [dbo].[StallContents]  WITH CHECK ADD  CONSTRAINT [FK_StallContent_Lang] FOREIGN KEY([lang_code])
-REFERENCES [dbo].[Languages] ([lang_code])
-GO
-ALTER TABLE [dbo].[StallContents] CHECK CONSTRAINT [FK_StallContent_Lang]
-GO
-ALTER TABLE [dbo].[StallContents]  WITH CHECK ADD  CONSTRAINT [FK_StallContent_Stall] FOREIGN KEY([stall_id])
-REFERENCES [dbo].[Stalls] ([id])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[StallContents] CHECK CONSTRAINT [FK_StallContent_Stall]
-GO
-ALTER TABLE [dbo].[Stalls]  WITH CHECK ADD  CONSTRAINT [FK_Stalls_Tours] FOREIGN KEY([TourID])
-REFERENCES [dbo].[Tours] ([id])
-ON DELETE SET NULL
-GO
-ALTER TABLE [dbo].[Stalls] CHECK CONSTRAINT [FK_Stalls_Tours]
-GO
-ALTER TABLE [dbo].[Users]  WITH CHECK ADD  CONSTRAINT [FK_Users_Stalls] FOREIGN KEY([stall_id])
-REFERENCES [dbo].[Stalls] ([id])
-ON DELETE SET NULL
-GO
-ALTER TABLE [dbo].[Users] CHECK CONSTRAINT [FK_Users_Stalls]
-GO
-ALTER TABLE [dbo].[Products]  WITH CHECK ADD  CONSTRAINT [CHK_Price] CHECK  (([base_price]>=(0)))
-GO
-ALTER TABLE [dbo].[Products] CHECK CONSTRAINT [CHK_Price]
-GO
-ALTER TABLE [dbo].[ProductTranslations]  WITH CHECK ADD  CONSTRAINT [CHK_ProdDesc_Length] CHECK  ((len([product_desc])<=(500)))
-GO
-ALTER TABLE [dbo].[ProductTranslations] CHECK CONSTRAINT [CHK_ProdDesc_Length]
-GO
-ALTER TABLE [dbo].[StallContents]  WITH CHECK ADD  CONSTRAINT [CHK_TTS_Length] CHECK  ((len([tts_script])<=(1000)))
-GO
-ALTER TABLE [dbo].[StallContents] CHECK CONSTRAINT [CHK_TTS_Length]
-GO
-ALTER TABLE [dbo].[Stalls]  WITH CHECK ADD  CONSTRAINT [CHK_Stall_Coords] CHECK  (([latitude]>=(-90) AND [latitude]<=(90) AND ([longitude]>=(-180) AND [longitude]<=(180))))
-GO
-ALTER TABLE [dbo].[Stalls] CHECK CONSTRAINT [CHK_Stall_Coords]
-GO

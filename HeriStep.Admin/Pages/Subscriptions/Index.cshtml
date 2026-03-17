@@ -1,0 +1,70 @@
+﻿@page
+@model HeriStep.Admin.Pages.Subscriptions.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Gói Subscription";
+}
+
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm rounded-4 bg-white">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription thiết bị</h4>
+            <button class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addSubModal">
+                <i class="bi bi-plus-circle me-1"></i> Kích hoạt thiết bị mới
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Device ID</th>
+                        <th>Mã kích hoạt</th>
+                        <th>Ngày bắt đầu</th>
+                        <th>Ngày hết hạn</th>
+                        <th class="text-center">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sub in Model.SubList)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold">@sub.DeviceId</td>
+                            <td><code>@sub.ActivationCode</code></td>
+                            <td>@sub.StartDate?.ToString("dd/MM/yyyy")</td>
+                            <td class="@(sub.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
+                                @sub.ExpiryDate?.ToString("dd/MM/yyyy")
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(sub.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill">
+                                    @(sub.IsActive == true ? "Đang chạy" : "Hết hạn")
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSubModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-3 text-primary">Kích hoạt thiết bị</h5>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mã định danh thiết bị (Device ID)</label>
+                        <input type="text" asp-for="NewSub.DeviceId" class="form-control" required placeholder="VD: HS-DEV-001">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mã kích hoạt (Activation Code)</label>
+                        <input type="text" asp-for="NewSub.ActivationCode" class="form-control" required placeholder="Mã 10 ký tự">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">XÁC NHẬN KÍCH HOẠT</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
