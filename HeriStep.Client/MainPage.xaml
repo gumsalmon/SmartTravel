@@ -1,52 +1,79 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:shared="clr-namespace:HeriStep.Shared;assembly=HeriStep.Shared"
+             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
              x:Class="HeriStep.Client.MainPage"
-             Title="Heri Step - Du Lịch"
-             BackgroundColor="#F0F0F0">
+             Title="Heri Map Enterprise"
+             BackgroundColor="#F5F5F5">
 
-    <RefreshView Command="{Binding LoadDataCommand}" IsRefreshing="{Binding IsBusy}">
+    <Grid>
 
-        <CollectionView ItemsSource="{Binding Points}" Margin="15">
-            <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="20"/>
-            </CollectionView.ItemsLayout>
+        <mapsui:MapControl x:Name="mapControl" 
+                           VerticalOptions="Fill" 
+                           HorizontalOptions="Fill"/>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="shared:PointOfInterest">
+        <Button Text="🔄 Làm mới" 
+                Clicked="Button_Clicked"
+                BackgroundColor="White"
+                TextColor="#333333"
+                FontSize="14"
+                FontAttributes="Bold"
+                CornerRadius="25"
+                HeightRequest="50"
+                Padding="20,0"
+                VerticalOptions="Start" 
+                HorizontalOptions="End" 
+                Margin="20"
+                Shadow="{Shadow Brush=Black, Offset='2,2', Opacity=0.2}"/>
 
-                    <Frame CornerRadius="20" 
-                           HasShadow="True" 
-                           Padding="0" 
-                           BorderColor="White"
-                           HeightRequest="300"
-                           IsClippedToBounds="True">
+        <Border x:Name="bottomSheet"
+                TranslationY="300" 
+                VerticalOptions="End"
+                BackgroundColor="White"
+                StrokeShape="RoundRectangle 25,25,0,0"
+                StrokeThickness="0"
+                Padding="25" 
+                Margin="0"
+                HeightRequest="280"
+                Shadow="{Shadow Brush=Black, Offset='0,-10', Opacity=0.15}">
 
-                        <Grid RowDefinitions="2*,Auto">
-                            <Image Grid.Row="0" 
-                                   Source="{Binding ImageUrl}" 
-                                   Aspect="AspectFill"
-                                   BackgroundColor="LightGray"/>
+            <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="12">
 
-                            <StackLayout Grid.Row="1" Padding="15" BackgroundColor="White">
-                                <Label Text="{Binding Name}" 
-                                       FontSize="20" 
-                                       FontAttributes="Bold" 
-                                       TextColor="Black"/>
+                <BoxView HeightRequest="5" WidthRequest="40" Color="#E0E0E0" 
+                         CornerRadius="2.5" HorizontalOptions="Center"/>
 
-                                <Label Text="{Binding Description}" 
-                                       FontSize="14" 
-                                       TextColor="Gray" 
-                                       MaxLines="2" 
-                                       LineBreakMode="TailTruncation"
-                                       Margin="0,5,0,0"/>
-                            </StackLayout>
-                        </Grid>
-                    </Frame>
+                <Label x:Name="lblStallName" Grid.Row="1"
+                       Text="Đang tải tên quán..." 
+                       FontSize="22" 
+                       FontAttributes="Bold" 
+                       TextColor="#1a1a1a"
+                       MaxLines="2" LineBreakMode="TailTruncation"/>
 
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </RefreshView>
+                <VerticalStackLayout Grid.Row="2" Spacing="5">
+                    <Label x:Name="lblStallCategory" 
+                           Text="Loại: ..." 
+                           FontSize="15" 
+                           TextColor="#666666"/>
+
+                    <Label x:Name="lblStallLevel" 
+                           Text="..." 
+                           FontSize="15" 
+                           FontAttributes="Bold"/>
+                </VerticalStackLayout>
+
+                <Button Grid.Row="3" 
+                        Text="Xem Chi Tiết &amp; Menu ➔" 
+                        BackgroundColor="#FF4500" 
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        FontSize="16"
+                        CornerRadius="12"
+                        HeightRequest="55"
+                        Clicked="OnViewDetailsClicked"
+                        Shadow="{Shadow Brush=#FF4500, Offset='0,4', Opacity=0.4}"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+
 </ContentPage>

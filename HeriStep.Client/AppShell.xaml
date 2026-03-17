@@ -5,10 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:HeriStep.Client"
     xmlns:views="clr-namespace:HeriStep.Client.Views"
-    Title="HeriStep - Du Lịch Thông Minh">
+    Title="HeriStep - Du Lịch Thông Minh"
+    FlyoutBehavior="Disabled">
+
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate views:LoginPage}"
+        Route="LoginPage" />
 
     <TabBar>
-
         <Tab Title="Bản đồ" Icon="dotnet_bot.svg">
             <ShellContent
                 Title="Bản đồ"
@@ -22,7 +27,6 @@
                 ContentTemplate="{DataTemplate local:MainPage}"
                 Route="MainPage" />
         </Tab>
-
     </TabBar>
 
 </Shell>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.ShopDetailPage"
+             Title="Chi tiết quán"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <Grid>
+            <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&amp;fit=crop&amp;w=800&amp;q=80" 
+       HeightRequest="280" 
+       Aspect="AspectFill" 
+       VerticalOptions="Start"/>
+
+            <ImageButton Source="dotnet_bot.png" BackgroundColor="White" Opacity="0.8"
+                         CornerRadius="20" WidthRequest="40" HeightRequest="40"
+                         HorizontalOptions="Start" VerticalOptions="Start" Margin="15"
+                         Clicked="BackButton_Clicked"/>
+
+            <Border Margin="0,240,0,0" BackgroundColor="White" Padding="20,25,20,40"
+                    StrokeShape="RoundRectangle 30,30,0,0" StrokeThickness="0">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,-5" Radius="10" Opacity="0.1"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+
+                    <Label Text="{Binding Name}" FontSize="26" FontAttributes="Bold" TextColor="Black"/>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="⭐ 4.8 (120+ đánh giá)" FontSize="14" TextColor="#FFA000" FontAttributes="Bold"/>
+                        <Label Text="• Vĩnh Khánh, Quận 4" FontSize="14" TextColor="Gray"/>
+                    </HorizontalStackLayout>
+
+                    <BoxView HeightRequest="1" Color="#EEEEEE" Margin="0,10"/>
+
+                    <Label Text="Món Ăn Nổi Bật 🌶️" FontSize="18" FontAttributes="Bold" TextColor="Black"/>
+
+                    <Frame CornerRadius="15" Padding="15" HasShadow="False" BackgroundColor="#F9F9F9" BorderColor="#EEEEEE">
+                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Ốc Hương Rang Muối" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
+                            <Label Grid.Row="1" Grid.Column="0" Text="Ngon bá cháy bọ chét" FontSize="13" TextColor="Gray"/>
+                            <Label Grid.Row="0" Grid.Column="1" Text="120.000đ" FontAttributes="Bold" TextColor="#1A73E8" VerticalOptions="Center"/>
+                        </Grid>
+                    </Frame>
+
+                    <Frame CornerRadius="15" Padding="15" HasShadow="False" BackgroundColor="#F9F9F9" BorderColor="#EEEEEE">
+                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Sò Huyết Cháy Tỏi" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
+                            <Label Grid.Row="1" Grid.Column="0" Text="Đậm đà hương vị biển" FontSize="13" TextColor="Gray"/>
+                            <Label Grid.Row="0" Grid.Column="1" Text="90.000đ" FontAttributes="Bold" TextColor="#1A73E8" VerticalOptions="Center"/>
+                        </Grid>
+                    </Frame>
+
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ScrollView>
+
+</ContentPage>

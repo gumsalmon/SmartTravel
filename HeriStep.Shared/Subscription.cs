@@ -11,5 +11,5 @@ public class Subscription
     public bool IsActive { get; set; } = true;
 
     [NotMapped]
-    public string? StallName { get; set; } // Để hiển thị lên web Admin
+    public string StallName { get; set; } // Để hiển thị lên web Admin
 }

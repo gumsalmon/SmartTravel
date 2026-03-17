@@ -1,4 +1,6 @@
 ﻿using HeriStep.Client.ViewModels;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace HeriStep.Client.Views;
 
@@ -9,11 +11,7 @@ public partial class HomePage : ContentPage
     public HomePage(HomeViewModel viewModel)
     {
         InitializeComponent();
-
-        // Gán ViewModel vào biến private để sử dụng trong OnAppearing
         _viewModel = viewModel;
-
-        // Cầu nối kết nối UI (XAML) với Logic (ViewModel)
         BindingContext = _viewModel;
     }
 
@@ -21,11 +19,16 @@ public partial class HomePage : ContentPage
     {
         base.OnAppearing();
 
-        // Chỉ tải dữ liệu nếu danh sách hiện tại đang trống 
-        // Điều này giúp tiết kiệm 4G/Pin cho khách du lịch khi sử dụng app
+        // Chỉ cần gọi API lấy data để hiển thị lên mấy cái thẻ trượt ngang là đủ
         if (_viewModel.Points.Count == 0)
         {
             await _viewModel.LoadPointsAsync();
         }
+    }
+    // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
+    private async void OnMapButtonClicked(object sender, EventArgs e)
+    {
+        // Nhảy sang trang MapPage, đồng thời "xách" theo danh sách 15 quán ốc đưa cho MapPage vẽ
+        await Navigation.PushAsync(new MapPage(_viewModel.Points));
     }
 }

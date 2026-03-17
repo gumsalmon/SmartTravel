@@ -1,4 +1,15 @@
-﻿using HeriStep.Client.ViewModels;
+﻿using Mapsui.Tiling;
+using Mapsui.UI.Maui;
+using Mapsui;
+using Mapsui.Projections;
+using HeriStep.Shared;
+using System.Net.Http.Json;
+using Mapsui.Layers;
+using Mapsui.Styles;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using HeriStep.Client.ViewModels;
 
 namespace HeriStep.Client
 {
@@ -12,21 +23,11 @@ namespace HeriStep.Client
         {
             InitializeComponent();
 
+            // 1. Gán thẳng cái viewModel có sẵn vào giao diện (Xóa luôn dòng new bị lỗi đỏ)
+            BindingContext = viewModel;
+
+            // 2. Lưu lại vào biến cục bộ để xài cho các hàm khác ở dưới (Hết luôn lỗi vàng)
             _viewModel = viewModel;
-            // Gắn bộ não cho giao diện
-            BindingContext = _viewModel;
-        }
-
-        // QUAN TRỌNG: Hàm này sẽ tự chạy mỗi khi bạn mở hoặc quay lại trang này
-        protected override async void OnAppearing()
-        {
-            base.OnAppearing();
-
-            // Gọi lệnh nạp 10 sạp hàng từ API
-            if (_viewModel != null)
-            {
-                await _viewModel.LoadPointsAsync();
-            }
         }
     }
 }

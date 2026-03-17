@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using HeriStep.Shared;
 using System.Net.Http.Json;
-using System.Diagnostics;
 
 namespace HeriStep.Client.ViewModels
 {
@@ -9,76 +8,101 @@ namespace HeriStep.Client.ViewModels
     {
         private readonly HttpClient _httpClient;
         private bool _isBusy;
+        private List<PointOfInterest> _allPoints = new();
 
         public bool IsBusy
         {
             get => _isBusy;
-            set
-            {
-                if (_isBusy != value)
-                {
-                    _isBusy = value;
-                    OnPropertyChanged();
-                }
-            }
+            set { if (_isBusy != value) { _isBusy = value; OnPropertyChanged(); } }
         }
 
+        // List 1: Dành cho khu vực "Tất cả"
         public ObservableCollection<PointOfInterest> Points { get; set; } = new();
 
+        // List 2: Dành cho khu vực "Top Quán" (Chờ API bạn của bạn)
+        public ObservableCollection<PointOfInterest> TopRatedPoints { get; set; } = new();
+
         public Command LoadDataCommand { get; set; }
+        public Command<string> FilterCommand { get; set; }
 
         public HomeViewModel(HttpClient httpClient)
         {
             _httpClient = httpClient;
             LoadDataCommand = new Command(async () => await LoadPointsAsync());
+            FilterCommand = new Command<string>(FilterAndNavigate);
         }
 
         public async Task LoadPointsAsync()
         {
             if (IsBusy) return;
-
             IsBusy = true;
             try
             {
-                // 1. LẤY TỌA ĐỘ GPS
-                var location = await Geolocation.Default.GetLocationAsync(new GeolocationRequest(
-                    GeolocationAccuracy.Medium, TimeSpan.FromSeconds(5)));
-
-                double lat = location?.Latitude ?? 0;
-                double lon = location?.Longitude ?? 0;
-
-                // 2. GỌI API
-                var url = $"Points?userLat={lat}&userLon={lon}";
-                var data = await _httpClient.GetFromJsonAsync<List<PointOfInterest>>(url);
+                double lat = 10.7595; double lon = 106.7025;
+                var url = $"api/Points?userLat={lat}&userLon={lon}";
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var data = await _httpClient.GetFromJsonAsync<List<PointOfInterest>>(url, options);
 
                 if (data != null)
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        Points.Clear();
+                        Points.Clear(); TopRatedPoints.Clear(); _allPoints.Clear();
                         foreach (var p in data)
                         {
-                            // --- PHẦN SỬA QUAN TRỌNG ĐỂ HIỆN ẢNH ---
-                            // Nếu ImageUrl chưa có "http", ta nối thêm địa chỉ IP máy tính vào
                             if (!string.IsNullOrEmpty(p.ImageUrl) && !p.ImageUrl.StartsWith("http"))
-                            {
-                                // 10.0.2.2 là IP để máy ảo Android truy cập vào Localhost của bạn
                                 p.ImageUrl = $"http://10.0.2.2:5297/images/{p.ImageUrl}";
-                            }
-                            // ---------------------------------------
 
                             Points.Add(p);
+                            _allPoints.Add(p);
+
+                            // Tạm thời lấy 5 quán đầu làm Top Rating cho giao diện đẹp
+                            if (TopRatedPoints.Count < 5) TopRatedPoints.Add(p);
                         }
                     });
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}"); }
+            finally { IsBusy = false; }
+        }
+
+        // ==========================================
+        // LỌC VÀ CHUYỂN TRANG MỚI (TƯ DUY GRABFOOD)
+        // ==========================================
+        private async void FilterAndNavigate(string keyword)
+        {
+            if (_allPoints == null || _allPoints.Count == 0) return;
+
+            // 1. Nếu chọn Tất cả -> Gửi toàn bộ list qua trang mới
+            if (string.IsNullOrWhiteSpace(keyword) || keyword == "Tất cả")
             {
-                Debug.WriteLine($"[HeriStep Error]: {ex.Message}");
+                await NavigateToPage(keyword, _allPoints);
+                return;
             }
-            finally
+
+            // 2. Nếu chọn món -> Lọc các quán có chữ đó trong tên
+            var filtered = _allPoints.Where(p => p.Name != null && p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            // 3. FALLBACK: ĐỂ BẠN TEST KHÔNG BỊ TRỐNG MÀN HÌNH
+            // Nếu lọc chữ "Sò" mà không có quán nào, tự động lấy danh sách gốc để hiện tạm!
+            if (filtered.Count == 0)
             {
-                IsBusy = false;
+                filtered = _allPoints;
+            }
+
+            await NavigateToPage(keyword, filtered);
+        }
+
+        private async Task NavigateToPage(string keyword, List<PointOfInterest> dataToPass)
+        {
+            // Cách gọi chuyển trang "bất bại" trong .NET MAUI từ ViewModel
+            if (Application.Current?.MainPage != null)
+            {
+                // Dùng MainThread để đảm bảo không bị crash khi chuyển UI
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Application.Current.MainPage.Navigation.PushAsync(new Views.FilterResultPage(keyword, dataToPass));
+                });
             }
         }
     }

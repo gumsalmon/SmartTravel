@@ -1,21 +1,32 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace HeriStep.Shared
 {
-    [Table("Stalls")] // Ánh xạ đúng tên bảng trong SQL Server
     public class PointOfInterest
     {
+        [JsonPropertyName("isOpen")]
+        public bool IsOpen { get; set; }
+
+        [JsonPropertyName("updatedAt")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonPropertyName("tourID")]
+        public int TourID { get; set; }
+
+        [JsonPropertyName("ttsScript")]
+        public string TtsScript { get; set; }
+
         [Key]
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [Column("name_default")]
         [JsonPropertyName("name")]
-        // Khởi tạo string.Empty để hết cảnh báo Non-nullable
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; }
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
 
         [JsonPropertyName("latitude")]
         public double Latitude { get; set; }
@@ -23,32 +34,16 @@ namespace HeriStep.Shared
         [JsonPropertyName("longitude")]
         public double Longitude { get; set; }
 
-        [Column("radius_meter")]
         [JsonPropertyName("radius")]
-        public int Radius { get; set; }
+        public double Radius { get; set; }
 
-        [Column("image_thumb")]
         [JsonPropertyName("imageUrl")]
-        public string ImageUrl { get; set; } = string.Empty;
+        public string ImageUrl { get; set; }
 
-        [Column("is_open")]
-        [JsonPropertyName("isOpen")]
-        public bool IsOpen { get; set; }
+        [JsonPropertyName("audioUrl")]
+        public string AudioUrl { get; set; }
 
-        [Column("updated_at")]
-        [JsonPropertyName("updatedAt")]
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
-
-        [Column("TourID")] // Khớp với lệnh Rename trong SQL của bạn
-        [JsonPropertyName("tourId")]
-        public int? TourID { get; set; }
-
-        // Sửa lỗi 'Invalid column name TtsScript'
-        // Nếu trong SQL cột này tên là tts_script, hãy khai báo ở đây
-        [Column("tts_script")]
-        [JsonPropertyName("ttsScript")]
-        public string TtsScript { get; set; } = string.Empty;
-
-        // XÓA DÒNG DbSet<User> TẠI ĐÂY - NÓ PHẢI Ở TRONG DbContext
+        [JsonPropertyName("priority")]
+        public int Priority { get; set; }
     }
 }

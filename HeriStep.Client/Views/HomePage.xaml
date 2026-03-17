@@ -1,25 +1,188 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:components="clr-namespace:HeriStep.Client.Views"
              x:Class="HeriStep.Client.Views.HomePage"
-             Title="Trang Chủ HeriStep">
+             Title="Trang Chủ"
+             BackgroundColor="#F5F7FA">
 
-	<Grid>
-		<ScrollView>
-			<VerticalStackLayout Spacing="0">
-				<BoxView HeightRequest="300" Color="LightGray" />
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="15">
 
-				<components:ShopView />
-			</VerticalStackLayout>
-		</ScrollView>
+            <Border StrokeShape="RoundRectangle 25" StrokeThickness="0" BackgroundColor="White" HeightRequest="50" Padding="15,0">
+                <Grid ColumnDefinitions="Auto, *, Auto" VerticalOptions="Center">
 
-		<ActivityIndicator IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           VerticalOptions="Center"
-                           HorizontalOptions="Center"
-                           Color="DeepSkyBlue"
-                           HeightRequest="50"
-                           WidthRequest="50" />
-	</Grid>
+                    <Label Text="🔍" FontSize="18" Grid.Column="0" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" 
+                                                  CommandParameter="{Binding Text, Source={x:Reference searchEntry}}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+
+                    <Entry x:Name="searchEntry" 
+                           Placeholder="Tìm đồ ăn, tên quán..." 
+                           BackgroundColor="Transparent" 
+                           Grid.Column="1" Margin="10,0"
+                           ReturnCommand="{Binding FilterCommand}"
+                           ReturnCommandParameter="{Binding Text, Source={x:Reference searchEntry}}" />
+
+                    <Label Text="👤" FontSize="20" Grid.Column="2" VerticalOptions="Center"/>
+                </Grid>
+            </Border>
+
+            <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="White" Padding="15">
+                <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*,*,*,*" RowSpacing="20" ColumnSpacing="10">
+
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Ốc" />
+                        </VerticalStackLayout.GestureRecognizers>
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#FFF3E0" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🐌" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Ốc Hương" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Sò" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#FFEBEE" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🦪" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Sò Huyết" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="2" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Cua" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#FBE9E7" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🦀" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Cua Ghẹ" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="3" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Tuộc" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#F3E5F5" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🐙" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Bạch Tuộc" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Lẩu" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#E8F5E9" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🍲" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Lẩu &amp; Nướng" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Mực" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#E0F7FA" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🦑" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Mực Nướng" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="2" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FilterCommand}" CommandParameter="Tất cả" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#FFFDE7" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🍽️" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Tất cả" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#424242"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="3" HorizontalOptions="Center" Spacing="8">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnMapButtonClicked" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Border StrokeShape="RoundRectangle 18" StrokeThickness="0" BackgroundColor="#E3F2FD" HeightRequest="55" WidthRequest="55" Padding="0">
+                            <Label Text="🗺️" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Bản Đồ" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1565C0"/>
+                    </VerticalStackLayout>
+
+                </Grid>
+            </Border>
+
+            <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" Padding="0" HeightRequest="130">
+                <Image Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=2070&amp;auto=format&amp;fit=crop" Aspect="AspectFill" />
+            </Border>
+
+            <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
+                <Label Grid.Column="0" Text="🔥 Top Quán 5 Sao" FontAttributes="Bold" FontSize="18" TextColor="#D32F2F" VerticalOptions="Center" />
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding TopRatedPoints}" HeightRequest="220">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" WidthRequest="160" Padding="0" BackgroundColor="White">
+                            <VerticalStackLayout>
+                                <Image Source="{Binding ImageUrl}" HeightRequest="110" Aspect="AspectFill" BackgroundColor="#E0E0E0" />
+                                <VerticalStackLayout Padding="10" Spacing="5">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14" TextColor="Black" MaxLines="1" LineBreakMode="TailTruncation" />
+                                    <HorizontalStackLayout Spacing="5">
+                                        <Label Text="⭐ 5.0" FontSize="12" TextColor="#FFA000" FontAttributes="Bold"/>
+                                        <Label Text="• 999+ lượt" FontSize="12" TextColor="Gray"/>
+                                    </HorizontalStackLayout>
+                                    <Border StrokeShape="RoundRectangle 5" StrokeThickness="0" BackgroundColor="#FFF8E1" Padding="5,2" HorizontalOptions="Start">
+                                        <Label Text="👑 Quán Yêu Thích" FontSize="10" TextColor="#F57F17" FontAttributes="Bold" />
+                                    </Border>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center" Margin="0,10,0,0">
+                <Label Grid.Column="0" Text="Khám phá tất cả" FontAttributes="Bold" FontSize="18" TextColor="Black" VerticalOptions="Center" />
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding Points}" HeightRequest="220">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" WidthRequest="160" Padding="0" BackgroundColor="White">
+                            <VerticalStackLayout>
+                                <Image Source="{Binding ImageUrl}" HeightRequest="110" Aspect="AspectFill" BackgroundColor="#E0E0E0" />
+                                <VerticalStackLayout Padding="10" Spacing="5">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14" TextColor="Black" MaxLines="1" LineBreakMode="TailTruncation" />
+                                    <HorizontalStackLayout Spacing="5">
+                                        <Label Text="⭐ 4.5" FontSize="12" TextColor="#FFA000" FontAttributes="Bold"/>
+                                        <Label Text="• Đang mở" FontSize="12" TextColor="Green"/>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="Green" HorizontalOptions="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

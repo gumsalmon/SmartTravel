@@ -31,11 +31,11 @@ namespace HeriStep.API.Controllers
                                     Name = s.Name,
                                     Latitude = s.Latitude,
                                     Longitude = s.Longitude,
-                                    Radius = s.Radius,
+                                    Radius = s.Radius ?? 0,
                                     ImageUrl = s.ImageUrl,
                                     IsOpen = s.IsOpen,
                                     UpdatedAt = s.UpdatedAt,
-                                    TourID = s.TourID,
+                                    TourID = s.TourID ?? 0,
                                     TtsScript = c.TtsScript // Lấy dữ liệu từ bảng nội dung
                                 }).ToListAsync();
 
@@ -47,9 +47,15 @@ namespace HeriStep.API.Controllers
         public async Task<ActionResult<PointOfInterest>> PostPoint(PointOfInterest point)
         {
             // BƯỚC A: Lưu thông tin kỹ thuật vào bảng Stalls
-            _context.Stalls.Add(point);
-            await _context.SaveChangesAsync(); // Sau dòng này, point.Id sẽ tự động có giá trị từ SQL
+            // Tuyệt chiêu dùng JSON để tự động copy dữ liệu từ Point sang Stall
+            var jsonCode = System.Text.Json.JsonSerializer.Serialize(point);
+            var newStall = System.Text.Json.JsonSerializer.Deserialize<HeriStep.Shared.Stall>(jsonCode);
 
+            _context.Stalls.Add(newStall!);
+            await _context.SaveChangesAsync(); // Lưu xong, newStall.Id sẽ tự sinh ra từ SQL
+
+            // Cực kỳ quan trọng: Gán ID mới tạo ngược lại cho point để Bước B xài
+            point.Id = newStall!.Id;
             // BƯỚC B: Lưu nội dung thuyết minh vào bảng StallContents
             var content = new StallContent
             {

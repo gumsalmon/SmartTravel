@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.DetailsPage"
+             Title="Chi Tiết Địa Điểm"
+             BackgroundColor="#1E1E1E">
+    <ScrollView>
+        <VerticalStackLayout Spacing="0">
+
+            <Image Source="{Binding ImageUrl}" 
+                   Aspect="AspectFill"
+                   HeightRequest="300"
+                   HorizontalOptions="Fill"/>
+
+            <VerticalStackLayout Padding="20" Spacing="15">
+
+                <Label Text="{Binding Name}" 
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="White" />
+
+                <BoxView HeightRequest="1" Color="Gray" Opacity="0.5"/>
+
+                <Label Text="{Binding Description}" 
+                       FontSize="16"
+                       LineHeight="1.5"
+                       TextColor="#E0E0E0" />
+
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
