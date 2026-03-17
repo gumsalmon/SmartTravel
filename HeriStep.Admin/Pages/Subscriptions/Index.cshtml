@@ -6,10 +6,18 @@
 }
 
 <div class="container-fluid py-4">
-    <div class="card border-0 shadow-sm rounded-4 bg-white">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
             <h4 class="fw-bold m-0 text-dark"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription thiết bị</h4>
-            <button class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addSubModal">
+            <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addSubModal">
                 <i class="bi bi-plus-circle me-1"></i> Kích hoạt thiết bị mới
             </button>
         </div>
@@ -18,25 +26,29 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4">Device ID</th>
-                        <th>Mã kích hoạt</th>
-                        <th>Ngày bắt đầu</th>
-                        <th>Ngày hết hạn</th>
-                        <th class="text-center">Trạng thái</th>
+                        <th class="ps-4 py-3 border-0">Device ID</th>
+                        <th class="py-3 border-0">Mã kích hoạt</th>
+                        <th class="py-3 border-0">Ngày bắt đầu</th>
+                        <th class="py-3 border-0">Ngày hết hạn</th>
+                        <th class="text-center py-3 border-0">Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody>
+                    @if (!Model.SubList.Any())
+                    {
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có thiết bị nào được ghi nhận.</td></tr>
+                    }
                     @foreach (var sub in Model.SubList)
                     {
                         <tr>
-                            <td class="ps-4 fw-bold">@sub.DeviceId</td>
-                            <td><code>@sub.ActivationCode</code></td>
+                            <td class="ps-4 fw-bold text-dark">@sub.DeviceId</td>
+                            <td><code class="text-primary fw-bold">@sub.ActivationCode</code></td>
                             <td>@sub.StartDate?.ToString("dd/MM/yyyy")</td>
                             <td class="@(sub.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
                                 @sub.ExpiryDate?.ToString("dd/MM/yyyy")
                             </td>
                             <td class="text-center">
-                                <span class="badge @(sub.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill">
+                                <span class="badge @(sub.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill px-3">
                                     @(sub.IsActive == true ? "Đang chạy" : "Hết hạn")
                                 </span>
                             </td>
@@ -45,24 +57,55 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- 💡 BỘ PHÂN TRANG (PAGINATION) -->
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        @* Nút Trang Trước *@
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage - 1)">Trước</a>
+                        </li>
+
+                        @* Danh sách số trang *@
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@i">@i</a>
+                            </li>
+                        }
+
+                        @* Nút Trang Sau *@
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage + 1)">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
     </div>
 </div>
 
+<!-- Modal Add (Giữ nguyên phần modal cũ của sếp nhưng thêm bo góc mượt hơn) -->
 <div class="modal fade" id="addSubModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
             <form method="post" asp-page-handler="Create">
                 <div class="modal-body p-4">
-                    <h5 class="fw-bold mb-3 text-primary">Kích hoạt thiết bị</h5>
+                    <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-rocket-takeoff me-2"></i>Kích hoạt thiết bị</h5>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Mã định danh thiết bị (Device ID)</label>
-                        <input type="text" asp-for="NewSub.DeviceId" class="form-control" required placeholder="VD: HS-DEV-001">
+                        <label class="form-label small fw-bold text-muted">Mã định danh thiết bị (Device ID)</label>
+                        <input type="text" asp-for="NewSub.DeviceId" class="form-control rounded-3" required placeholder="VD: HS-DEV-001">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Mã kích hoạt (Activation Code)</label>
-                        <input type="text" asp-for="NewSub.ActivationCode" class="form-control" required placeholder="Mã 10 ký tự">
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Mã kích hoạt (Activation Code)</label>
+                        <input type="text" asp-for="NewSub.ActivationCode" class="form-control rounded-3 text-uppercase" required placeholder="VD: ACT-XXXXX">
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">XÁC NHẬN KÍCH HOẠT</button>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow">XÁC NHẬN KÍCH HOẠT</button>
                 </div>
             </form>
         </div>

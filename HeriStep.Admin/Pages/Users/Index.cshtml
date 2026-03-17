@@ -8,24 +8,23 @@
 <div class="container-fluid py-4">
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
             <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
-
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
     <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
             <h4 class="fw-bold m-0 text-dark"><i class="bi bi-people-fill me-2 text-primary"></i> Tài khoản chủ sạp</h4>
-            <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <button class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addUserModal">
                 <i class="bi bi-person-plus me-1"></i> Cấp tài khoản mới
             </button>
         </div>
@@ -34,17 +33,17 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4">Tài khoản (SĐT)</th>
-                        <th>Họ tên chủ sạp</th>
-                        <th class="text-center">Số sạp quản lý</th>
-                        <th class="text-center">Quyền hạn</th>
-                        <th class="text-center">Thao tác</th>
+                        <th class="ps-4 py-3">Tài khoản (SĐT)</th>
+                        <th class="py-3">Họ tên chủ sạp</th>
+                        <th class="text-center py-3">Số sạp quản lý</th>
+                        <th class="text-center py-3">Quyền hạn</th>
+                        <th class="text-center py-3">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.UserList.Any())
                     {
-                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có tài khoản chủ sạp nào.</td></tr>
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có tài khoản chủ sạp nào được tạo.</td></tr>
                     }
                     @foreach (var user in Model.UserList)
                     {
@@ -52,25 +51,25 @@
                             <td class="ps-4 fw-bold text-dark">@user.Username</td>
                             <td>@user.FullName</td>
                             <td class="text-center">
-                                <span class="badge @(user.StallCount > 0 ? "bg-success-subtle text-success" : "bg-light text-muted") rounded-pill px-3">
+                                <span class="badge @(user.StallCount > 0 ? "bg-success-subtle text-success border border-success" : "bg-light text-muted border") rounded-pill px-3">
                                     @user.StallCount sạp
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-info-subtle text-info border border-info-secondary px-3">@user.Role</span>
+                                <span class="badge bg-info-subtle text-info border border-info px-3">@user.Role</span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <form method="post" asp-page-handler="ResetPassword" asp-route-id="@user.Id"
                                           onsubmit="return confirm('Mật khẩu của @user.FullName sẽ quay về 123456. Tiếp tục?')">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning border-0 rounded-circle" title="Reset mật khẩu">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning rounded-circle" style="width: 32px; height: 32px;" title="Reset mật khẩu">
                                             <i class="bi bi-shield-lock"></i>
                                         </button>
                                     </form>
 
                                     <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id"
                                           onsubmit="return confirm('Xóa tài khoản này sẽ làm sạp hàng của họ bị vô chủ. Tiếp tục?')">
-                                        <button class="btn btn-sm btn-outline-danger border-0 rounded-circle"><i class="bi bi-trash3"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-circle" style="width: 32px; height: 32px;"><i class="bi bi-trash3"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -79,36 +78,59 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- 💡 BỘ PHÂN TRANG (PAGINATION) -->
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Users/Index?PageNumber=@(Model.CurrentPage - 1)">Trước</a>
+                        </li>
+
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link shadow-none" href="/Users/Index?PageNumber=@i">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Users/Index?PageNumber=@(Model.CurrentPage + 1)">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
     </div>
 </div>
 
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+<!-- Modal Add User (Giữ nguyên cấu trúc của sếp, chỉ chỉnh lại style cho mượt) -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold">Cấp tài khoản chủ sạp</h5>
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary">Cấp tài khoản mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
-
                 <form method="post" asp-page-handler="Create">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Số điện thoại (Dùng đăng nhập) <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-bold text-muted">Số điện thoại (ID đăng nhập)</label>
                         <input type="text" asp-for="NewUser.Username" class="form-control rounded-3" placeholder="09xxxxxxx" required>
-                        <span asp-validation-for="NewUser.Username" class="text-danger extra-small fw-bold"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Họ tên chủ sạp <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-bold text-muted">Họ tên chủ sạp</label>
                         <input type="text" asp-for="NewUser.FullName" class="form-control rounded-3" placeholder="Nguyễn Văn A" required>
-                        <span asp-validation-for="NewUser.FullName" class="text-danger extra-small fw-bold"></span>
                     </div>
                     <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Mật khẩu khởi tạo</label>
-                        <input type="text" asp-for="NewUser.Password" class="form-control rounded-3" placeholder="Mặc định: 123456">
-                        <div class="form-text small mt-2">💡 Mật khẩu sẽ được tự động băm bảo mật.</div>
+                        <label class="form-label small fw-bold text-muted">Mật khẩu (Để trống nếu dùng 123456)</label>
+                        <input type="password" asp-for="NewUser.Password" class="form-control rounded-3" placeholder="******">
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">XÁC NHẬN CẤP TÀI KHOẢN</button>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">TẠO TÀI KHOẢN</button>
                 </form>
             </div>
         </div>
@@ -118,11 +140,8 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Tự động ẩn thông báo sau 4 giây để Admin không phải bấm tắt
         window.setTimeout(function() {
-            $(".alert").fadeTo(500, 0).slideUp(500, function(){
-                $(this).remove();
-            });
+            $(".alert").fadeTo(500, 0).slideUp(500, function(){ $(this).remove(); });
         }, 4000);
     </script>
 }

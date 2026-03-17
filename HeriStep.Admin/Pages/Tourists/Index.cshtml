@@ -10,14 +10,21 @@
         <h3 class="fw-bold m-0 text-dark">Khách Du Lịch (Users)</h3>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4">
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
         <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold m-0 text-primary"><i class="bi bi-people-fill me-2"></i>Danh sách vé đã bán</h5>
-            <div class="input-group" style="width: 300px;">
-                <input type="text" class="form-control" placeholder="Tìm mã vé hoặc mã thiết bị...">
-                <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
-            </div>
+
+            <!-- 💡 Form Tìm kiếm đã được kích hoạt logic -->
+            <form method="get" class="input-group" style="width: 350px;">
+                <input type="text" name="SearchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Tìm mã vé hoặc mã thiết bị...">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a href="/Tourists/Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+                }
+            </form>
         </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -41,17 +48,17 @@
                                     <td>
                                         <span class="text-secondary"><i class="bi bi-phone me-1"></i>@item.DeviceId</span>
                                     </td>
-                                    <td><span class="badge bg-info text-dark">@item.PackageName</span></td>
+                                    <td><span class="badge bg-info-subtle text-dark border border-info">@item.PackageName</span></td>
                                     <td class="fw-bold text-success">+@item.AmountPaid.ToString("N0") đ</td>
                                     <td class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         @if (item.ExpiryDate > DateTime.Now)
                                         {
-                                            <span class="badge bg-success">Đang hiệu lực</span>
+                                            <span class="badge bg-success-subtle text-success border border-success px-3 rounded-pill">Đang hiệu lực</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger">Hết hạn</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger px-3 rounded-pill">Hết hạn</span>
                                         }
                                     </td>
                                 </tr>
@@ -62,13 +69,40 @@
                             <tr>
                                 <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                    Chưa có khách hàng nào mua vé!
+                                    Không tìm thấy dữ liệu vé phù hợp!
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- 💡 BỘ PHÂN TRANG (FOOTER) -->
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="/Tourists/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm">Trước</a>
+                        </li>
+
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="/Tourists/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="/Tourists/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
         </div>
     </div>
 </div>

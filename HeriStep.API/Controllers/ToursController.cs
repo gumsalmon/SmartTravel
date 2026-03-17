@@ -2,10 +2,6 @@
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HeriStep.API.Controllers
 {
@@ -16,6 +12,7 @@ namespace HeriStep.API.Controllers
         private readonly HeriStepDbContext _context;
         public ToursController(HeriStepDbContext context) => _context = context;
 
+        // 1. LẤY DANH SÁCH - ĐÃ THÊM ĐẾM SẠP CHUẨN
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Tour>>> GetAllTours()
         {
@@ -34,6 +31,7 @@ namespace HeriStep.API.Controllers
                 .ToListAsync();
         }
 
+        // 2. CHI TIẾT LỘ TRÌNH (Dùng cho trang Details.cshtml)
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Tour>> GetTourDetails(int id)
         {
@@ -58,13 +56,14 @@ namespace HeriStep.API.Controllers
             return Ok(tour);
         }
 
+        // 3. LẤY TẤT CẢ SẠP (Để chọn thêm vào lộ trình)
         [HttpGet("available-stalls")]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetAvailableStalls()
         {
-            var stalls = await _context.Stalls.ToListAsync();
-            return Ok(stalls);
+            return await _context.Stalls.ToListAsync();
         }
 
+        // 4. THÊM SẠP VÀO LỘ TRÌNH
         [HttpPut("{tourId}/AddStall/{stallId}")]
         public async Task<IActionResult> AddStallToTour(int tourId, int stallId)
         {
@@ -82,19 +81,14 @@ namespace HeriStep.API.Controllers
             return Ok();
         }
 
+        // 5. DI CHUYỂN THỨ TỰ SẠP (Up/Down)
         [HttpPut("{tourId}/MoveStall/{stallId}")]
         public async Task<IActionResult> MoveStall(int tourId, int stallId, [FromQuery] string direction)
         {
             var stalls = await _context.Stalls
                 .Where(s => s.TourID == tourId)
                 .OrderBy(s => s.SortOrder)
-                .ThenBy(s => s.Id)
                 .ToListAsync();
-
-            for (int i = 0; i < stalls.Count; i++)
-            {
-                stalls[i].SortOrder = i + 1;
-            }
 
             var currentIndex = stalls.FindIndex(s => s.Id == stallId);
             if (currentIndex < 0) return NotFound();
@@ -110,9 +104,10 @@ namespace HeriStep.API.Controllers
                 await _context.SaveChangesAsync();
                 return Ok();
             }
-            return BadRequest("Không thể di chuyển theo hướng này.");
+            return BadRequest("Không thể di chuyển.");
         }
 
+        // 6. GỠ SẠP KHỎI LỘ TRÌNH
         [HttpPut("{tourId}/RemoveStall/{stallId}")]
         public async Task<IActionResult> RemoveStallFromTour(int tourId, int stallId)
         {
@@ -125,6 +120,7 @@ namespace HeriStep.API.Controllers
             return Ok();
         }
 
+        // 7. LẤY TOP HOT (Dùng cho Mobile/Client)
         [HttpGet("top-hot")]
         public async Task<ActionResult<IEnumerable<Tour>>> GetTopHotTours()
         {
@@ -134,15 +130,12 @@ namespace HeriStep.API.Controllers
 
             if (!hotTours.Any())
             {
-                hotTours = await _context.Tours
-                    .Where(t => t.IsActive == true)
-                    .OrderByDescending(t => t.Id)
-                    .Take(10)
-                    .ToListAsync();
+                hotTours = await _context.Tours.Where(t => t.IsActive == true).Take(10).ToListAsync();
             }
             return Ok(hotTours);
         }
 
+        // 8. CRUD CƠ BẢN
         [HttpPost]
         public async Task<IActionResult> CreateTour([FromBody] Tour tour)
         {
@@ -156,78 +149,64 @@ namespace HeriStep.API.Controllers
         {
             if (id != tour.Id) return BadRequest();
             _context.Entry(tour).State = EntityState.Modified;
-
-            try { await _context.SaveChangesAsync(); }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Tours.Any(e => e.Id == id)) return NotFound();
-                else throw;
-            }
+            await _context.SaveChangesAsync();
             return Ok();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTour(int id)
         {
-            var hasStalls = await _context.Stalls.AnyAsync(s => s.TourID == id);
-            if (hasStalls) return BadRequest("Lộ trình này đang chứa sạp hàng. Vui lòng gỡ sạp trước khi xóa!");
-
             var tour = await _context.Tours.FindAsync(id);
             if (tour == null) return NotFound();
+
+            // Gỡ sạp ra trước khi xóa Tour để tránh lỗi Database
+            var stalls = await _context.Stalls.Where(s => s.TourID == id).ToListAsync();
+            foreach (var s in stalls) s.TourID = null;
 
             _context.Tours.Remove(tour);
             await _context.SaveChangesAsync();
             return Ok();
         }
 
-        // ==========================================
-        // TÍNH NĂNG MỚI: TẠO 10 TOUR NGẪU NHIÊN
-        // ==========================================
+        // 9. TẠO 10 TOUR NGẪU NHIÊN (Nút "Tạo dữ liệu ảo")
         [HttpPost("generate-daily")]
         public async Task<IActionResult> GenerateDailyTours()
         {
-            // 1. Xóa toàn bộ Lộ trình cũ
-            var oldTours = await _context.Tours.ToListAsync();
-            if (oldTours.Any())
+            var tourCount = await _context.Tours.CountAsync();
+            if (tourCount >= 10)
             {
-                _context.Tours.RemoveRange(oldTours);
-                await _context.SaveChangesAsync();
+                return BadRequest("Hệ thống đã có đủ lộ trình rồi, sếp đừng xóa tội nghiệp em!");
             }
+            var allStalls = await _context.Stalls.ToListAsync();
+            foreach (var s in allStalls) { s.TourID = null; s.SortOrder = 0; }
 
-            // 2. Lấy danh sách tất cả các sạp ĐANG HOẠT ĐỘNG
-            var activeStalls = await _context.Stalls.Where(s => s.IsOpen).ToListAsync();
+            var oldTours = await _context.Tours.ToListAsync();
+            _context.Tours.RemoveRange(oldTours);
+            await _context.SaveChangesAsync();
+
             var random = new Random();
-
-            // 3. Tạo 10 Lộ trình mới
             for (int i = 1; i <= 10; i++)
             {
                 var newTour = new Tour
                 {
-                    TourName = $"Lộ trình Khám phá ẩm thực #{i}",
-                    Description = "Lộ trình ngẫu nhiên được hệ thống đề xuất riêng cho ngày hôm nay.",
+                    TourName = $"Lộ trình Ẩm thực #{i}",
+                    Description = "Hệ thống tự động đề xuất.",
                     IsActive = true,
-                    IsTopHot = (i <= 2) // Cho 2 tour đầu tiên làm Tour HOT
+                    IsTopHot = (i <= 3)
                 };
-
                 _context.Tours.Add(newTour);
-                await _context.SaveChangesAsync(); // Lưu để lấy ID của Tour mới
+                await _context.SaveChangesAsync();
 
-                // 4. Bốc ngẫu nhiên 3 đến 5 sạp hàng gán vào Tour này
-                int numberOfStalls = random.Next(3, 6);
-
-                // Trộn ngẫu nhiên danh sách sạp
-                var randomStalls = activeStalls.OrderBy(x => random.Next()).Take(numberOfStalls).ToList();
-
-                int sortOrder = 1;
+                var randomStalls = allStalls.Where(s => s.TourID == null).OrderBy(x => Guid.NewGuid()).Take(random.Next(3, 6)).ToList();
+                int order = 1;
                 foreach (var stall in randomStalls)
                 {
                     stall.TourID = newTour.Id;
-                    stall.SortOrder = sortOrder++; // Cập nhật thứ tự luôn cho đẹp
+                    stall.SortOrder = order++;
                 }
                 await _context.SaveChangesAsync();
             }
-
-            return Ok(new { message = "Đã tạo 10 Lộ trình ngẫu nhiên thành công!" });
+            return Ok(new { message = "OK" });
         }
     }
 }

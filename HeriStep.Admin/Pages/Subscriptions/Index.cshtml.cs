@@ -10,69 +10,63 @@ namespace HeriStep.Admin.Pages.Subscriptions
         private readonly HttpClient _http;
         public IndexModel(HttpClient http) => _http = http;
 
-        // Danh sách thiết bị hiển thị lên bảng
         public List<Subscription> SubList { get; set; } = new();
 
-        // Biến hứng dữ liệu từ Modal Kích hoạt
         [BindProperty]
         public Subscription NewSub { get; set; } = new();
 
-        // ==========================================
-        // 1. LẤY DANH SÁCH GÓI CƯỚC (GET)
-        // ==========================================
+        // 💡 CÁC BIẾN PHỤC VỤ PHÂN TRANG
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1; // Trang hiện tại, mặc định là 1
+        public int TotalPages { get; set; }
+        public int CurrentPage => PageNumber;
+        private const int PageSize = 10; // Số dòng trên mỗi trang
+
         public async Task OnGetAsync()
         {
             try
             {
-                // Gọi API lấy toàn bộ danh sách thiết bị
-                SubList = await _http.GetFromJsonAsync<List<Subscription>>("api/Subscriptions") ?? new();
+                var allSubs = await _http.GetFromJsonAsync<List<Subscription>>("api/Subscriptions") ?? new();
 
-                // Sắp xếp ưu tiên: Máy mới kích hoạt lên đầu, máy hết hạn xuống dưới
-                SubList = SubList.OrderByDescending(s => s.IsActive).ThenByDescending(s => s.StartDate).ToList();
+                // 1. Sắp xếp dữ liệu trước khi phân trang
+                var sortedList = allSubs.OrderByDescending(s => s.IsActive)
+                                        .ThenByDescending(s => s.StartDate)
+                                        .ToList();
+
+                // 2. Tính toán tổng số trang
+                TotalPages = (int)Math.Ceiling(sortedList.Count / (double)PageSize);
+
+                // 3. Khống chế trang không vượt quá giới hạn
+                if (PageNumber < 1) PageNumber = 1;
+                if (TotalPages > 0 && PageNumber > TotalPages) PageNumber = TotalPages;
+
+                // 4. Cắt danh sách lấy đúng phần cho trang hiện tại
+                SubList = sortedList.Skip((PageNumber - 1) * PageSize).Take(PageSize).ToList();
             }
             catch
             {
-                TempData["Error"] = "❌ Lỗi kết nối API lấy dữ liệu Gói Subscription.";
+                TempData["Error"] = "❌ Lỗi kết nối API lấy dữ liệu.";
             }
         }
 
-        // ==========================================
-        // 2. XỬ LÝ KÍCH HOẠT THIẾT BỊ MỚI (POST)
-        // ==========================================
         public async Task<IActionResult> OnPostCreateAsync()
         {
-            ModelState.Clear();
-
-            // Chỉ Validate những trường người dùng nhập (DeviceId, ActivationCode)
-            if (!TryValidateModel(NewSub, nameof(NewSub)))
-            {
-                TempData["Error"] = "❌ Dữ liệu nhập vào không hợp lệ!";
-                return RedirectToPage(); // Reset lại trang
-            }
-
             try
             {
-                // 💡 LOGIC TỰ ĐỘNG HÓA DÀNH CHO ADMIN:
-                NewSub.Id = 0; // Để SQL tự tăng ID
-                NewSub.StartDate = DateTime.Now; // Bắt đầu tính từ ngay lúc bấm nút
-                NewSub.ExpiryDate = DateTime.Now.AddDays(30); // Tự động cộng 30 ngày sử dụng
-                NewSub.IsActive = true; // Bật trạng thái hoạt động ngay lập tức
+                NewSub.StartDate = DateTime.Now;
+                NewSub.ExpiryDate = DateTime.Now.AddDays(30);
+                NewSub.IsActive = true;
 
-                // Gửi dữ liệu xuống API để lưu vào Database
                 var response = await _http.PostAsJsonAsync("api/Subscriptions", NewSub);
 
                 if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = $"✅ Đã kích hoạt thành công thiết bị {NewSub.DeviceId} với thời hạn 30 ngày!";
-                }
+                    TempData["Success"] = $"✅ Đã kích hoạt {NewSub.DeviceId} thành công!";
                 else
-                {
-                    TempData["Error"] = "❌ Kích hoạt thất bại: " + await response.Content.ReadAsStringAsync();
-                }
+                    TempData["Error"] = "❌ Kích hoạt thất bại.";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "❌ Lỗi hệ thống: " + ex.Message;
+                TempData["Error"] = "❌ Lỗi: " + ex.Message;
             }
 
             return RedirectToPage();

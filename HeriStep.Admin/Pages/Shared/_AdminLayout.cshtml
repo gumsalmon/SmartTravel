@@ -105,8 +105,14 @@
 
         <div class="main-content flex-grow-1">
             <header class="bg-white shadow-sm p-3 mb-4 d-flex justify-content-between align-items-center">
-                <h5 class="m-0 text-secondary">@ViewData["Title"]</h5>
-                <span class="badge bg-primary">HeriStep v1.0</span>
+                <h5 class="m-0 text-secondary fw-bold">@ViewData["Title"]</h5>
+
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-warning btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#mockDataModal">
+                        <i class="bi bi-magic me-1"></i> Tạo Dữ Liệu Ảo
+                    </button>
+                    <span class="badge bg-primary px-3 py-2">HeriStep v1.0</span>
+                </div>
             </header>
 
             <div class="container-fluid px-4">
@@ -115,8 +121,88 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- 💡 MODAL MOCK DATA ĐÃ ĐƯỢC CẬP NHẬT CHÚ THÍCH -->
+    <!-- ========================================== -->
+    <div class="modal fade" id="mockDataModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-database-fill-gear me-2"></i> Trình tạo Mock Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">Nhập số lượng bạn muốn hệ thống tự động sinh ra. Hệ thống sẽ tự động liên kết các bảng với nhau:</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">👥 Số lượng Chủ Sạp (Users)</label>
+                        <input type="number" id="mockUserCount" class="form-control rounded-pill px-3" value="5" min="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">🏪 Số lượng Sạp & Gói cước</label>
+                        <small class="d-block text-primary mb-2">Tự động tạo Sạp trên bản đồ + Sinh ra gói Subscription tương ứng.</small>
+                        <input type="number" id="mockStallCount" class="form-control rounded-pill px-3" value="10" min="0">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">👣 Lượt khách & Vé du lịch</label>
+                        <small class="d-block text-success mb-2">Tự động tạo lịch sử truy cập + Lịch sử khách mua vé (Tourist Tickets).</small>
+                        <input type="number" id="mockVisitCount" class="form-control rounded-pill px-3" value="50" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 pe-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-dark fw-bold rounded-pill px-4 shadow" onclick="executeMockData()">🚀 CHẠY MOCK DATA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 💡 SCRIPT GỌI API MOCK DATA -->
+    <!-- Tìm đến đoạn Script cuối file và sửa lại như sau -->
+    <script>
+        async function executeMockData() {
+            const btn = document.querySelector('button[onclick="executeMockData()"]');
+            const originalText = btn.innerHTML;
+
+            // 1. Hiệu ứng Loading cho chuyên nghiệp
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+            btn.disabled = true;
+
+            // 2. Lấy dữ liệu từ các ô input
+            const reqBody = {
+                UserCount: parseInt(document.getElementById('mockUserCount').value) || 0,
+                StallCount: parseInt(document.getElementById('mockStallCount').value) || 0,
+                VisitCount: parseInt(document.getElementById('mockVisitCount').value) || 0
+            };
+
+            try {
+                // 💡 SẾP CHÚ Ý: Đã sửa Port thành 5287 (hoặc dùng window.location.origin nếu cùng project)
+                const response = await fetch('/api/Stalls/generate-mock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+
+                if (response.ok) {
+                    alert("🎉 Tuyệt vời sếp ơi! Dữ liệu ảo đã được bơm đầy Database!");
+                    location.reload();
+                } else {
+                    const errorText = await response.text();
+                    alert("❌ API báo lỗi: " + errorText);
+                }
+            } catch (e) {
+                alert("🧨 Không kết nối được API! Sếp nhớ kiểm tra xem Project API đã bật chưa nhé.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
