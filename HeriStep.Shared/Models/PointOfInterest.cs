@@ -10,7 +10,7 @@ namespace HeriStep.Shared.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("id")] // 💡 THÊM DÒNG NÀY ĐỂ KHỚP 100% VỚI SQL
+        [Column("id")]
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -57,9 +57,14 @@ namespace HeriStep.Shared.Models
         public bool IsOpen { get; set; } = true;
 
         [Column("updated_at")]
+        // 💡 Vì DB đã có Trigger TRG_UpdateStallTime nên để Computed là quá chuẩn
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         [JsonPropertyName("updatedAt")]
         public DateTime? UpdatedAt { get; set; }
+
+        // =====================================
+        // CÁC THUỘC TÍNH ẢO (Không có trong SQL)
+        // =====================================
 
         [NotMapped]
         [JsonPropertyName("ttsScript")]

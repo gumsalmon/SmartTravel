@@ -11,13 +11,14 @@ namespace HeriStep.API.Data
         public DbSet<PointOfInterest> Stalls { get; set; }
         public DbSet<Tour> Tours { get; set; }
         public DbSet<User> Users { get; set; }
-        public DbSet<Product> Products { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<StallContent> StallContents { get; set; }
         public DbSet<Language> Languages { get; set; }
         public DbSet<StallVisit> StallVisits { get; set; }
+        public DbSet<Product> Products { get; set; } // Giữ lại 1 cái thôi
+        public DbSet<ProductTranslation> ProductTranslations { get; set; }
 
-        // 💡 ĐÃ THÊM: 2 DbSet cho phần quản lý khách du lịch
+        // Bảng cho Khách du lịch
         public DbSet<TicketPackage> TicketPackages { get; set; }
         public DbSet<TouristTicket> TouristTickets { get; set; }
 
@@ -130,6 +131,15 @@ namespace HeriStep.API.Data
                 entity.Property(t => t.ExpiryDate).HasColumnName("expiry_date");
 
                 entity.Ignore(t => t.PackageName); // Bỏ qua biến ảo để ghép tên
+            });
+            // 11. Cấu hình bảng ProductTranslations
+            modelBuilder.Entity<ProductTranslation>(entity => {
+                entity.ToTable("ProductTranslations");
+                entity.HasKey(pt => pt.Id); // Sửa thành chữ hoa: Id
+                entity.Property(pt => pt.ProductId).HasColumnName("product_id"); // ProductId
+                entity.Property(pt => pt.LangCode).HasColumnName("lang_code"); // LangCode
+                entity.Property(pt => pt.ProductName).HasColumnName("product_name"); // ProductName
+                entity.Property(pt => pt.ProductDesc).HasColumnName("product_desc"); // ProductDesc
             });
         }
     }

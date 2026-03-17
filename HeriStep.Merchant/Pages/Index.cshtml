@@ -1,5 +1,4 @@
-﻿
-@page
+﻿@page
 @model HeriStep.Merchant.Pages.IndexModel
 @{
     ViewData["Title"] = "Chọn Sạp Quản Lý";
@@ -9,32 +8,40 @@
     <div class="text-center mb-5">
         <h2 class="fw-bold text-dark">Xin chào, <span class="text-primary">@User.Identity?.Name</span>! 👋</h2>
         <p class="text-muted fs-5">Hôm nay bạn muốn quản lý sạp hàng nào?</p>
+
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                <i class="bi bi-shield-lock-fill me-1"></i> Đổi mật khẩu
+            </button>
+            <a href="/Login?handler=Logout" class="btn btn-light btn-sm rounded-pill px-3 shadow-sm border text-decoration-none text-dark">
+                <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+            </a>
+        </div>
     </div>
 
     <div class="row justify-content-center g-4">
-        @if (Model.MyStalls.Any())
+        @if (Model.MyStalls != null && Model.MyStalls.Any())
         {
             foreach (var stall in Model.MyStalls)
             {
                 <div class="col-md-4 col-sm-6">
                     <a href="/StallDashboard?stallId=@stall.Id" class="text-decoration-none">
-                        <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom" style="transition: transform 0.2s;">
-                            <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : stall.ImageUrl)"
+                        <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom">
+                            <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "http://127.0.0.1:5297" + stall.ImageUrl)"
                                  class="card-img-top rounded-top-4" alt="@stall.Name" style="height: 200px; object-fit: cover;">
 
                             <div class="card-body text-center p-4">
                                 <h5 class="card-title fw-bold text-dark mb-2">@stall.Name</h5>
-
                                 @if (stall.IsOpen)
                                 {
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
-                                        <i class="bi bi-door-open-fill me-1"></i> Đang mở cửa
+                                        🟢 Đang mở cửa
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">
-                                        <i class="bi bi-door-closed-fill me-1"></i> Đã đóng cửa
+                                        🔴 Đã đóng cửa
                                     </span>
                                 }
                             </div>
@@ -46,20 +53,99 @@
         else
         {
             <div class="col-12 text-center py-5">
-                <div class="alert alert-warning d-inline-block px-5 shadow-sm rounded-4">
-                    <i class="bi bi-exclamation-circle-fill fs-1 d-block mb-3 text-warning"></i>
-                    <h5 class="fw-bold">Bạn chưa có sạp hàng nào!</h5>
-                    <p class="mb-0">Vui lòng liên hệ Admin để được phân công sạp hàng.</p>
+                <div class="alert alert-warning d-inline-block px-5 shadow-sm rounded-4 border-0">
+                    <h5 class="fw-bold">Sếp chưa có sạp hàng nào!</h5>
+                    <p class="mb-0 text-muted">Vui lòng liên hệ Admin để được phân công sạp hàng nhé.</p>
                 </div>
             </div>
         }
     </div>
 </div>
 
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold">🔐 Đổi mật khẩu tài khoản</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mật khẩu hiện tại</label>
+                    <input type="password" id="oldPass" class="form-control rounded-pill px-3" placeholder="Mật khẩu đang dùng">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mật khẩu mới</label>
+                    <input type="password" id="newPass" class="form-control rounded-pill px-3" placeholder="Ít nhất 3 ký tự">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Xác nhận mật khẩu</label>
+                    <input type="password" id="confirmPass" class="form-control rounded-pill px-3" placeholder="Nhập lại mật khẩu mới">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill fw-bold px-4" onclick="executeChangePassword()">XÁC NHẬN ĐỔI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    .hover-zoom:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
-        cursor: pointer;
+    .hover-zoom {
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
+        .hover-zoom:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.15) !important;
+        }
 </style>
+
+<script>
+    async function executeChangePassword() {
+        const oldPass = document.getElementById('oldPass').value;
+        const newPass = document.getElementById('newPass').value;
+        const confirmPass = document.getElementById('confirmPass').value;
+
+        // 1. Kiểm tra dữ liệu đầu vào
+        if (!oldPass || !newPass) {
+            alert("Sếp vui lòng nhập đủ mật khẩu nhé!");
+            return;
+        }
+        if (newPass !== confirmPass) {
+            alert("Mật khẩu xác nhận không khớp rồi sếp ơi!");
+            return;
+        }
+
+ 
+        const userId = "@(Model.MyStalls?.FirstOrDefault()?.OwnerId ?? 0)";
+
+        if (userId === "0") {
+            alert("Không tìm thấy ID người dùng. Sếp thử đăng nhập lại xem sao!");
+            return;
+        }
+
+        try {
+            const response = await fetch('http://127.0.0.1:5297/api/Stalls/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserId: parseInt(userId),
+                    OldPassword: oldPass,
+                    NewPassword: newPass
+                })
+            });
+
+            if (response.ok) {
+                alert("🎉 Tuyệt vời! Đổi mật khẩu thành công rồi sếp!");
+                location.reload();
+            } else {
+                const err = await response.json();
+                alert("❌ Lỗi rồi sếp ơi: " + (err.message || "Kiểm tra lại mật khẩu cũ nhé!"));
+            }
+        } catch (e) {
+            alert("🧨 Lỗi kết nối API rồi. Sếp kiểm tra xem Server API đã bật chưa nhé!");
+        }
+    }
+</script>
