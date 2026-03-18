@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using System.Net.Http.Json;
+using HeriStep.Shared;
 
 namespace HeriStep.Merchant.Pages // (Đổi Merchant thành tên project của bạn)
 {
@@ -14,7 +15,7 @@ namespace HeriStep.Merchant.Pages // (Đổi Merchant thành tên project của 
         private readonly HttpClient _http;
         public IndexModel(HttpClient http) => _http = http;
 
-        public List<PointOfInterest> MyStalls { get; set; } = new();
+        public List<Stall> MyStalls { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -27,7 +28,7 @@ namespace HeriStep.Merchant.Pages // (Đổi Merchant thành tên project của 
             // 2. Gọi API lấy danh sách sạp
             try
             {
-                MyStalls = await _http.GetFromJsonAsync<List<PointOfInterest>>($"api/Points/owner/{ownerIdString}") ?? new();
+                MyStalls = await _http.GetFromJsonAsync<List<Stall>>($"api/Points/owner/{ownerIdString}") ?? new();
             }
             catch
             {

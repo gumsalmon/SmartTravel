@@ -19,7 +19,7 @@
             </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:PointOfInterest">
+                <DataTemplate x:DataType="models:Stall">
                     <Frame Margin="0,8" 
                            Padding="12" 
                            HasShadow="True" 

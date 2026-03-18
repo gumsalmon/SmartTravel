@@ -62,11 +62,11 @@
                     }
                     @foreach (var s in Model.Stalls)
                     {
-                        var ownerInfo = Model.Owners.FirstOrDefault(o => o.Id == s.OwnerId);
+                        var ownerInfo = Model.Owners.FirstOrDefault(o => o.Id == (int?)s.OwnerId);
                         <tr>
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">@s.Name</div>
-                                <div class="text-muted extra-small">Mã: HS-@s.Id.ToString("D4") | @s.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="text-muted extra-small">Mã: HS-@s.Id.ToString("D4") | @s.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</div>
                             </td>
                             <td>
                                 @if (ownerInfo != null)

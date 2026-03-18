@@ -8,7 +8,7 @@ namespace HeriStep.API.Data
     {
         public HeriStepDbContext(DbContextOptions<HeriStepDbContext> options) : base(options) { }
 
-        public DbSet<PointOfInterest> Stalls { get; set; }
+        public DbSet<Stall> Stalls { get; set; }
         public DbSet<Tour> Tours { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Product> Products { get; set; }
@@ -45,8 +45,8 @@ namespace HeriStep.API.Data
                 entity.Property(t => t.IsTopHot).HasColumnName("is_top_hot");
             });
 
-            // 3. Cấu hình bảng PointOfInterest (Stalls)
-            modelBuilder.Entity<PointOfInterest>(entity => {
+            // 3. Cấu hình bảng Stall (Stalls)
+            modelBuilder.Entity<Stall>(entity => {
                 // Fix lỗi Trigger cho EF Core 7+
                 entity.ToTable("Stalls", tb => tb.HasTrigger("SomeTriggerName"));
 

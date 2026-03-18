@@ -25,7 +25,7 @@ namespace HeriStep.Shared.Models
         // 2. 💡 QUAN TRỌNG: Danh sách chi tiết các quán trong lộ trình
         // Dùng để hiển thị ở trang Details.cshtml
         [NotMapped]
-        public List<PointOfInterest> Stalls { get; set; } = new();
+        public List<Stall> Stalls { get; set; } = new();
 
         // 3. Phân loại loại lộ trình dựa trên số lượng quán
         [NotMapped]

@@ -1,4 +1,5 @@
-﻿using HeriStep.Shared.Models;
+﻿using HeriStep.Shared;
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;
@@ -18,7 +19,7 @@ namespace HeriStep.Admin.Pages.Tours
         public Tour Tour { get; set; } = new();
 
         // 💡 ĐÃ THÊM: Biến chứa danh sách các quán có sẵn để hiện ở Modal
-        public List<PointOfInterest> AvailableStalls { get; set; } = new();
+        public List<Stall> AvailableStalls { get; set; } = new();
 
         // 💡 ĐÃ THÊM: Biến lưu cái ID quán mà bạn vừa chọn trong Modal để gửi đi
         [BindProperty]
@@ -48,12 +49,12 @@ namespace HeriStep.Admin.Pages.Tours
             // 2. 💡 Gọi API lấy danh sách Sạp tự do đổ vào Modal
             try
             {
-                AvailableStalls = await _http.GetFromJsonAsync<List<PointOfInterest>>("api/Tours/available-stalls") ?? new();
+                AvailableStalls = await _http.GetFromJsonAsync<List<Stall>>("api/Tours/available-stalls") ?? new();
             }
             catch
             {
                 // Nếu API bị lỗi thì để danh sách rỗng, không làm sập trang
-                AvailableStalls = new List<PointOfInterest>();
+                AvailableStalls = new List<Stall>();
             }
 
             return Page();

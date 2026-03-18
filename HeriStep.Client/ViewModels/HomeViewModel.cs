@@ -8,7 +8,7 @@ namespace HeriStep.Client.ViewModels
     {
         private readonly HttpClient _httpClient;
         private bool _isBusy;
-        private List<PointOfInterest> _allPoints = new();
+        private List<Stall> _allPoints = new();
 
         public bool IsBusy
         {
@@ -17,10 +17,10 @@ namespace HeriStep.Client.ViewModels
         }
 
         // List 1: Dành cho khu vực "Tất cả"
-        public ObservableCollection<PointOfInterest> Points { get; set; } = new();
+        public ObservableCollection<Stall> Points { get; set; } = new();
 
         // List 2: Dành cho khu vực "Top Quán" (Chờ API bạn của bạn)
-        public ObservableCollection<PointOfInterest> TopRatedPoints { get; set; } = new();
+        public ObservableCollection<Stall> TopRatedPoints { get; set; } = new();
 
         public Command LoadDataCommand { get; set; }
         public Command<string> FilterCommand { get; set; }
@@ -41,7 +41,7 @@ namespace HeriStep.Client.ViewModels
                 double lat = 10.7595; double lon = 106.7025;
                 var url = $"api/Points?userLat={lat}&userLon={lon}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var data = await _httpClient.GetFromJsonAsync<List<PointOfInterest>>(url, options);
+                var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
 
                 if (data != null)
                 {
@@ -93,7 +93,7 @@ namespace HeriStep.Client.ViewModels
             await NavigateToPage(keyword, filtered);
         }
 
-        private async Task NavigateToPage(string keyword, List<PointOfInterest> dataToPass)
+        private async Task NavigateToPage(string keyword, List<Stall> dataToPass)
         {
             // Cách gọi chuyển trang "bất bại" trong .NET MAUI từ ViewModel
             if (Application.Current?.MainPage != null)

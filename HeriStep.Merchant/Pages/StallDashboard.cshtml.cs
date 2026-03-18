@@ -1,4 +1,5 @@
-﻿using HeriStep.Shared.Models; // Nhớ using Model của bạn
+﻿using HeriStep.Shared;
+using HeriStep.Shared.Models; // Nhớ using Model của bạn
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -16,7 +17,7 @@ namespace HeriStep.Merchant.Pages
         }
 
         public int CurrentStallId { get; set; }
-        public PointOfInterest StallInfo { get; set; } = new PointOfInterest();
+        public Stall StallInfo { get; set; } = new Stall();
 
         public async Task OnGetAsync(int stallId)
         {
@@ -26,7 +27,7 @@ namespace HeriStep.Merchant.Pages
             {
                 // Gọi API để lấy thông tin chi tiết của sạp (Tên, Ảnh, Giờ mở cửa, Lời chào TTS...)
                 // Lưu ý: Nếu API này bạn chưa viết, giao diện vẫn lên nhưng các ô input sẽ trống.
-                var data = await _http.GetFromJsonAsync<PointOfInterest>($"api/Stalls/{stallId}");
+                var data = await _http.GetFromJsonAsync<Stall>($"api/Stalls/{stallId}");
                 if (data != null)
                 {
                     StallInfo = data;

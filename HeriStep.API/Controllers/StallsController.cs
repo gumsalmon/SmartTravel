@@ -1,4 +1,5 @@
 ﻿using HeriStep.API.Data;
+using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,7 @@ namespace HeriStep.API.Controllers
         // 1. LẤY THÔNG TIN SẠP (Đổ dữ liệu lên form cho Chủ Sạp)
         // ==========================================
         [HttpGet("{id}")]
-        public async Task<ActionResult<PointOfInterest>> GetStall(int id)
+        public async Task<ActionResult<Stall>> GetStall(int id)
         {
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null)
@@ -101,7 +102,7 @@ namespace HeriStep.API.Controllers
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
-            var newStall = new PointOfInterest
+            var newStall = new Stall
             {
                 Name = "Sạp mới (Chưa gán)",
                 Latitude = req.Latitude,

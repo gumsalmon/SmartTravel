@@ -4,8 +4,8 @@ namespace HeriStep.Client.Views;
 
 public partial class ShopDetailPage : ContentPage
 {
-    // Bắt buộc phải có 1 biến PointOfInterest truyền vào đây
-    public ShopDetailPage(PointOfInterest shop)
+    // Bắt buộc phải có 1 biến Stall truyền vào đây
+    public ShopDetailPage(Stall shop)
     {
         InitializeComponent();
 

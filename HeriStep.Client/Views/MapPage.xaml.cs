@@ -11,10 +11,18 @@ namespace HeriStep.Client.Views;
 
 public partial class MapPage : ContentPage
 {
-    private PointOfInterest _currentSelectedShop;
-    public MapPage(IEnumerable<PointOfInterest> points)
+    private Stall _currentSelectedShop;
+    public MapPage(IEnumerable<Stall> points)
     {
         InitializeComponent();
+        // 1. Khởi tạo một đối tượng bản đồ mới
+        var map = new Mapsui.Map();
+
+        // 2. Tải lớp hình ảnh đường phố từ OpenStreetMap và đắp vào bản đồ
+        map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
+
+        // 3. Gán bản đồ vừa tạo vào cái giao diện (Lưu ý: mapView là tên của cái bản đồ bên file .xaml)
+        mapView.Map = map;
 
         mapView.Map?.Layers.Add(OpenStreetMap.CreateTileLayer());
 
@@ -51,7 +59,7 @@ public partial class MapPage : ContentPage
             // 2. Nếu quét trúng một cái Ghim (Feature)
             if (mapInfo?.Feature != null)
             {
-                var clickedPoint = mapInfo.Feature["PointData"] as PointOfInterest;
+                var clickedPoint = mapInfo.Feature["PointData"] as Stall;
 
                 if (clickedPoint != null)
                 {
@@ -78,7 +86,7 @@ public partial class MapPage : ContentPage
         };
     }
 
-    private void DrawPinsOnMap(IEnumerable<PointOfInterest> points)
+    private void DrawPinsOnMap(IEnumerable<Stall> points)
     {
         var features = new List<PointFeature>();
 

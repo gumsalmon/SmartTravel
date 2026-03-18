@@ -29,7 +29,7 @@ namespace HeriStep.API.Controllers
                     FullName = u.FullName ?? "Chưa đặt tên",
                     Role = u.Role,
                     // Đếm số sạp thuộc về User này trong bảng Stalls
-                    StallCount = _context.Stalls.Count(s => s.OwnerId == u.Id)
+                    StallCount = _context.Stalls.Count(s => (int?)s.OwnerId == u.Id)
                 })
                 .ToListAsync();
 

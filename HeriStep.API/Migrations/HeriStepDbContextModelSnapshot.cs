@@ -41,7 +41,7 @@ namespace HeriStep.API.Migrations
                     b.ToTable("Languages", (string)null);
                 });
 
-            modelBuilder.Entity("HeriStep.Shared.Models.PointOfInterest", b =>
+            modelBuilder.Entity("HeriStep.Shared.Models.Stall", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

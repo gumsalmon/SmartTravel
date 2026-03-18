@@ -1,4 +1,5 @@
 ﻿using HeriStep.API.Data;
+using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +60,7 @@ namespace HeriStep.API.Controllers
         }
 
         [HttpGet("available-stalls")]
-        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetAvailableStalls()
+        public async Task<ActionResult<IEnumerable<Stall>>> GetAvailableStalls()
         {
             var stalls = await _context.Stalls.ToListAsync();
             return Ok(stalls);

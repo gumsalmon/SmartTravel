@@ -1,4 +1,5 @@
-﻿using HeriStep.Shared.Models;
+﻿using HeriStep.Shared;
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;
@@ -11,7 +12,7 @@ namespace HeriStep.Admin.Pages.Stalls
         public IndexModel(HttpClient http) => _http = http;
 
         // --- DỮ LIỆU HIỂN THỊ ---
-        public List<PointOfInterest> Stalls { get; set; } = new();
+        public List<Stall> Stalls { get; set; } = new();
         public List<UserDto> Owners { get; set; } = new();
 
         [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
@@ -20,7 +21,7 @@ namespace HeriStep.Admin.Pages.Stalls
         public int TotalPages { get; set; }
         public int PageSize { get; set; } = 5;
 
-        [BindProperty] public PointOfInterest EditStall { get; set; } = new();
+        [BindProperty] public Stall EditStall { get; set; } = new();
 
         // ==========================================
         // 1. LẤY DỮ LIỆU (GET)
@@ -32,7 +33,7 @@ namespace HeriStep.Admin.Pages.Stalls
             {
                 // Lấy danh sách Chủ sạp và Sạp hàng cùng lúc
                 var ownersTask = _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners-summary");
-                var stallsTask = _http.GetFromJsonAsync<List<PointOfInterest>>("api/Points");
+                var stallsTask = _http.GetFromJsonAsync<List<Stall>>("api/Points");
 
                 await Task.WhenAll(ownersTask, stallsTask);
 

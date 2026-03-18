@@ -22,7 +22,7 @@ namespace HeriStep.API.Controllers
 
         // 1. LẤY DANH SÁCH (JOIN 3 BẢNG: Stalls, StallContents, Users)
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetPoints()
+        public async Task<ActionResult<IEnumerable<Stall>>> GetPoints()
         {
             var points = await (from s in _context.Stalls
                                     // Join lấy nội dung tiếng Việt
@@ -33,7 +33,7 @@ namespace HeriStep.API.Controllers
                                 join u in _context.Users on s.OwnerId equals u.Id into userGroup
                                 from user in userGroup.DefaultIfEmpty()
 
-                                select new PointOfInterest
+                                select new Stall
                                 {
                                     Id = s.Id,
                                     OwnerId = s.OwnerId,                               // Lấy mã Chủ sạp
@@ -54,7 +54,7 @@ namespace HeriStep.API.Controllers
 
         // 2. THÊM MỚI (LƯU VÀO HAI BẢNG)
         [HttpPost]
-        public async Task<ActionResult<PointOfInterest>> PostPoint(PointOfInterest point)
+        public async Task<ActionResult<Stall>> PostPoint(Stall point)
         {
             // BƯỚC A: Lưu thông tin kỹ thuật vào bảng Stalls
             _context.Stalls.Add(point);
@@ -77,11 +77,10 @@ namespace HeriStep.API.Controllers
         // THÊM VÀO PointsController.cs
         // API: Lấy danh sách sạp theo Mã Chủ Sạp
         [HttpGet("owner/{ownerId}")]
-        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStallsByOwner(int ownerId)
+        public async Task<ActionResult<IEnumerable<Stall>>> GetStallsByOwner(int ownerId)
         {
             var stalls = await _context.Stalls
-                .Where(s => s.OwnerId == ownerId)
-                .ToListAsync();
+.Where(s => (int?)s.OwnerId == ownerId).ToListAsync();
 
             if (!stalls.Any())
             {
