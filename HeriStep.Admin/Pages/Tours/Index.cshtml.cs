@@ -15,12 +15,15 @@ namespace HeriStep.Admin.Pages.Tours
         [BindProperty] public Tour NewTour { get; set; } = new();
         [BindProperty] public Tour EditTour { get; set; } = new();
 
-        // Lấy danh sách Lộ trình từ API
+        // ==========================================
+        // 1. LẤY DANH SÁCH LỘ TRÌNH TỪ API
+        // ==========================================
         public async Task OnGetAsync()
         {
             try
             {
-                Tours = await _http.GetFromJsonAsync<List<Tour>>("api/Tours") ?? new();
+                // Sếp nhớ đảm bảo URL API khớp với port của project API đang chạy nhé
+                Tours = await _http.GetFromJsonAsync<List<Tour>>("http://127.0.0.1:5297/api/Tours") ?? new();
             }
             catch
             {
@@ -28,7 +31,9 @@ namespace HeriStep.Admin.Pages.Tours
             }
         }
 
-        // Xử lý Thêm mới
+        // ==========================================
+        // 2. XỬ LÝ THÊM MỚI LỘ TRÌNH
+        // ==========================================
         public async Task<IActionResult> OnPostCreateAsync()
         {
             if (string.IsNullOrEmpty(NewTour.TourName))
@@ -42,7 +47,7 @@ namespace HeriStep.Admin.Pages.Tours
                 NewTour.Id = 0;
                 NewTour.IsActive = true; // Mặc định khi tạo mới là hoạt động
 
-                var response = await _http.PostAsJsonAsync("api/Tours", NewTour);
+                var response = await _http.PostAsJsonAsync("http://127.0.0.1:5297/api/Tours", NewTour);
                 if (response.IsSuccessStatusCode)
                     TempData["Success"] = $"🎉 Đã tạo thành công lộ trình: {NewTour.TourName}";
                 else
@@ -53,12 +58,14 @@ namespace HeriStep.Admin.Pages.Tours
             return RedirectToPage();
         }
 
-        // Xử lý Cập nhật
+        // ==========================================
+        // 3. XỬ LÝ CẬP NHẬT LỘ TRÌNH (CÓ CẢ IMAGE_URL)
+        // ==========================================
         public async Task<IActionResult> OnPostEditAsync()
         {
             try
             {
-                var response = await _http.PutAsJsonAsync($"api/Tours/{EditTour.Id}", EditTour);
+                var response = await _http.PutAsJsonAsync($"http://127.0.0.1:5297/api/Tours/{EditTour.Id}", EditTour);
                 if (response.IsSuccessStatusCode)
                     TempData["Success"] = "✅ Đã cập nhật thông tin lộ trình!";
                 else
@@ -68,7 +75,5 @@ namespace HeriStep.Admin.Pages.Tours
 
             return RedirectToPage();
         }
-
-        // Ghi chú: Đã loại bỏ OnPostDeleteAsync theo yêu cầu.
     }
 }

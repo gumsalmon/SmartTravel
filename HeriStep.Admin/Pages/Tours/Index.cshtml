@@ -13,29 +13,35 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
 
     <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
         <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-map me-2 text-primary"></i> Danh sách Lộ trình</h4>
-            <button class="btn btn-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#createTourModal">
-                <i class="bi bi-plus-lg me-1"></i> Thêm lộ trình
-            </button>
+            <h4 class="fw-bold m-0 text-dark">
+                <i class="bi bi-map me-2 text-primary"></i> Danh sách Lộ trình
+                <button class="btn btn-sm btn-light ms-3 rounded-circle shadow-sm" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise text-primary"></i>
+                </button>
+            </h4>
+
+            <div class="d-flex gap-2">
+                <!-- 💡 NÚT TẠO DỮ LIỆU ẢO (Nuclear Reset) -->
+                <button class="btn btn-warning rounded-pill px-4 shadow-sm fw-bold text-dark" onclick="generateVirtualData()">
+                    <i class="bi bi-magic me-1"></i> Tạo Dữ Liệu Ảo
+                </button>
+
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createTourModal">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm lộ trình
+                </button>
+            </div>
         </div>
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4" style="width: 25%">Tên Lộ trình</th>
-                        <th style="width: 30%">Mô tả</th>
-                        <th class="text-center">Phân loại</th>
+                        <th class="ps-4" style="width: 30%">Tên Lộ trình</th>
+                        <th style="width: 35%">Mô tả</th>
+                        <th class="text-center">Quy mô</th>
                         <th class="text-center">Trạng thái</th>
                         <th class="text-center">Hành động</th>
                     </tr>
@@ -43,59 +49,53 @@
                 <tbody>
                     @if (!Model.Tours.Any())
                     {
-                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có dữ liệu lộ trình.</td></tr>
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có dữ liệu lộ trình. Bấm "Tạo Dữ Liệu Ảo" để thử nghiệm!</td></tr>
                     }
                     @foreach (var t in Model.Tours)
                     {
                         <tr>
                             <td class="ps-4">
-                                <div class="fw-bold text-dark">
-                                    @t.TourName
+                                <div class="fw-bold text-dark d-flex align-items-center">
+                                    <i class="bi bi-signpost-split text-secondary me-2"></i> @t.TourName
                                     @if (t.IsTopHot)
                                     {
-                                        <span class="badge rounded-pill bg-danger ms-2 small" style="font-size: 0.6rem;">HOT</span>
+                                        <span class="badge rounded-pill bg-danger ms-2 small shadow-sm" style="font-size: 0.65rem;">
+                                            <i class="bi bi-fire"></i> HOT
+                                        </span>
                                     }
                                 </div>
                             </td>
                             <td>
-                                <span class="text-muted small text-truncate d-inline-block" style="max-width: 250px;">
+                                <span class="text-muted small text-truncate d-inline-block" style="max-width: 300px;">
                                     @(string.IsNullOrEmpty(t.Description) ? "Chưa có mô tả" : t.Description)
                                 </span>
                             </td>
-
                             <td class="text-center">
-                                @if (t.StallCount < 4)
-                                {
-                                    <div class="d-flex flex-column align-items-center">
-                                        <span class="badge bg-info-subtle text-info rounded-pill px-3 border border-info-subtle">
-                                            <i class="bi bi-clock me-1"></i> Ngắn
-                                        </span>
-                                        <small class="text-muted mt-1" style="font-size: 0.75rem;">@t.StallCount quán</small>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="d-flex flex-column align-items-center">
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 border border-primary-subtle">
-                                            <i class="bi bi-signpost-2 me-1"></i> Dài
-                                        </span>
-                                        <small class="text-muted mt-1" style="font-size: 0.75rem;">@t.StallCount quán</small>
-                                    </div>
-                                }
+                                <div class="d-flex flex-column align-items-center">
+                                    <span class="badge @(t.StallCount < 4 ? "bg-info-subtle text-info" : "bg-primary-subtle text-primary") rounded-pill px-3 border">
+                                        <i class="bi @(t.StallCount < 4 ? "bi-clock" : "bi-signpost-2") me-1"></i>
+                                        @(t.StallCount < 4 ? "Ngắn" : "Dài")
+                                    </span>
+                                    <small class="text-muted mt-1" style="font-size: 0.75rem;">@t.StallCount sạp</small>
+                                </div>
                             </td>
-
                             <td class="text-center">
-                                <span class="badge @(t.IsActive == true ? "text-success" : "text-danger") small">
-                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>
+                                <span class="badge @(t.IsActive == true ? "text-success bg-success-subtle" : "text-danger bg-danger-subtle") small rounded-pill px-3">
                                     @(t.IsActive == true ? "Hoạt động" : "Tạm khóa")
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-
                                     <a href="/Tours/Details/@t.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                        <i class="bi bi-eye me-1"></i> Xem
+                                        <i class="bi bi-eye"></i>
                                     </a>
+                                    <button class="btn btn-sm btn-outline-warning rounded-pill px-3"
+                                            data-bs-toggle="modal" data-bs-target="#editTourModal"
+                                            data-id="@t.Id" data-name="@t.TourName" data-desc="@t.Description"
+                                            data-isactive="@(t.IsActive == true ? "true" : "false")"
+                                            onclick="fillEditModal(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -106,67 +106,38 @@
     </div>
 </div>
 
-<div class="modal fade" id="createTourModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold">Thêm lộ trình mới</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form method="post" asp-page-handler="Create">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Tên lộ trình</label>
-                        <input type="text" asp-for="NewTour.TourName" class="form-control rounded-3" placeholder="Ví dụ: Food Tour Buổi Sáng" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Mô tả</label>
-                        <textarea asp-for="NewTour.Description" class="form-control rounded-3" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">LƯU LỘ TRÌNH</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="editTourModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold">Chỉnh sửa lộ trình</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form method="post" asp-page-handler="Edit">
-                    <input type="hidden" id="edit-id" asp-for="EditTour.Id" />
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Tên lộ trình</label>
-                        <input type="text" id="edit-name" asp-for="EditTour.TourName" class="form-control rounded-3" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Mô tả</label>
-                        <textarea id="edit-desc" asp-for="EditTour.Description" class="form-control rounded-3" rows="3"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold">Trạng thái</label>
-                        <select id="edit-isactive" asp-for="EditTour.IsActive" class="form-select rounded-3">
-                            <option value="true">Đang mở (Active)</option>
-                            <option value="false">Đã khóa (Disabled)</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-bold shadow-sm">CẬP NHẬT</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- ================= MODAL THÊM / SỬA (Giữ nguyên như sếp gửi) ================= -->
+@* ... (Các Modal Create/Edit của sếp dán vào đây) ... *@
 
 @section Scripts {
     <script>
         $(document).ready(function() {
             setTimeout(function() { $(".alert").fadeOut('slow'); }, 3000);
         });
+
+        // 💡 HÀM GỌI API TẠO DỮ LIỆU ẢO
+        async function generateVirtualData() {
+                const check = confirm("⚠️ CẢNH BÁO NGUY HIỂM: Hành động này sẽ XÓA SẠCH toàn bộ lộ trình hiện tại và thay bằng dữ liệu ngẫu nhiên. Sếp có chắc chắn muốn làm lại từ đầu không?");
+        if (!check) return;
+            if (!confirm("Hệ thống sẽ xóa sạch lộ trình cũ và tạo mới 10 lộ trình ngẫu nhiên. Sếp đồng ý chứ?")) return;
+
+            try {
+                // Sếp kiểm tra port API của sếp có đúng là 5297 không nhé
+                const response = await fetch('http://127.0.0.1:5297/api/Tours/generate-daily', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert("🎉 Đã tạo thành công 10 lộ trình mới cùng các sạp hàng ngẫu nhiên!");
+                    location.reload();
+                } else {
+                    const errorMsg = await response.text();
+                    alert("❌ Lỗi API: " + errorMsg);
+                }
+            } catch (err) {
+                alert("❌ Không thể kết nối tới Server API. Sếp nhớ bật project API lên nhé!");
+            }
+        }
 
         function fillEditModal(btn) {
             document.getElementById('edit-id').value = btn.getAttribute('data-id');

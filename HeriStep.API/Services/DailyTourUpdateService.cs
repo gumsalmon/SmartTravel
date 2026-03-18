@@ -17,19 +17,24 @@ namespace HeriStep.API.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("🚀 Bot cập nhật Tour Hot đã khởi động và đang đợi đến 0h00...");
+            _logger.LogInformation("🚀 Bot cập nhật Tour Hot đã khởi động...");
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                // 1. Tính toán thời gian nghỉ đến 0h00 sáng mai
                 var now = DateTime.Now;
                 var nextMidnight = DateTime.Today.AddDays(1);
                 var timeToWait = nextMidnight - now;
 
-                // Tạm dừng Bot cho đến nửa đêm
+                // ==========================================
+                // 💡 THỦ THUẬT DEMO ĐỒ ÁN (CỰC QUAN TRỌNG)
+                timeToWait = TimeSpan.FromSeconds(15);
+                // ==========================================
+
+                _logger.LogInformation($"⏰ Sẽ cập nhật bảng xếp hạng Tour sau: {timeToWait.TotalMinutes:F1} phút nữa.");
+
                 await Task.Delay(timeToWait, stoppingToken);
 
-                _logger.LogInformation("⏰ Đã đến 0h00! Đang tiến hành quét dữ liệu và cập nhật bảng xếp hạng Tour...");
+                _logger.LogInformation("🔄 Bắt đầu quét dữ liệu và cập nhật TOP 10 Tour...");
 
                 try
                 {
@@ -38,16 +43,60 @@ namespace HeriStep.API.Services
                         var context = scope.ServiceProvider.GetRequiredService<HeriStepDbContext>();
                         var thirtyDaysAgo = DateTime.Now.AddDays(-30);
 
-                        // --- BƯỚC 1: RESET TRẠNG THÁI ---
-                        // Đưa tất cả các Tour về trạng thái bình thường (IsTopHot = false)
+                        // ==========================================
+                        // --- BƯỚC 0: ĐẢM BẢO LUÔN CÓ ĐỦ 10 LỘ TRÌNH VÀ GÁN SẠP NGẪU NHIÊN ---
+                        // ==========================================
+                        var currentTourCount = await context.Tours.CountAsync();
+                        if (currentTourCount < 10)
+                        {
+                            int toursToCreate = 10 - currentTourCount;
+                            var newTours = new List<Tour>(); // Lưu tạm để tí nữa nhét sạp vào
+
+                            for (int i = 0; i < toursToCreate; i++)
+                            {
+                                var tour = new Tour
+                                {
+                                    TourName = $"Lộ trình khám phá Vĩnh Khánh {i + 1}",
+                                    Description = "Lộ trình hệ thống tự động sinh ra để phục vụ du khách trải nghiệm.",
+                                    IsActive = true,
+                                    IsTopHot = false
+                                };
+                                context.Tours.Add(tour);
+                                newTours.Add(tour);
+                            }
+                            await context.SaveChangesAsync(); // Lưu để lấy ID Lộ trình
+
+                            // 💡 Bốc ngẫu nhiên các sạp có sẵn nhét vào các lộ trình vừa tạo
+                            var allStalls = await context.Stalls.ToListAsync();
+                            if (allStalls.Any())
+                            {
+                                var rand = new Random();
+                                foreach (var tour in newTours)
+                                {
+                                    // Chọn ngẫu nhiên từ 2 đến 5 quán
+                                    int numStalls = rand.Next(2, 6);
+                                    var randomStalls = allStalls.OrderBy(x => Guid.NewGuid()).Take(numStalls).ToList();
+
+                                    foreach (var stall in randomStalls)
+                                    {
+                                        stall.TourID = tour.Id;
+                                        context.Stalls.Update(stall);
+                                    }
+                                }
+                                await context.SaveChangesAsync();
+                            }
+
+                            _logger.LogInformation($"🛠 Đã tạo {toursToCreate} Lộ trình mới và nhét ngẫu nhiên các quán vào!");
+                        }
+
+                        // --- BƯỚC 1: RESET TRẠNG THÁI CŨ ---
                         var currentHotTours = await context.Tours.Where(t => t.IsTopHot == true).ToListAsync();
                         foreach (var t in currentHotTours)
                         {
                             t.IsTopHot = false;
                         }
 
-                        // --- BƯỚC 2: TÍNH TOÁN TOP 10 MỚI ---
-                        // Thuật toán: Đếm tổng lượt ghé thăm (StallVisits) của tất cả các sạp thuộc Tour đó trong 30 ngày qua
+                        // --- BƯỚC 2: TÍNH TOÁN TOP 10 MỚI (CÓ XỬ LÝ NGÀY ĐẦU TIÊN) ---
                         var top10TourIds = await context.Tours
                             .Where(t => t.IsActive == true)
                             .Select(t => new
@@ -59,11 +108,12 @@ namespace HeriStep.API.Services
                                     .Count()
                             })
                             .OrderByDescending(x => x.TotalVisits)
+                            .ThenBy(x => Guid.NewGuid())
                             .Take(10)
                             .Select(x => x.TourId)
                             .ToListAsync();
 
-                        // --- BƯỚC 3: CẬP NHẬT KẾT QUẢ ---
+                        // --- BƯỚC 3: CẬP NHẬT KẾT QUẢ MỚI ---
                         if (top10TourIds.Any())
                         {
                             var newHotTours = await context.Tours.Where(t => top10TourIds.Contains(t.Id)).ToListAsync();
@@ -73,7 +123,7 @@ namespace HeriStep.API.Services
                             }
 
                             await context.SaveChangesAsync();
-                            _logger.LogInformation($"✅ Đã cập nhật thành công {newHotTours.Count} Tour lên Top Hot.");
+                            _logger.LogInformation($"✅ Đã cập nhật thành công {newHotTours.Count} Tour lên Top Hot!");
                         }
                     }
                 }

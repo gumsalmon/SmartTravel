@@ -41,6 +41,7 @@ app.UseSession();
 // 💡 ĐÃ THÊM: 5. Kích hoạt Xác thực danh tính (BẮT BUỘC NẰM TRƯỚC UseAuthorization)
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 app.MapRazorPages();
 app.Run();
