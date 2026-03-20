@@ -181,12 +181,12 @@
             };
 
             try {
-                // 💡 SẾP CHÚ Ý: Đã sửa Port thành 5287 (hoặc dùng window.location.origin nếu cùng project)
-                const response = await fetch('/api/Stalls/generate-mock', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(reqBody)
-                });
+        // Sửa dòng 173 thành thế này:
+        const response = await fetch('http://localhost:5297/api/Stalls/generate-mock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
 
                 if (response.ok) {
                     alert("🎉 Tuyệt vời sếp ơi! Dữ liệu ảo đã được bơm đầy Database!");

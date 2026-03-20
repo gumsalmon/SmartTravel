@@ -24,7 +24,7 @@
 
 <div class="container-fluid py-4">
 
-    <!-- 💡 THANH THAO TÁC HÀNG LOẠT (Hiện khi sếp chọn > 0 sạp) -->
+    <!-- THANH THAO TÁC HÀNG LOẠT -->
     <div class="bulk-actions-bar shadow-lg p-3 mb-4 rounded-4 animate__animated animate__fadeInDown">
         <div class="d-flex justify-content-between align-items-center">
             <span class="fw-bold text-primary ms-2">📦 Đã chọn <span id="selected-count">0</span> sạp</span>
@@ -46,15 +46,35 @@
     }
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
-            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-shop me-2 text-primary"></i> Quản lý sạp hàng</h4>
+        <!-- 💡 HEADER & BỘ LỌC ĐÃ ĐƯỢC GỘP GỌN GÀNG -->
+        <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+            <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-shop me-2 text-primary"></i> Quản lý sạp</h4>
 
-            <div class="d-flex gap-2">
-                <form method="get" class="input-group input-group-sm" style="width: 300px;">
-                    <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm tên sạp...">
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <!-- Ô tìm Tên Sạp / Tên Chủ / SĐT -->
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm tên, SĐT chủ sạp...">
+                    </div>
+
+                    <!-- Lọc Từ ngày -> Đến ngày -->
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
+                    </div>
+                    <span class="text-muted fw-bold">-</span>
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="EndDate" class="form-control bg-light" title="Đến ngày">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-search me-1"></i> Lọc</button>
+
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.StartDate.HasValue || Model.EndDate.HasValue)
+                    {
+                        <a href="/Stalls/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+                    }
                 </form>
-                <a href="/AdminMap" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+
+                <a href="/AdminMap" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center text-nowrap">
                     <i class="bi bi-geo-alt-fill me-1"></i> Thêm sạp mới
                 </a>
             </div>
@@ -116,25 +136,40 @@
             </table>
         </div>
 
-        <!-- 💡 PHÂN TRANG (Chuẩn đồ án) -->
+        <!-- 💡 BỘ PHÂN TRANG (Đã kẹp thêm StartDate và EndDate) -->
         <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
-            <span class="text-muted small">Trang @Model.CurrentPage / @Model.TotalPages</span>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm">Trước</a>
-                    </li>
-                    @for (int i = 1; i <= Model.TotalPages; i++)
-                    {
-                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="/Stalls/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm">@i</a>
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Trước</a>
                         </li>
-                    }
-                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm">Sau</a>
-                    </li>
-                </ul>
-            </nav>
+
+                        @{
+                            int startPage = Math.Max(1, Model.CurrentPage - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4)
+                            {
+                                startPage = Math.Max(1, endPage - 4);
+                            }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="/Stalls/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
         </div>
     </div>
 </div>
@@ -160,7 +195,7 @@
     </div>
 </div>
 
-<!-- Modal Edit (Giữ nguyên logic sếp đang có) -->
+<!-- Modal Edit -->
 <div class="modal fade" id="editStallModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
@@ -205,7 +240,6 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Hiệu ứng Bulk Bar
             $('.stall-checkbox, #selectAll').on('change', function() {
                 if($('#selectAll').is(':checked')) $('.stall-checkbox').prop('checked', true);
                 let count = $('.stall-checkbox:checked').length;
@@ -213,7 +247,6 @@
                 count > 0 ? $('.bulk-actions-bar').fadeIn() : $('.bulk-actions-bar').fadeOut();
             });
 
-            // Khi mở Bulk Modal: Nạp IDs vào form
             $('#bulkAssignModal').on('show.bs.modal', function() {
                 let container = $('#bulk-ids-container');
                 container.empty();
@@ -222,7 +255,6 @@
                 });
             });
 
-            // Khởi tạo Select2
             $('#editStallModal').on('shown.bs.modal', function () {
                 $('#edit-owner').select2({ dropdownParent: $('#editStallModal') });
             });

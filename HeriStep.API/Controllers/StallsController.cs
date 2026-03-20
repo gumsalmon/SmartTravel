@@ -245,72 +245,110 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GenerateMockData([FromBody] MockDataRequest req)
         {
             var rand = new Random();
+            var now = DateTime.Now;
 
-            // 1. TẠO USERS
-            var createdUsers = new List<User>();
-            for (int i = 0; i < req.UserCount; i++)
+            try
             {
-                var user = new User
+                // 1. TẠO TOURS (Lộ trình) - Vì Stalls cần TourID
+                var tours = await _context.Tours.ToListAsync();
+                if (!tours.Any())
                 {
-                    Username = $"09{rand.Next(10000000, 99999999)}",
-                    PasswordHash = "123456",
-                    FullName = $"Chủ Sạp Mock {i + 1}",
-                    Role = "StallOwner"
-                };
-                _context.Users.Add(user);
-                createdUsers.Add(user);
-            }
-            await _context.SaveChangesAsync();
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        var t = new Tour { TourName = $"Hành trình di sản {i}", Description = "Mô tả tour", IsActive = true };
+                        _context.Tours.Add(t);
+                    }
+                    await _context.SaveChangesAsync();
+                    tours = await _context.Tours.ToListAsync();
+                }
 
-            // 2. TẠO STALLS & SUBS
-            for (int i = 0; i < req.StallCount; i++)
+                // 2. TẠO USERS (Chủ sạp)
+                var createdUsers = new List<User>();
+                for (int i = 0; i < req.UserCount; i++)
+                {
+                    var user = new User
+                    {
+                        Username = $"user_{Guid.NewGuid().ToString("N").Substring(0, 5)}",
+                        PasswordHash = "123456",
+                        FullName = $"Chủ Sạp {i + 1}",
+                        Role = "StallOwner"
+                    };
+                    _context.Users.Add(user);
+                    createdUsers.Add(user);
+                }
+                await _context.SaveChangesAsync();
+
+                // 3. TẠO STALLS (Sạp hàng)
+                var createdStalls = new List<PointOfInterest>();
+                for (int i = 0; i < req.StallCount; i++)
+                {
+                    var stall = new PointOfInterest
+                    {
+                        Name = $"Sạp hàng {rand.Next(100, 999)}",
+                        Latitude = 10.76 + (rand.NextDouble() * 0.01),
+                        Longitude = 106.70 + (rand.NextDouble() * 0.01),
+                        IsOpen = true,
+                        RadiusMeter = 50,
+                        OwnerId = createdUsers[rand.Next(createdUsers.Count)].Id,
+                        TourID = tours[rand.Next(tours.Count)].Id // 💡 Phải gán TourID thật từ DB
+                    };
+                    _context.Stalls.Add(stall);
+                    createdStalls.Add(stall);
+                }
+                await _context.SaveChangesAsync();
+
+                // 4. TẠO TICKET PACKAGES (Gói vé)
+                var package = await _context.TicketPackages.FirstOrDefaultAsync();
+                if (package == null)
+                {
+                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
+                    _context.TicketPackages.Add(package);
+                    await _context.SaveChangesAsync();
+                }
+
+                // 5. TẠO VÉ & LƯỢT GHÉ (Rải đều 90 ngày qua)
+                for (int i = 0; i < req.VisitCount; i++)
+                {
+                    var randomDate = now.AddDays(-rand.Next(0, 90));
+
+                    // Thêm vé
+                    _context.TouristTickets.Add(new TouristTicket
+                    {
+                        TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                        DeviceId = $"DEV-{rand.Next(1000, 9999)}",
+                        PackageId = package.Id,
+                        AmountPaid = package.Price,
+                        CreatedAt = randomDate,
+                        ExpiryDate = randomDate.AddHours(package.DurationHours)
+                    });
+
+                    // Thêm lượt ghé sạp
+                    if (createdStalls.Any())
+                    {
+                        _context.StallVisits.Add(new StallVisit
+                        {
+                            StallId = createdStalls[rand.Next(createdStalls.Count)].Id,
+                            DeviceId = $"DEV-{rand.Next(1000, 9999)}",
+                            VisitedAt = randomDate
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Mock data đã khớp 100% với cấu trúc DB VinhKhanhTour!" });
+            }
+            catch (Exception ex)
             {
-                double randomLat = 10.7601 + (rand.NextDouble() * 0.006 - 0.003);
-                double randomLng = 106.7025 + (rand.NextDouble() * 0.006 - 0.003);
-
-                var stall = new PointOfInterest
-                {
-                    Name = $"Quán Ăn {rand.Next(100, 999)}",
-                    Latitude = randomLat,
-                    Longitude = randomLng,
-                    IsOpen = true,
-                    RadiusMeter = 15,
-                    OwnerId = createdUsers.Count > 0 ? createdUsers[rand.Next(createdUsers.Count)].Id : null
-                };
-                _context.Stalls.Add(stall);
-
-                var sub = new Subscription
-                {
-                    DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
-                    ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                    StartDate = DateTime.Now,
-                    ExpiryDate = DateTime.Now.AddDays(30),
-                    IsActive = true
-                };
-                _context.Subscriptions.Add(sub);
+                // Trả về lỗi chi tiết nhất có thể
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return BadRequest(new { error = "Lỗi khi lưu DB", detail = msg });
             }
-            await _context.SaveChangesAsync();
-
-            // 3. TẠO VÉ & LƯỢT TRUY CẬP
-            var package = await _context.TicketPackages.FirstOrDefaultAsync() ?? new TicketPackage { PackageName = "Vé Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
-            if (package.Id == 0) _context.TicketPackages.Add(package);
-            await _context.SaveChangesAsync();
-
-            for (int i = 0; i < req.VisitCount; i++)
-            {
-                string devId = $"GUEST_{rand.Next(1000, 9999)}";
-                _context.TouristTickets.Add(new TouristTicket { TicketCode = $"TK-{rand.Next(100000, 999999)}", DeviceId = devId, PackageId = package.Id, AmountPaid = package.Price, CreatedAt = DateTime.Now, ExpiryDate = DateTime.Now.AddDays(7) });
-            }
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Đã tạo Mock Data thành công!" });
         }
+        // --- DTOs ---
+        public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; }
+        public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
+        public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
+        public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
+        public class MockDataRequest { public int UserCount { get; set; } public int StallCount { get; set; } public int VisitCount { get; set; } }
     }
-
-    // --- DTOs ---
-    public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; }
-    public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
-    public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
-    public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
-    public class MockDataRequest { public int UserCount { get; set; } public int StallCount { get; set; } public int VisitCount { get; set; } }
 }

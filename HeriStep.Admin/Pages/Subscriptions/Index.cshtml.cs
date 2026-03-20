@@ -15,32 +15,64 @@ namespace HeriStep.Admin.Pages.Subscriptions
         [BindProperty]
         public Subscription NewSub { get; set; } = new();
 
-        // 💡 CÁC BIẾN PHỤC VỤ PHÂN TRANG
-        [BindProperty(SupportsGet = true)]
-        public int PageNumber { get; set; } = 1; // Trang hiện tại, mặc định là 1
+        // 💡 CÁC BIẾN TÌM KIẾM VÀ LỌC NGÀY
+        [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
+        [BindProperty(SupportsGet = true)] public DateTime? StartDate { get; set; }
+        [BindProperty(SupportsGet = true)] public DateTime? EndDate { get; set; }
+
+        [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
         public int TotalPages { get; set; }
         public int CurrentPage => PageNumber;
-        private const int PageSize = 10; // Số dòng trên mỗi trang
+        private const int PageSize = 10;
 
         public async Task OnGetAsync()
         {
+            if (PageNumber < 1) PageNumber = 1;
+
             try
             {
                 var allSubs = await _http.GetFromJsonAsync<List<Subscription>>("api/Subscriptions") ?? new();
 
-                // 1. Sắp xếp dữ liệu trước khi phân trang
+                // 1. TÌM KIẾM: Lọc theo DeviceId HOẶC ActivationCode
+                if (!string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    var term = SearchTerm.ToLower();
+                    allSubs = allSubs.Where(s =>
+                        (!string.IsNullOrEmpty(s.DeviceId) && s.DeviceId.ToLower().Contains(term)) ||
+                        (!string.IsNullOrEmpty(s.ActivationCode) && s.ActivationCode.ToLower().Contains(term))
+                    ).ToList();
+                }
+
+                // 2. CHẶN LỖI CHỌN NGÀY NGƯỢC
+                if (StartDate.HasValue && EndDate.HasValue && EndDate.Value.Date < StartDate.Value.Date)
+                {
+                    TempData["Error"] = "⚠️ Ngày bắt đầu không thể lớn hơn ngày kết thúc! Hệ thống đã tự động đảo lại giúp bạn.";
+                    var temp = StartDate;
+                    StartDate = EndDate;
+                    EndDate = temp;
+                }
+
+                // 3. LỌC NGÀY: Dựa vào StartDate (Ngày bắt đầu của gói)
+                if (StartDate.HasValue)
+                {
+                    allSubs = allSubs.Where(s => s.StartDate.HasValue && s.StartDate.Value.Date >= StartDate.Value.Date).ToList();
+                }
+
+                if (EndDate.HasValue)
+                {
+                    allSubs = allSubs.Where(s => s.StartDate.HasValue && s.StartDate.Value.Date <= EndDate.Value.Date).ToList();
+                }
+
+                // 4. Sắp xếp dữ liệu
                 var sortedList = allSubs.OrderByDescending(s => s.IsActive)
                                         .ThenByDescending(s => s.StartDate)
                                         .ToList();
 
-                // 2. Tính toán tổng số trang
+                // 5. Tính toán phân trang
                 TotalPages = (int)Math.Ceiling(sortedList.Count / (double)PageSize);
-
-                // 3. Khống chế trang không vượt quá giới hạn
-                if (PageNumber < 1) PageNumber = 1;
                 if (TotalPages > 0 && PageNumber > TotalPages) PageNumber = TotalPages;
 
-                // 4. Cắt danh sách lấy đúng phần cho trang hiện tại
+                // 6. Cắt danh sách
                 SubList = sortedList.Skip((PageNumber - 1) * PageSize).Take(PageSize).ToList();
             }
             catch

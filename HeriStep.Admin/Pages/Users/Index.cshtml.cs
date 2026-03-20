@@ -10,12 +10,13 @@ namespace HeriStep.Admin.Pages.Users
         private readonly HttpClient _http;
         public IndexModel(HttpClient http) => _http = http;
 
-        // Danh sách hiển thị trên trang hiện tại
         public List<UserDto> UserList { get; set; } = new();
 
         [BindProperty] public UserDto NewUser { get; set; } = new();
 
-        // 💡 Thuộc tính phân trang
+        // 💡 Thêm biến Tìm kiếm
+        [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
+
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
         public int TotalPages { get; set; }
@@ -25,19 +26,27 @@ namespace HeriStep.Admin.Pages.Users
         {
             try
             {
-                // 1. Lấy toàn bộ danh sách từ API
                 var allUsers = await _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners-summary") ?? new();
 
-                // 2. Cấu hình phân trang (VD: 10 chủ sạp mỗi trang)
+                // 1. TÌM KIẾM: Lọc theo Số điện thoại (Username) HOẶC Họ tên
+                if (!string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    var term = SearchTerm.ToLower();
+                    allUsers = allUsers.Where(u =>
+                        (!string.IsNullOrEmpty(u.Username) && u.Username.ToLower().Contains(term)) ||
+                        (!string.IsNullOrEmpty(u.FullName) && u.FullName.ToLower().Contains(term))
+                    ).ToList();
+                }
+
+                // 2. Cấu hình phân trang
                 int pageSize = 10;
                 int totalItems = allUsers.Count;
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-                // Khống chế số trang hợp lệ
                 if (PageNumber < 1) PageNumber = 1;
                 if (TotalPages > 0 && PageNumber > TotalPages) PageNumber = TotalPages;
 
-                // 3. Cắt danh sách lấy đúng trang hiện tại và sắp xếp theo ID mới nhất
+                // 3. Cắt danh sách và sắp xếp
                 UserList = allUsers
                     .OrderByDescending(u => u.Id)
                     .Skip((PageNumber - 1) * pageSize)

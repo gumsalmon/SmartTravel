@@ -14,12 +14,48 @@
         </div>
     }
 
+    <!-- 💡 HIỂN THỊ CẢNH BÁO LỖI (Dùng cho vụ chọn ngày ngược) -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <h4 class="fw-bold m-0 text-dark"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription thiết bị</h4>
-            <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addSubModal">
-                <i class="bi bi-plus-circle me-1"></i> Kích hoạt thiết bị mới
-            </button>
+        <!-- 💡 HEADER GỘP BỘ LỌC ĐỒNG BỘ VỚI TRANG SẠP -->
+        <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+            <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription</h4>
+
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <!-- Ô tìm Mã thiết bị / Mã kích hoạt -->
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm Device ID, Mã kích hoạt...">
+                    </div>
+
+                    <!-- Lọc Từ ngày -> Đến ngày -->
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
+                    </div>
+                    <span class="text-muted fw-bold">-</span>
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="EndDate" class="form-control bg-light" title="Đến ngày">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-search me-1"></i> Lọc</button>
+
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.StartDate.HasValue || Model.EndDate.HasValue)
+                    {
+                        <a href="/Subscriptions/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+                    }
+                </form>
+
+                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#addSubModal">
+                    <i class="bi bi-plus-circle me-1"></i> Kích hoạt mới
+                </button>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -58,7 +94,7 @@
             </table>
         </div>
 
-        <!-- 💡 BỘ PHÂN TRANG (PAGINATION) -->
+        <!-- 💡 BỘ PHÂN TRANG (Kẹp URL Parameters) -->
         <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
             <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
 
@@ -66,22 +102,25 @@
             {
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
-                        @* Nút Trang Trước *@
                         <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage - 1)">Trước</a>
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Trước</a>
                         </li>
 
-                        @* Danh sách số trang *@
-                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        @{
+                            int startPage = Math.Max(1, Model.CurrentPage - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
                         {
                             <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                                <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@i">@i</a>
+                                <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
                             </li>
                         }
 
-                        @* Nút Trang Sau *@
                         <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage + 1)">Sau</a>
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Sau</a>
                         </li>
                     </ul>
                 </nav>
@@ -90,13 +129,14 @@
     </div>
 </div>
 
-<!-- Modal Add (Giữ nguyên phần modal cũ của sếp nhưng thêm bo góc mượt hơn) -->
+<!-- Modal Add -->
 <div class="modal fade" id="addSubModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow-lg">
             <form method="post" asp-page-handler="Create">
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-rocket-takeoff me-2"></i>Kích hoạt thiết bị</h5>
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">Mã định danh thiết bị (Device ID)</label>
                         <input type="text" asp-for="NewSub.DeviceId" class="form-control rounded-3" required placeholder="VD: HS-DEV-001">
