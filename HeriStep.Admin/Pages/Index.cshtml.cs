@@ -1,4 +1,5 @@
 ﻿using HeriStep.Shared.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;
 
@@ -9,15 +10,19 @@ namespace HeriStep.Admin.Pages
         private readonly HttpClient _http;
         public IndexModel(HttpClient http) => _http = http;
 
-        // 💡 Tối ưu: Chỉ cần lưu 1 Object duy nhất chứa các con số tổng
         public DashboardStats Stats { get; set; } = new();
+
+        // 💡 PHẢI CÓ 2 BIẾN NÀY THÌ FORM GIAO DIỆN MỚI LỌC ĐƯỢC
+        [BindProperty(SupportsGet = true)] public DateTime? StartDate { get; set; }
+        [BindProperty(SupportsGet = true)] public DateTime? EndDate { get; set; }
 
         public async Task OnGetAsync()
         {
             try
             {
-                // 💡 ĐÃ SỬA: Đổi từ "api/Dashboard/stats" thành "api/Stats" cho khớp với Controller của bạn
-                Stats = await _http.GetFromJsonAsync<DashboardStats>("api/Stats") ?? new DashboardStats();
+                // Kẹp ngày vào URL để gọi API Backend
+                var query = $"?startDate={StartDate?.ToString("yyyy-MM-dd")}&endDate={EndDate?.ToString("yyyy-MM-dd")}";
+                Stats = await _http.GetFromJsonAsync<DashboardStats>($"api/Stats{query}") ?? new DashboardStats();
             }
             catch
             {

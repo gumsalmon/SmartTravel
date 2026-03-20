@@ -5,26 +5,83 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HeriStep.API.Controllers
 {
-    [Route("api/[controller]")] // Đường dẫn sẽ là: api/Stats
+    [Route("api/[controller]")]
     [ApiController]
     public class StatsController : ControllerBase
     {
         private readonly HeriStepDbContext _context;
         public StatsController(HeriStepDbContext context) => _context = context;
 
-        [HttpGet] // Gọi trực tiếp api/Stats
-        public async Task<ActionResult<DashboardStats>> GetSystemStats()
+        [HttpGet]
+        public async Task<ActionResult<DashboardStats>> GetSystemStats([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
-            var stats = new DashboardStats
+            // 1. Khởi tạo Object Stats
+            var stats = new DashboardStats();
+
+            // 2. Tính toán các con số tổng quát
+            stats.TotalStalls = await _context.Stalls.CountAsync();
+            stats.TotalStallOwners = await _context.Users.CountAsync(u => u.Role == "StallOwner");
+            stats.TotalTours = await _context.Tours.CountAsync(t => t.IsActive == true);
+            stats.ActiveDevices = await _context.Subscriptions
+                .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > DateTime.Now));
+            stats.TotalVisits = await _context.StallVisits.CountAsync();
+            stats.TotalLanguages = await _context.Languages.CountAsync();
+
+            // 3. Trạng thái sạp (Biểu đồ Donut)
+            stats.OpenStalls = await _context.Stalls.CountAsync(s => s.IsOpen == true);
+            stats.ClosedStalls = stats.TotalStalls - stats.OpenStalls;
+
+            // 4. Xử lý thời gian lọc
+            var end = endDate?.Date ?? DateTime.Today;
+            var start = startDate?.Date ?? end.AddDays(-6);
+            if (start > end) { var temp = start; start = end; end = temp; }
+
+            // 5. Thống kê vé theo ngày (Biểu đồ Đường)
+            var ticketsInPeriod = await _context.TouristTickets
+                .Where(t => t.CreatedAt >= start && t.CreatedAt < end.AddDays(1))
+                .Select(t => new { t.CreatedAt })
+                .ToListAsync();
+
+            for (var date = start; date <= end; date = date.AddDays(1))
             {
-                TotalStalls = await _context.Stalls.CountAsync(),
-                TotalStallOwners = await _context.Users.CountAsync(u => u.Role == "StallOwner"),
-                TotalTours = await _context.Tours.CountAsync(t => t.IsActive == true),
-                ActiveDevices = await _context.Subscriptions
-                    .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > DateTime.Now)),
-                TotalVisits = await _context.StallVisits.CountAsync(),
-                TotalLanguages = await _context.Languages.CountAsync()
-            };
+                stats.ChartLabels.Add(date.ToString("dd/MM"));
+                stats.ChartData.Add(ticketsInPeriod.Count(t => t.CreatedAt.Date == date.Date));
+            }
+
+            // 6. Top 5 Sạp Hàng (Dùng Join để lấy NameDefault ngay lập tức, tránh lỗi N+1)
+            var topStalls = await _context.StallVisits
+                .GroupBy(v => v.StallId)
+                .OrderByDescending(g => g.Count())
+                .Take(5)
+                .Select(g => new
+                {
+                    // Lấy tên sạp trực tiếp từ bảng Stalls
+                    Name = _context.Stalls.Where(s => s.Id == g.Key).Select(s => s.Name).FirstOrDefault(),
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            foreach (var item in topStalls)
+            {
+                stats.TopStallNames.Add(item.Name ?? "Sạp ẩn");
+                stats.TopStallVisits.Add(item.Count);
+            }
+
+            // 7. Doanh thu theo Gói vé (Join với TicketPackages)
+            var revenue = await _context.TouristTickets
+                .GroupBy(t => t.PackageId)
+                .Select(g => new
+                {
+                    Name = _context.TicketPackages.Where(p => p.Id == g.Key).Select(p => p.PackageName).FirstOrDefault(),
+                    Total = g.Sum(t => (double)t.AmountPaid)
+                })
+                .ToListAsync();
+
+            foreach (var item in revenue)
+            {
+                stats.RevenueLabels.Add(item.Name ?? "Gói lẻ");
+                stats.RevenueData.Add(item.Total);
+            }
 
             return Ok(stats);
         }

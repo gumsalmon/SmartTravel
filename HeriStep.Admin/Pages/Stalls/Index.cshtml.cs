@@ -15,19 +15,23 @@ namespace HeriStep.Admin.Pages.Stalls
         public List<UserDto> Owners { get; set; } = new();
 
         [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
+        // 💡 Thay FilterDate bằng Từ ngày - Đến ngày
+        [BindProperty(SupportsGet = true)] public DateTime? StartDate { get; set; }
+        [BindProperty(SupportsGet = true)] public DateTime? EndDate { get; set; }
         [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
 
         public int TotalPages { get; set; }
         public int CurrentPage => PageNumber;
-        public int PageSize { get; set; } = 10; // Mỗi trang 10 sạp cho sếp dễ nhìn
+        public int PageSize { get; set; } = 10;
 
         [BindProperty] public PointOfInterest EditStall { get; set; } = new();
 
         public async Task OnGetAsync()
         {
+            if (PageNumber < 1) PageNumber = 1;
+
             try
             {
-                // 1. Lấy dữ liệu song song để tối ưu tốc độ
                 var ownersTask = _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners-summary");
                 var stallsTask = _http.GetFromJsonAsync<List<PointOfInterest>>("api/Stalls");
 
@@ -36,23 +40,57 @@ namespace HeriStep.Admin.Pages.Stalls
                 Owners = await ownersTask ?? new();
                 var allStalls = await stallsTask ?? new();
 
-                // 2. Xử lý Tìm kiếm
+                // 1. Lọc theo Tên Sạp HOẶC Tên Chủ Sạp HOẶC Số điện thoại (Username)
                 if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
-                    allStalls = allStalls.Where(s => s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+                    var searchTermLower = SearchTerm.ToLower();
+
+                    // Tìm ra danh sách ID của các chủ sạp có Tên hoặc SĐT khớp với từ khóa
+                    var matchingOwnerIds = Owners
+                        .Where(o => (!string.IsNullOrEmpty(o.Username) && o.Username.Contains(SearchTerm)) ||
+                                    (!string.IsNullOrEmpty(o.FullName) && o.FullName.ToLower().Contains(searchTermLower)))
+                        .Select(o => o.Id)
+                        .ToList();
+
+                    allStalls = allStalls.Where(s =>
+                        (s.Name != null && s.Name.ToLower().Contains(searchTermLower)) ||
+                        (s.OwnerId.HasValue && matchingOwnerIds.Contains(s.OwnerId.Value))
+                    ).ToList();
                 }
 
-                // 3. Tính toán phân trang
+                // ... (khúc lọc theo Tên và SĐT giữ nguyên) ...
+
+                // 💡 CHẶN LỖI CHỌN NGÀY NGƯỢC ĐỜI (END < START)
+                if (StartDate.HasValue && EndDate.HasValue && EndDate.Value.Date < StartDate.Value.Date)
+                {
+                    TempData["Error"] = "⚠️ Ngày bắt đầu không thể lớn hơn ngày kết thúc! Hệ thống đã tự động đảo lại giúp bạn.";
+
+                    // Tự động hoán đổi 2 ngày lại cho đúng logic (Pro UX)
+                    var temp = StartDate;
+                    StartDate = EndDate;
+                    EndDate = temp;
+                }
+
+                // 2. Lọc theo Khoảng thời gian (Từ ngày -> Đến ngày)
+                if (StartDate.HasValue)
+                {
+                    allStalls = allStalls.Where(s => s.UpdatedAt.HasValue && s.UpdatedAt.Value.Date >= StartDate.Value.Date).ToList();
+                }
+
+                if (EndDate.HasValue)
+                {
+                    allStalls = allStalls.Where(s => s.UpdatedAt.HasValue && s.UpdatedAt.Value.Date <= EndDate.Value.Date).ToList();
+                }
+
+                // 3. Tính toán Phân trang
                 int totalItems = allStalls.Count;
                 TotalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
 
-                // Khống chế số trang hợp lệ
-                if (PageNumber < 1) PageNumber = 1;
                 if (TotalPages > 0 && PageNumber > TotalPages) PageNumber = TotalPages;
 
-                // 4. Cắt danh sách (Skip/Take)
+                // 4. Cắt danh sách
                 Stalls = allStalls
-                    .OrderByDescending(s => s.Id) // Mới nhất lên đầu
+                    .OrderByDescending(s => s.Id)
                     .Skip((PageNumber - 1) * PageSize)
                     .Take(PageSize)
                     .ToList();
@@ -91,12 +129,10 @@ namespace HeriStep.Admin.Pages.Stalls
             return RedirectToPage();
         }
 
-        // Handler xử lý gán chủ hàng loạt
         public async Task<IActionResult> OnPostBulkAssignAsync(List<int> SelectedStallIds, int NewOwnerId)
         {
             if (SelectedStallIds == null || !SelectedStallIds.Any()) return RedirectToPage();
 
-            // Sếp có thể loop hoặc viết 1 API riêng. Ở đây ta loop cho đơn giản:
             foreach (var id in SelectedStallIds)
             {
                 await _http.PutAsJsonAsync($"api/Stalls/assign", new { StallId = id, OwnerId = NewOwnerId });

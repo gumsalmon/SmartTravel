@@ -5,59 +5,212 @@
     ViewData["Title"] = "Tổng quan hệ thống";
 }
 
-<div class="container-fluid py-4">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+
+    <!-- HÀNG 1: KPI CARDS (DỮ LIỆU TỪ API) -->
     <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="stat-icon bg-primary-light text-primary">
-                        <i class="bi bi-shop"></i>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-primary border-4">
+                <div class="d-flex justify-content-between text-truncate">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Tổng sạp hàng</p>
+                        <h3 class="fw-bold text-primary mb-0">@(Model.Stats?.TotalStalls ?? 0)</h3>
                     </div>
-                    <div class="text-end">
-                        <div class="text-muted extra-small">Toàn hệ thống</div>
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-shop fs-4"></i>
                     </div>
                 </div>
-                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tổng số sạp hàng</h6>
-                <h2 class="fw-bold mb-0 text-primary">@Model.Stats.TotalStalls.ToString("N0")</h2>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="stat-icon bg-success-light text-success">
-                        <i class="bi bi-person-badge-fill"></i>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-success border-4">
+                <div class="d-flex justify-content-between text-truncate">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Lượt ghé sạp</p>
+                        <h3 class="fw-bold text-success mb-0">@(Model.Stats?.TotalVisits ?? 0)</h3>
+                    </div>
+                    <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-eye fs-4"></i>
                     </div>
                 </div>
-                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Tài khoản Chủ sạp</h6>
-                <h2 class="fw-bold mb-0 text-success">@Model.Stats.TotalStallOwners.ToString("N0")</h2>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-warning border-4">
+                <div class="d-flex justify-content-between text-truncate">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Lộ trình Tour</p>
+                        <h3 class="fw-bold text-warning mb-0">@(Model.Stats?.TotalTours ?? 0)</h3>
+                    </div>
+                    <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-map fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-info border-4">
+                <div class="d-flex justify-content-between text-truncate">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Ngôn ngữ</p>
+                        <h3 class="fw-bold text-info mb-0">@(Model.Stats?.TotalLanguages ?? 0)</h3>
+                    </div>
+                    <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-translate fs-4"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-6">
-            <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="stat-icon bg-warning-light text-warning">
-                        <i class="bi bi-map"></i>
-                    </div>
-                    <span class="text-success small fw-bold">Đang hoạt động</span>
+    <!-- HÀNG 2: BIỂU ĐỒ CHÍNH & TRẠNG THÁI -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-graph-up me-2 text-primary"></i>Lượng Khách Mua Vé</h6>
+                    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                        <select id="quickFilter" class="form-select form-select-sm bg-light" style="width: 130px;" onchange="applyQuickFilter(this.value)">
+                            <option value="">-- Mốc --</option>
+                            <option value="7">7 ngày qua</option>
+                            <option value="30">30 ngày qua</option>
+                            <option value="90">90 ngày qua</option>
+                        </select>
+                        <input type="date" id="startDate" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="form-control form-control-sm bg-light" style="width: 130px;">
+                        <span class="text-muted small">-</span>
+                        <input type="date" id="endDate" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="form-control form-control-sm bg-light" style="width: 130px;">
+                        <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-filter"></i></button>
+                    </form>
                 </div>
-                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Lộ trình Tour</h6>
-                <h2 class="fw-bold mb-0 text-warning">@Model.Stats.TotalTours.ToString("N0")</h2>
+                <div class="card-body">
+                    <div id="visitorChart" style="min-height: 350px;"></div>
+                </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="stat-card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="stat-icon bg-info-light text-info">
-                        <i class="bi bi-cpu"></i>
-                    </div>
-                    <span class="text-muted small">Đang kích hoạt</span>
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-pie-chart me-2 text-primary"></i>Trạng Thái Sạp</h6>
                 </div>
-                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Thiết bị TTS</h6>
-                <h2 class="fw-bold mb-0 text-info">@Model.Stats.ActiveDevices.ToString("N0")</h2>
+                <div class="card-body d-flex align-items-center">
+                    <div id="stallStatusChart" class="w-100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG 3: TOP SẠP & DOANH THU GÓI VÉ -->
+    <div class="row g-4">
+        <div class="col-12 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-trophy me-2 text-warning"></i>Top 5 Sạp Hàng Thu Hút Nhất</h6>
+                </div>
+                <div class="card-body">
+                    <div id="topStallsChart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-wallet2 me-2 text-success"></i>Cơ Cấu Doanh Thu Gói Vé</h6>
+                </div>
+                <div class="card-body">
+                    <div id="revenueChart"></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+
+@section Scripts {
+    <script>
+        function applyQuickFilter(days) {
+            if (!days) return;
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - parseInt(days) + 1);
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('startDate').form.submit();
+        }
+
+        $(document).ready(function () {
+            // 💡 Dùng JSON.parse để tránh lỗi đỏ gạch trong VS và giúp code chạy ổn định hơn
+            const stats = {
+                chartData: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartData ?? new List<int>()))'),
+                chartLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartLabels ?? new List<string>()))'),
+                topNames: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.TopStallNames ?? new List<string>()))'),
+                topVisits: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.TopStallVisits ?? new List<int>()))'),
+                revData: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueData ?? new List<double>()))'),
+                revLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueLabels ?? new List<string>()))')
+            };
+
+            // --- 1. BIỂU ĐỒ ĐƯỜNG: LƯỢNG KHÁCH ---
+            new ApexCharts(document.querySelector("#visitorChart"), {
+                series: [{ name: 'Vé bán ra', data: stats.chartData }],
+                chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                colors: ['#0d6efd'],
+                stroke: { curve: 'smooth', width: 3 },
+                // 💡 TẮT SỐ HIỆN TRỰC TIẾP TRÊN ĐƯỜNG KẺ
+                dataLabels: { enabled: false }, 
+                xaxis: {
+                    categories: stats.chartLabels,
+                    labels: { rotate: -45, hideOverlappingLabels: true, style: { fontSize: '11px' } },
+                    tickAmount: 10
+                },
+                fill: { type: 'gradient', gradient: { opacityFrom: 0.6, opacityTo: 0.1 } },
+                // 💡 CẤU HÌNH TOOLTIP ĐỂ CHỈ VÀO MỚI HIỆN SỐ
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: { formatter: (val) => val + " vé" }
+                }
+            }).render();
+
+            // --- 2. BIỂU ĐỒ TRÒN: TRẠNG THÁI SẠP ---
+            new ApexCharts(document.querySelector("#stallStatusChart"), {
+                series: [@(Model.Stats?.OpenStalls ?? 0), @(Model.Stats?.ClosedStalls ?? 0)],
+                labels: ['Đang Mở', 'Đang Đóng'],
+                chart: { type: 'donut', height: 320 },
+                colors: ['#198754', '#dc3545'],
+                dataLabels: { enabled: false }, // Tắt số hiện trên vòng tròn
+                plotOptions: { 
+                    pie: { 
+                        donut: { 
+                            labels: { 
+                                show: true, 
+                                total: { show: true, label: 'Tổng sạp', formatter: () => '@(Model.Stats?.TotalStalls ?? 0)' } 
+                            } 
+                        } 
+                    } 
+                },
+                legend: { position: 'bottom' }
+            }).render();
+
+            // --- 3. BIỂU ĐỒ CỘT NGANG: TOP SẠP ---
+            new ApexCharts(document.querySelector("#topStallsChart"), {
+                series: [{ name: 'Lượt ghé', data: stats.topVisits }],
+                chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: '60%' } },
+                dataLabels: { enabled: false }, // Chỉ vào cột mới hiện số
+                colors: ['#6366f1'],
+                xaxis: { categories: stats.topNames }
+            }).render();
+
+            // --- 4. BIỂU ĐỒ TRÒN: DOANH THU GÓI VÉ ---
+            new ApexCharts(document.querySelector("#revenueChart"), {
+                series: stats.revData,
+                labels: stats.revLabels,
+                chart: { type: 'pie', height: 300 },
+                legend: { position: 'bottom' },
+                dataLabels: { enabled: false }, // Tắt mấy cái % hiện đè lên biểu đồ
+                tooltip: { y: { formatter: (val) => val.toLocaleString() + " đ" } }
+            }).render();
+        });
+    </script>
+}
+}

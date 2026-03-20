@@ -9,7 +9,7 @@ namespace HeriStep.Shared.Models
         [Key]
         public int Id { get; set; }
         [Column("package_name")]
-        public string PackageName { get; set; }
+        public string? PackageName { get; set; }
         [Column("price")]
         public decimal Price { get; set; }
         [Column("duration_hours")]
