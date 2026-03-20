@@ -189,7 +189,17 @@ namespace HeriStep.API.Controllers
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
-            _context.Stalls.Add(new PointOfInterest { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = true, RadiusMeter = 20 });
+            var newStall = new Stall
+            {
+                Name = "Sạp mới (Chưa gán)",
+                Latitude = req.Latitude,
+                Longitude = req.Longitude,
+                IsOpen = true,
+                RadiusMeter = 20,
+                OwnerId = null
+            };
+
+            _context.Stalls.Add(newStall);
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -268,7 +278,7 @@ namespace HeriStep.API.Controllers
                 double randomLat = 10.7601 + (rand.NextDouble() * 0.006 - 0.003);
                 double randomLng = 106.7025 + (rand.NextDouble() * 0.006 - 0.003);
 
-                var stall = new PointOfInterest
+                var stall = new Stall
                 {
                     Name = $"Quán Ăn {rand.Next(100, 999)}",
                     Latitude = randomLat,
