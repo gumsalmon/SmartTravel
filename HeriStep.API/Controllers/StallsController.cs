@@ -24,12 +24,11 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 💡 0. [MỚI THÊM] ADMIN: LẤY TẤT CẢ SẠP (HIỆN BẢNG)
+        // 💡 0. ADMIN: LẤY TẤT CẢ SẠP (HIỆN BẢNG)
         // ==========================================
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
-            // Sử dụng Left Join để sạp chưa có chủ vẫn hiện lên
             var query = from s in _context.Stalls
                         join u in _context.Users on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
@@ -60,24 +59,25 @@ namespace HeriStep.API.Controllers
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
 
             var ttsContent = await _context.StallContents
-                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == "vi");
+                .Where(c => c.StallId == id && c.LangCode == "vi")
+                .FirstOrDefaultAsync();
 
             return Ok(new
             {
                 id = stall.Id,
-                name = stall.Name,
-                imageUrl = stall.ImageUrl,
+                name = stall.Name ?? "Sạp chưa đặt tên",
+                imageUrl = stall.ImageUrl ?? "",
                 isOpen = stall.IsOpen,
                 ownerId = stall.OwnerId,
                 latitude = stall.Latitude,
                 longitude = stall.Longitude,
                 radiusMeter = stall.RadiusMeter,
-                ttsScript = ttsContent != null ? ttsContent.TtsScript : ""
+                ttsScript = ttsContent != null ? (ttsContent.TtsScript ?? "") : ""
             });
         }
 
         // ==========================================
-        // 2. CẬP NHẬT SẠP & TTS & UPLOAD ẢNH (Hỗ trợ Admin gán chủ)
+        // 2. CẬP NHẬT SẠP & TTS & UPLOAD ẢNH
         // ==========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req)
@@ -87,7 +87,6 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
 
-            // Xử lý Upload ảnh
             if (req.ImageFile != null)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
@@ -103,14 +102,12 @@ namespace HeriStep.API.Controllers
                 stall.ImageUrl = "/uploads/" + fileName;
             }
 
-            // Cập nhật thông tin cơ bản
             stall.Name = req.Name;
             stall.IsOpen = req.IsOpen;
-            stall.OwnerId = req.OwnerId; // 💡 Gán chủ sạp ở đây
+            stall.OwnerId = req.OwnerId;
             stall.RadiusMeter = req.RadiusMeter;
             stall.UpdatedAt = DateTime.Now;
 
-            // Cập nhật nội dung TTS (Đa ngôn ngữ)
             if (!string.IsNullOrEmpty(req.TtsScript))
             {
                 var oldContents = _context.StallContents.Where(c => c.StallId == id);
@@ -136,7 +133,7 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 💡 2.1 [MỚI THÊM] XÓA SẠP
+        // 2.1 XÓA SẠP
         // ==========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStall(int id)
@@ -144,7 +141,6 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound();
 
-            // Xóa nội dung liên quan
             var contents = _context.StallContents.Where(c => c.StallId == id);
             _context.StallContents.RemoveRange(contents);
 
@@ -189,17 +185,7 @@ namespace HeriStep.API.Controllers
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
-            var newStall = new Stall
-            {
-                Name = "Sạp mới (Chưa gán)",
-                Latitude = req.Latitude,
-                Longitude = req.Longitude,
-                IsOpen = true,
-                RadiusMeter = 20,
-                OwnerId = null
-            };
-
-            _context.Stalls.Add(newStall);
+            _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = true, RadiusMeter = 20 });
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -229,7 +215,7 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 🔐 8. ĐỔI MẬT KHẨU CHỦ SẠP
+        // 8. ĐỔI MẬT KHẨU CHỦ SẠP
         // ==========================================
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
@@ -249,7 +235,38 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 🧪 ADMIN: TẠO MOCK DATA TỔNG HỢP (FULL BẢNG)
+        // 💡 9. MOCK TEST: GIẢ LẬP KHÁCH VÀO SẠP (TẠO DATA ĐỘNG)
+        // ==========================================
+        [HttpPost("{id}/simulate-tourist/{langCode}")]
+        public async Task<IActionResult> SimulateTourist(int id, string langCode)
+        {
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp" });
+
+            // 1. Tạo 1 Device ID ngẫu nhiên, có gắn tên ngôn ngữ để dễ nhận biết trong DB
+            string fakeDeviceId = $"MOCK-APP-{langCode.ToUpper()}-{Guid.NewGuid().ToString().Substring(0, 6)}";
+
+            // 2. Lưu lịch sử vào bảng StallVisits
+            var visit = new StallVisit
+            {
+                StallId = id,
+                DeviceId = fakeDeviceId,
+                VisitedAt = DateTime.Now
+            };
+
+            _context.StallVisits.Add(visit);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Đã lưu DB thành công",
+                device = fakeDeviceId,
+                lang = langCode
+            });
+        }
+
+        // ==========================================
+        // 🧪 ADMIN: TẠO MOCK DATA TỔNG HỢP
         // ==========================================
         [HttpPost("generate-mock")]
         public async Task<IActionResult> GenerateMockData([FromBody] MockDataRequest req)
@@ -259,7 +276,6 @@ namespace HeriStep.API.Controllers
 
             try
             {
-                // 1. TẠO TOURS (Lộ trình) - Vì Stalls cần TourID
                 var tours = await _context.Tours.ToListAsync();
                 if (!tours.Any())
                 {
@@ -272,7 +288,6 @@ namespace HeriStep.API.Controllers
                     tours = await _context.Tours.ToListAsync();
                 }
 
-                // 2. TẠO USERS (Chủ sạp)
                 var createdUsers = new List<User>();
                 for (int i = 0; i < req.UserCount; i++)
                 {
@@ -288,36 +303,36 @@ namespace HeriStep.API.Controllers
                 }
                 await _context.SaveChangesAsync();
 
-            // 2. TẠO STALLS & SUBS
-            for (int i = 0; i < req.StallCount; i++)
-            {
-                double randomLat = 10.7601 + (rand.NextDouble() * 0.006 - 0.003);
-                double randomLng = 106.7025 + (rand.NextDouble() * 0.006 - 0.003);
-
-                var stall = new Stall
+                var createdStalls = new List<Stall>();
+                for (int i = 0; i < req.StallCount; i++)
                 {
-                    Name = $"Quán Ăn {rand.Next(100, 999)}",
-                    Latitude = randomLat,
-                    Longitude = randomLng,
-                    IsOpen = true,
-                    RadiusMeter = 15,
-                    OwnerId = createdUsers.Count > 0 ? createdUsers[rand.Next(createdUsers.Count)].Id : null
-                };
-                _context.Stalls.Add(stall);
+                    var randomDate = now.AddDays(-rand.Next(0, 90));
 
-                var sub = new Subscription
-                {
-                    DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
-                    ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                    StartDate = DateTime.Now,
-                    ExpiryDate = DateTime.Now.AddDays(30),
-                    IsActive = true
-                };
-                _context.Subscriptions.Add(sub);
-            }
-            await _context.SaveChangesAsync();
+                    var stall = new Stall
+                    {
+                        Name = $"Sạp hàng {rand.Next(100, 999)}",
+                        Latitude = 10.76 + (rand.NextDouble() * 0.01),
+                        Longitude = 106.70 + (rand.NextDouble() * 0.01),
+                        IsOpen = true,
+                        RadiusMeter = 50,
+                        OwnerId = createdUsers[rand.Next(createdUsers.Count)].Id,
+                        TourID = tours[rand.Next(tours.Count)].Id
+                    };
+                    _context.Stalls.Add(stall);
+                    createdStalls.Add(stall);
 
-                // 4. TẠO TICKET PACKAGES (Gói vé)
+                    var sub = new Subscription
+                    {
+                        DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
+                        ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
+                        StartDate = randomDate,
+                        ExpiryDate = randomDate.AddDays(30),
+                        IsActive = true
+                    };
+                    _context.Subscriptions.Add(sub);
+                }
+                await _context.SaveChangesAsync();
+
                 var package = await _context.TicketPackages.FirstOrDefaultAsync();
                 if (package == null)
                 {
@@ -326,12 +341,10 @@ namespace HeriStep.API.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // 5. TẠO VÉ & LƯỢT GHÉ (Rải đều 90 ngày qua)
                 for (int i = 0; i < req.VisitCount; i++)
                 {
                     var randomDate = now.AddDays(-rand.Next(0, 90));
 
-                    // Thêm vé
                     _context.TouristTickets.Add(new TouristTicket
                     {
                         TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
@@ -342,7 +355,6 @@ namespace HeriStep.API.Controllers
                         ExpiryDate = randomDate.AddHours(package.DurationHours)
                     });
 
-                    // Thêm lượt ghé sạp
                     if (createdStalls.Any())
                     {
                         _context.StallVisits.Add(new StallVisit
@@ -359,11 +371,11 @@ namespace HeriStep.API.Controllers
             }
             catch (Exception ex)
             {
-                // Trả về lỗi chi tiết nhất có thể
                 var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return BadRequest(new { error = "Lỗi khi lưu DB", detail = msg });
             }
         }
+
         // --- DTOs ---
         public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; }
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }

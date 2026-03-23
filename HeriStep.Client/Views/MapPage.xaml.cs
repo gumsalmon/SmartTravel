@@ -1,11 +1,11 @@
-﻿using HeriStep.Shared;
-using Mapsui;
+﻿using Mapsui;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling;
 using Mapsui.Layers;
 using System.Collections.Generic;
 using System.Linq;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.Views;
 

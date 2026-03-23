@@ -1,5 +1,4 @@
-﻿using HeriStep.Shared;
-using HeriStep.Shared.Models;
+﻿using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;

@@ -1,4 +1,4 @@
-using HeriStep.Shared;
+using HeriStep.Shared.Models;
 using System.Collections.ObjectModel;
 
 namespace HeriStep.Client.Views;

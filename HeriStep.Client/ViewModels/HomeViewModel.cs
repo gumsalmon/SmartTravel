@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
-using HeriStep.Shared;
 using System.Net.Http.Json;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.ViewModels
 {
