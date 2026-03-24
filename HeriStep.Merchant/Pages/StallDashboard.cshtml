@@ -350,7 +350,7 @@
         recentVisitors[guestId] = now;
 
         // 3. Truyền chính xác guestId xuống API C# để lưu DB
-        fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/simulate-tourist/${lang}?deviceId=${guestId}`, { method: 'POST' })
+       fetch(`http://127.0.0.1:5297/api/MockData/simulate-tourist/${stallId}/${lang}?deviceId=${guestId}`, { method: 'POST' })
             .then(res => console.log("Đã lưu DB khách:", guestId))
             .catch(e => console.log("Lỗi API lưu DB ngầm"));
 

@@ -182,7 +182,7 @@
 
             try {
         // Sửa dòng 173 thành thế này:
-        const response = await fetch('http://localhost:5297/api/Stalls/generate-mock', {
+        const response = await fetch('http://localhost:5297/api/MockData/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(reqBody)

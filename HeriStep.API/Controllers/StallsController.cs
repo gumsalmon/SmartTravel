@@ -196,7 +196,7 @@ namespace HeriStep.API.Controllers
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
-            _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = true, RadiusMeter = 20 });
+            _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 });
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -243,147 +243,6 @@ namespace HeriStep.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Đổi mật khẩu thành công!" });
-        }
-
-        // ==========================================
-        // 9. MOCK TEST: GIẢ LẬP KHÁCH VÀO SẠP (TẠO DATA ĐỘNG)
-        // ==========================================
-        [HttpPost("{id}/simulate-tourist/{langCode}")]
-        public async Task<IActionResult> SimulateTourist(int id, string langCode)
-        {
-            var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp" });
-
-            string fakeDeviceId = $"MOCK-APP-{langCode.ToUpper()}-{Guid.NewGuid().ToString().Substring(0, 6)}";
-
-            var visit = new StallVisit
-            {
-                StallId = id,
-                DeviceId = fakeDeviceId,
-                VisitedAt = DateTime.Now
-            };
-
-            _context.StallVisits.Add(visit);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = "Đã lưu DB thành công",
-                device = fakeDeviceId,
-                lang = langCode
-            });
-        }
-
-        // ==========================================
-        // 🧪 ADMIN: TẠO MOCK DATA TỔNG HỢP
-        // ==========================================
-        [HttpPost("generate-mock")]
-        public async Task<IActionResult> GenerateMockData([FromBody] MockDataRequest req)
-        {
-            var rand = new Random();
-            var now = DateTime.Now;
-
-            try
-            {
-                var tours = await _context.Tours.ToListAsync();
-                if (!tours.Any())
-                {
-                    for (int i = 1; i <= 3; i++)
-                    {
-                        var t = new Tour { TourName = $"Hành trình di sản {i}", Description = "Mô tả tour", IsActive = true };
-                        _context.Tours.Add(t);
-                    }
-                    await _context.SaveChangesAsync();
-                    tours = await _context.Tours.ToListAsync();
-                }
-
-                var createdUsers = new List<User>();
-                for (int i = 0; i < req.UserCount; i++)
-                {
-                    var user = new User
-                    {
-                        Username = $"user_{Guid.NewGuid().ToString("N").Substring(0, 5)}",
-                        PasswordHash = "123456",
-                        FullName = $"Chủ Sạp {i + 1}",
-                        Role = "StallOwner"
-                    };
-                    _context.Users.Add(user);
-                    createdUsers.Add(user);
-                }
-                await _context.SaveChangesAsync();
-
-                var createdStalls = new List<Stall>();
-                for (int i = 0; i < req.StallCount; i++)
-                {
-                    var randomDate = now.AddDays(-rand.Next(0, 90));
-
-                    var stall = new Stall
-                    {
-                        Name = $"Sạp hàng {rand.Next(100, 999)}",
-                        Latitude = 10.76 + (rand.NextDouble() * 0.01),
-                        Longitude = 106.70 + (rand.NextDouble() * 0.01),
-                        IsOpen = true,
-                        RadiusMeter = 50,
-                        OwnerId = createdUsers[rand.Next(createdUsers.Count)].Id,
-                        TourID = tours[rand.Next(tours.Count)].Id
-                    };
-                    _context.Stalls.Add(stall);
-                    createdStalls.Add(stall);
-
-                    var sub = new Subscription
-                    {
-                        StallId = stall.Id, // Đã fix ánh xạ StallId
-                        DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
-                        ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                        StartDate = randomDate,
-                        ExpiryDate = randomDate.AddDays(30),
-                        IsActive = true
-                    };
-                    _context.Subscriptions.Add(sub);
-                }
-                await _context.SaveChangesAsync();
-
-                var package = await _context.TicketPackages.FirstOrDefaultAsync();
-                if (package == null)
-                {
-                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
-                    _context.TicketPackages.Add(package);
-                    await _context.SaveChangesAsync();
-                }
-
-                for (int i = 0; i < req.VisitCount; i++)
-                {
-                    var randomDate = now.AddDays(-rand.Next(0, 90));
-
-                    _context.TouristTickets.Add(new TouristTicket
-                    {
-                        TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
-                        DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                        PackageId = package.Id,
-                        AmountPaid = package.Price,
-                        CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(package.DurationHours)
-                    });
-
-                    if (createdStalls.Any())
-                    {
-                        _context.StallVisits.Add(new StallVisit
-                        {
-                            StallId = createdStalls[rand.Next(createdStalls.Count)].Id,
-                            DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                            VisitedAt = randomDate
-                        });
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Mock data đã khớp 100% với cấu trúc DB VinhKhanhTour!" });
-            }
-            catch (Exception ex)
-            {
-                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return BadRequest(new { error = "Lỗi khi lưu DB", detail = msg });
-            }
         }
 
         // ==========================================
@@ -523,6 +382,5 @@ namespace HeriStep.API.Controllers
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
-        public class MockDataRequest { public int UserCount { get; set; } public int StallCount { get; set; } public int VisitCount { get; set; } }
     }
 }
