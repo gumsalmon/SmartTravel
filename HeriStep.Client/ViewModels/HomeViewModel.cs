@@ -39,7 +39,7 @@ namespace HeriStep.Client.ViewModels
             try
             {
                 double lat = 10.7595; double lon = 106.7025;
-                var url = $"api/Points?userLat={lat}&userLon={lon}";
+                var url = "api/Stalls";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
 
@@ -50,8 +50,11 @@ namespace HeriStep.Client.ViewModels
                         Points.Clear(); TopRatedPoints.Clear(); _allPoints.Clear();
                         foreach (var p in data)
                         {
+                            // 💡 ĐÃ FIX: Thay bằng IP đuôi .15 của sếp và xử lý chuẩn đường dẫn ảnh
                             if (!string.IsNullOrEmpty(p.ImageUrl) && !p.ImageUrl.StartsWith("http"))
-                                p.ImageUrl = $"http://10.0.2.2:5297/images/{p.ImageUrl}";
+                            {
+                                p.ImageUrl = $"http://192.168.1.15:5297/{p.ImageUrl.TrimStart('/')}";
+                            }
 
                             Points.Add(p);
                             _allPoints.Add(p);

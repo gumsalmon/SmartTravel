@@ -26,9 +26,11 @@ public partial class HomePage : ContentPage
         }
     }
     // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
+    // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
     private async void OnMapButtonClicked(object sender, EventArgs e)
     {
-        // Nhảy sang trang MapPage, đồng thời "xách" theo danh sách 15 quán ốc đưa cho MapPage vẽ
-        await Navigation.PushAsync(new MapPage(_viewModel.Points));
+        // 💡 ĐÃ FIX: Chỉ cần gọi new MapPage() thôi, không cần xách data theo nữa
+        // Vì thằng MapPage bây giờ đã quá xịn, nó tự biết gọi API lấy data rồi!
+        await Navigation.PushAsync(new MapPage());
     }
 }
