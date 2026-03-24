@@ -1,6 +1,6 @@
 -- ==========================================
 -- SCRIPT TẠO DATABASE VINHKHANHTOUR (FINAL VERSION)
--- Tính năng: Đa ngôn ngữ, Quản lý sạp, Bán vé khách du lịch (1 tuần), Thống kê
+-- Tính năng: Đa ngôn ngữ, Quản lý sạp, Bán vé khách du lịch (1 tuần), Thống kê, Quản lý gói cước
 -- ==========================================
 
 USE master;
@@ -59,21 +59,12 @@ CREATE TABLE TicketPackages (
     updated_at DATETIME DEFAULT GETDATE()
 );
 
--- 5. Bảng Gói Cước Thiết Bị Chủ Sạp (Subscriptions)
-CREATE TABLE Subscriptions (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    device_id NVARCHAR(255) NOT NULL,
-    activation_code NVARCHAR(100) UNIQUE,
-    start_date DATETIME DEFAULT GETDATE(),
-    expiry_date DATETIME, 
-    is_active BIT DEFAULT 1
-);
-
 -- ==========================================
 -- PHẦN 2: TẠO CÁC BẢNG CÓ LIÊN KẾT KHÓA NGOẠI (CẤP 1)
 -- ==========================================
 
--- 6. Bảng Sạp Hàng (Liên kết Users và Tours)
+-- 5. Bảng Sạp Hàng (Liên kết Users và Tours)
+-- (💡 Chuyển lên trước để bảng Subscriptions có thể móc khóa ngoại vào)
 CREATE TABLE Stalls (
     id INT IDENTITY(1,1) PRIMARY KEY,
     owner_id INT NULL,
@@ -90,6 +81,20 @@ CREATE TABLE Stalls (
     CONSTRAINT CHK_Stall_Coords CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
     CONSTRAINT FK_Stalls_Users FOREIGN KEY (owner_id) REFERENCES Users(id) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT FK_Stalls_Tours FOREIGN KEY (TourID) REFERENCES Tours(id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- 6. Bảng Gói Cước Thiết Bị Chủ Sạp (Subscriptions)
+-- (💡 ĐÃ BỔ SUNG: stall_id và Khóa ngoại nối thẳng vào Stalls)
+CREATE TABLE Subscriptions (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL, -- 💡 Nút thắt là đây
+    device_id NVARCHAR(255) NOT NULL,
+    activation_code NVARCHAR(100) UNIQUE,
+    start_date DATETIME DEFAULT GETDATE(),
+    expiry_date DATETIME, 
+    is_active BIT DEFAULT 1,
+
+    CONSTRAINT FK_Subscriptions_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE
 );
 
 -- 7. Bảng Lịch Sử Mua Vé Của Khách (Liên kết TicketPackages)
@@ -158,7 +163,7 @@ CREATE TABLE ProductTranslations (
 );
 
 -- ==========================================
--- PHẦN 4: TRIGGER CẬP NHẬT THỜI GIAN VÀ DỮ LIỆU MỒI
+-- PHẦN 4: TRIGGER CẬP NHẬT THỜI GIAN
 -- ==========================================
 GO
 
