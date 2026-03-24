@@ -408,61 +408,94 @@
         } catch (e) {} finally { btn.disabled = false; btn.innerHTML = '💾 LƯU THÔNG TIN SẠP'; }
     }
 
-    let tempFoods = [];
+    // ==========================================
+        // 💡 QUẢN LÝ LƯU SẠP & MENU (ĐÃ FIX LỖI LƯU ẢNH LÊN DB)
+        // ==========================================
+        let tempFoods = []; // Danh sách món ăn đang hiển thị
 
-    async function addFood() {
-        const foodName = document.getElementById('foodName').value;
-        const foodPrice = document.getElementById('foodPrice').value;
-        const imageInput = document.getElementById('foodImageFile');
+        async function addFood() {
+            const btn = document.querySelector('button[onclick="addFood()"]');
+            const foodName = document.getElementById('foodName').value.trim();
+            const foodPrice = document.getElementById('foodPrice').value;
+            const imageInput = document.getElementById('foodImageFile');
 
-        if(!foodName || !foodPrice || !imageInput.files[0]) {
-            alert("Vui lòng nhập đủ thông tin và chọn ảnh món ăn!"); return;
+            // 1. Kiểm tra đầu vào
+            if(!foodName || !foodPrice || !imageInput.files[0]) {
+                alert("⚠️ Vui lòng nhập đủ thông tin và chọn ảnh món ăn!");
+                return;
+            }
+
+            // 2. Chuẩn bị dữ liệu gửi đi (Dùng FormData để gửi File thật)
+            const fd = new FormData();
+            fd.append("StallId", stallId); // ID của sạp hiện tại
+            fd.append("Name", foodName); // Đổi thành Name hoặc NameVi tùy Backend sếp code
+            fd.append("BasePrice", foodPrice); // Đổi thành BasePrice cho khớp DB
+            fd.append("ImageFile", imageInput.files[0]); // Đính kèm file ảnh thật
+
+            // 3. Khóa nút để chống spam click
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang lưu lên máy chủ...';
+
+            try {
+                // 4. GỌI API BACKEND ĐỂ LƯU VÀO DATABASE
+                const res = await fetch(`http://127.0.0.1:5297/api/Stalls/add-product`, {
+                    method: 'POST',
+                    body: fd
+                });
+
+                if (res.ok) {
+                    // Nếu Backend báo lưu thành công
+                    alert("🎉 Đã lưu món ăn mới vào Cơ sở dữ liệu!");
+
+                    // Tải lại danh sách món ăn từ DB để hiển thị ảnh xịn
+                    await loadMenu();
+
+                    // Xóa trống form
+                    document.getElementById('addMenuForm').reset();
+                } else {
+                    const errorText = await res.text();
+                    alert(`❌ Lỗi từ máy chủ: ${errorText}`);
+                }
+            }
+            catch (e) {
+                console.error(e);
+                alert("🧨 Không thể kết nối đến Máy chủ API. Vui lòng kiểm tra lại Backend!");
+            }
+            finally {
+                // Mở khóa nút
+                btn.disabled = false;
+                btn.innerHTML = '➕ LƯU MÓN ĂN';
+            }
         }
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            tempFoods.push({ name: foodName, price: foodPrice, imageUrl: e.target.result });
-            renderMenu();
-            alert("Đã thêm món ăn mới vào thực đơn!");
-            document.getElementById('addMenuForm').reset();
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-
-        const fd = new FormData();
-        fd.append("StallId", stallId);
-        fd.append("NameVi", foodName);
-        fd.append("Price", foodPrice);
-        fd.append("ImageFile", imageInput.files[0]);
-
-        fetch(`http://127.0.0.1:5297/api/Stalls/add-product`, { method: 'POST', body: fd }).catch(e => console.log("API Menu chưa sẵn sàng"));
-    }
-
-    async function loadMenu() {
-        try {
-            const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/products`);
-            if(res.ok) {
-                const dbFoods = await res.json();
-                tempFoods = dbFoods;
-                renderMenu();
+        async function loadMenu() {
+            try {
+                const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/products`);
+                if(res.ok) {
+                    const dbFoods = await res.json();
+                    tempFoods = dbFoods; // Cập nhật lại list từ dữ liệu thật
+                    renderMenu();
+                }
+            } catch(e) {
+                console.error("Lỗi khi tải thực đơn:", e);
             }
-        } catch(e) { renderMenu(); }
-    }
+        }
 
-    function renderMenu() {
-        const container = document.getElementById('foodListContainer');
-        document.getElementById('emptyMenuMsg').style.display = tempFoods.length > 0 ? 'none' : 'block';
+        function renderMenu() {
+            const container = document.getElementById('foodListContainer');
+            document.getElementById('emptyMenuMsg').style.display = tempFoods.length > 0 ? 'none' : 'block';
 
-        container.innerHTML = tempFoods.map(f => `
-            <div class="col-md-6 col-lg-6 mb-2">
-                <div class="d-flex align-items-center border p-2 rounded shadow-sm bg-white">
-                    <img src="${f.imageUrl.startsWith('data:') ? f.imageUrl : 'http://127.0.0.1:5297' + f.imageUrl}"
-                         style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="me-3 border">
-                    <div>
-                        <h6 class="mb-1 fw-bold text-dark">${f.name || f.nameVi}</h6>
-                        <span class="text-danger fw-bold fs-6">${parseInt(f.price).toLocaleString('vi-VN')} VNĐ</span>
+            container.innerHTML = tempFoods.map(f => `
+                <div class="col-md-6 col-lg-6 mb-2">
+                    <div class="d-flex align-items-center border p-2 rounded shadow-sm bg-white">
+                        <img src="${f.imageUrl ? 'http://127.0.0.1:5297' + f.imageUrl : '/images/default-food.jpg'}"
+                             style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="me-3 border">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">${f.productName || f.name || 'Món ăn vô danh'}</h6>
+                            <span class="text-danger fw-bold fs-6">${parseInt(f.basePrice || f.price || 0).toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
-    }
+            `).join('');
+        }
 </script>

@@ -60,5 +60,7 @@ namespace HeriStep.Shared.Models
 
         [NotMapped] // Cái này nằm bên bảng StallContents, không nằm ở đây!
         public string? TtsScript { get; set; }
+        [NotMapped]
+        public bool IsExpired { get; set; }
     }
 }

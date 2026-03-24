@@ -24,8 +24,9 @@
     <ProjectReference Include="..\HeriStep.Shared\HeriStep.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\images\" />
-  </ItemGroup>
+	<ItemGroup>
+		<Content Update="wwwroot\**" Watch="false" />
+		<Content Update="wwwroot\images\**" Watch="false" />
+	</ItemGroup>
 
 </Project>

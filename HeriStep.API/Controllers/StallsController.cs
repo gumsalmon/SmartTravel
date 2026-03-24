@@ -150,13 +150,24 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 3. ADMIN: LẤY TOÀN BỘ SẠP CHO BẢN ĐỒ
+        // 💡 3. ADMIN: LẤY TOÀN BỘ SẠP CHO BẢN ĐỒ (ĐÃ FIX THÊM isExpired và isOpen)
         // ==========================================
         [HttpGet("admin-map")]
         public async Task<IActionResult> GetAllStallsForMap()
         {
             var stalls = await _context.Stalls
-                .Select(s => new { id = s.Id, name = s.Name ?? "Sạp chưa đặt tên", lat = s.Latitude, lng = s.Longitude, ownerId = s.OwnerId, imageUrl = s.ImageUrl })
+                .Select(s => new
+                {
+                    id = s.Id,
+                    name = s.Name ?? "Sạp chưa đặt tên",
+                    lat = s.Latitude,
+                    lng = s.Longitude,
+                    ownerId = s.OwnerId,
+                    imageUrl = s.ImageUrl,
+                    isOpen = s.IsOpen,
+                    // Sạp hết hạn nếu KHÔNG CÓ gói cước nào CÒN HẠN
+                    isExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now)
+                })
                 .ToListAsync();
             return Ok(stalls);
         }
@@ -235,7 +246,7 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 💡 9. MOCK TEST: GIẢ LẬP KHÁCH VÀO SẠP (TẠO DATA ĐỘNG)
+        // 9. MOCK TEST: GIẢ LẬP KHÁCH VÀO SẠP (TẠO DATA ĐỘNG)
         // ==========================================
         [HttpPost("{id}/simulate-tourist/{langCode}")]
         public async Task<IActionResult> SimulateTourist(int id, string langCode)
@@ -243,10 +254,8 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp" });
 
-            // 1. Tạo 1 Device ID ngẫu nhiên, có gắn tên ngôn ngữ để dễ nhận biết trong DB
             string fakeDeviceId = $"MOCK-APP-{langCode.ToUpper()}-{Guid.NewGuid().ToString().Substring(0, 6)}";
 
-            // 2. Lưu lịch sử vào bảng StallVisits
             var visit = new StallVisit
             {
                 StallId = id,
@@ -323,6 +332,7 @@ namespace HeriStep.API.Controllers
 
                     var sub = new Subscription
                     {
+                        StallId = stall.Id, // Đã fix ánh xạ StallId
                         DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
                         ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
                         StartDate = randomDate,
@@ -373,6 +383,138 @@ namespace HeriStep.API.Controllers
             {
                 var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return BadRequest(new { error = "Lỗi khi lưu DB", detail = msg });
+            }
+        }
+
+        // ==========================================
+        // 💡 10. THÊM MÓN ĂN MỚI (VÀ LƯU ẢNH LÊN SERVER)
+        // ==========================================
+        [HttpPost("add-product")]
+        public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
+        {
+            try
+            {
+                string imageUrl = "";
+
+                if (ImageFile != null && ImageFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(fileStream);
+                    }
+
+                    imageUrl = "/images/products/" + uniqueFileName;
+                }
+
+                var newProduct = new Product
+                {
+                    StallId = StallId,
+                    BasePrice = BasePrice,
+                    ImageUrl = imageUrl,
+                    IsSignature = false
+                };
+
+                _context.Products.Add(newProduct);
+                await _context.SaveChangesAsync();
+
+                var translation = new ProductTranslation
+                {
+                    ProductId = newProduct.Id,
+                    LangCode = "vi",
+                    ProductName = Name
+                };
+
+                _context.ProductTranslations.Add(translation);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
+        }
+
+        // ==========================================
+        // 💡 11. LẤY DANH SÁCH THỰC ĐƠN CỦA 1 SẠP
+        // ==========================================
+        [HttpGet("{stallId}/products")]
+        public async Task<IActionResult> GetProductsByStall(int stallId)
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.StallId == stallId)
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        BasePrice = p.BasePrice,
+                        ImageUrl = p.ImageUrl,
+                        Name = _context.ProductTranslations
+                                .Where(t => t.ProductId == p.Id && t.LangCode == "vi")
+                                .Select(t => t.ProductName)
+                                .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
+            }
+        }
+
+        // ==========================================
+        // 💡 12. GIA HẠN GÓI CƯỚC (NÚT THANH TOÁN WEB)
+        // ==========================================
+        [HttpPost("extend-subscription/{id}")]
+        public async Task<IActionResult> ExtendSubscription(int id)
+        {
+            try
+            {
+                var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
+
+                if (sub != null)
+                {
+                    // Nếu đã quá hạn thì tính từ hôm nay + 30 ngày. Nếu còn hạn thì cộng dồn.
+                    if (sub.ExpiryDate < DateTime.Now || sub.ExpiryDate == null)
+                        sub.ExpiryDate = DateTime.Now.AddDays(30);
+                    else
+                        sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30);
+
+                    sub.IsActive = true;
+                }
+                else
+                {
+                    // Nếu sạp này chưa từng có gói cước, tạo mới 1 cái 
+                    sub = new Subscription
+                    {
+                        StallId = id,
+                        DeviceId = $"WEB-PAID-{id}",
+                        ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
+                        StartDate = DateTime.Now,
+                        ExpiryDate = DateTime.Now.AddDays(30),
+                        IsActive = true
+                    };
+                    _context.Subscriptions.Add(sub);
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Gia hạn thành công! Sạp đã được mở lại." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi gia hạn", detail = ex.Message });
             }
         }
 

@@ -4,7 +4,7 @@
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "launchBrowser": false,
       "applicationUrl": "http://0.0.0.0:5297", // 👈 ĐỔI THÀNH THẾ NÀY
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
