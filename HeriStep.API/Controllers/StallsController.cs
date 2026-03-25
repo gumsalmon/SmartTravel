@@ -288,8 +288,9 @@ namespace HeriStep.API.Controllers
                 }
                 await _context.SaveChangesAsync();
 
-            // 2. TẠO STALLS & SUBS
-            for (int i = 0; i < req.StallCount; i++)
+                // 2. TẠO STALLS & SUBS
+                var createdStalls = new List<Stall>();
+                for (int i = 0; i < req.StallCount; i++)
             {
                 double randomLat = 10.7601 + (rand.NextDouble() * 0.006 - 0.003);
                 double randomLng = 106.7025 + (rand.NextDouble() * 0.006 - 0.003);
@@ -304,8 +305,8 @@ namespace HeriStep.API.Controllers
                     OwnerId = createdUsers.Count > 0 ? createdUsers[rand.Next(createdUsers.Count)].Id : null
                 };
                 _context.Stalls.Add(stall);
-
-                var sub = new Subscription
+                 createdStalls.Add(stall);
+                    var sub = new Subscription
                 {
                     DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
                     ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),

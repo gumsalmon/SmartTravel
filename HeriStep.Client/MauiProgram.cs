@@ -23,7 +23,7 @@ public static class MauiProgram
         // 1. ĐÃ FIX: Bỏ chữ "api/" ở đuôi để không bị nối trùng lặp
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://10.0.2.2:5297/")
+            BaseAddress = new Uri("http://172.21.8.215:5297/")
         });
 
         // 2. Đăng ký các dịch vụ và Giao diện

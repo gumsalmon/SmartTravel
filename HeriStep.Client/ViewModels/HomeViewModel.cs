@@ -51,7 +51,7 @@ namespace HeriStep.Client.ViewModels
                         foreach (var p in data)
                         {
                             if (!string.IsNullOrEmpty(p.ImageUrl) && !p.ImageUrl.StartsWith("http"))
-                                p.ImageUrl = $"http://10.0.2.2:5297/images/{p.ImageUrl}";
+                                p.ImageUrl = $"http://172.21.8.215:5297/images/{p.ImageUrl}";
 
                             Points.Add(p);
                             _allPoints.Add(p);
