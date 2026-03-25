@@ -24,12 +24,11 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 💡 0. [MỚI THÊM] ADMIN: LẤY TẤT CẢ SẠP (HIỆN BẢNG)
+        // 💡 0. ADMIN: LẤY TẤT CẢ SẠP (HIỆN BẢNG)
         // ==========================================
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
-            // Sử dụng Left Join để sạp chưa có chủ vẫn hiện lên
             var query = from s in _context.Stalls
                         join u in _context.Users on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
@@ -60,24 +59,25 @@ namespace HeriStep.API.Controllers
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
 
             var ttsContent = await _context.StallContents
-                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == "vi");
+                .Where(c => c.StallId == id && c.LangCode == "vi")
+                .FirstOrDefaultAsync();
 
             return Ok(new
             {
                 id = stall.Id,
-                name = stall.Name,
-                imageUrl = stall.ImageUrl,
+                name = stall.Name ?? "Sạp chưa đặt tên",
+                imageUrl = stall.ImageUrl ?? "",
                 isOpen = stall.IsOpen,
                 ownerId = stall.OwnerId,
                 latitude = stall.Latitude,
                 longitude = stall.Longitude,
                 radiusMeter = stall.RadiusMeter,
-                ttsScript = ttsContent != null ? ttsContent.TtsScript : ""
+                ttsScript = ttsContent != null ? (ttsContent.TtsScript ?? "") : ""
             });
         }
 
         // ==========================================
-        // 2. CẬP NHẬT SẠP & TTS & UPLOAD ẢNH (Hỗ trợ Admin gán chủ)
+        // 2. CẬP NHẬT SẠP & TTS & UPLOAD ẢNH
         // ==========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req)
@@ -87,7 +87,6 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
 
-            // Xử lý Upload ảnh
             if (req.ImageFile != null)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
@@ -103,14 +102,12 @@ namespace HeriStep.API.Controllers
                 stall.ImageUrl = "/uploads/" + fileName;
             }
 
-            // Cập nhật thông tin cơ bản
             stall.Name = req.Name;
             stall.IsOpen = req.IsOpen;
-            stall.OwnerId = req.OwnerId; // 💡 Gán chủ sạp ở đây
+            stall.OwnerId = req.OwnerId;
             stall.RadiusMeter = req.RadiusMeter;
             stall.UpdatedAt = DateTime.Now;
 
-            // Cập nhật nội dung TTS (Đa ngôn ngữ)
             if (!string.IsNullOrEmpty(req.TtsScript))
             {
                 var oldContents = _context.StallContents.Where(c => c.StallId == id);
@@ -136,7 +133,7 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 💡 2.1 [MỚI THÊM] XÓA SẠP
+        // 2.1 XÓA SẠP
         // ==========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStall(int id)
@@ -144,7 +141,6 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound();
 
-            // Xóa nội dung liên quan
             var contents = _context.StallContents.Where(c => c.StallId == id);
             _context.StallContents.RemoveRange(contents);
 
@@ -154,13 +150,24 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 3. ADMIN: LẤY TOÀN BỘ SẠP CHO BẢN ĐỒ
+        // 💡 3. ADMIN: LẤY TOÀN BỘ SẠP CHO BẢN ĐỒ (ĐÃ FIX THÊM isExpired và isOpen)
         // ==========================================
         [HttpGet("admin-map")]
         public async Task<IActionResult> GetAllStallsForMap()
         {
             var stalls = await _context.Stalls
-                .Select(s => new { id = s.Id, name = s.Name ?? "Sạp chưa đặt tên", lat = s.Latitude, lng = s.Longitude, ownerId = s.OwnerId, imageUrl = s.ImageUrl })
+                .Select(s => new
+                {
+                    id = s.Id,
+                    name = s.Name ?? "Sạp chưa đặt tên",
+                    lat = s.Latitude,
+                    lng = s.Longitude,
+                    ownerId = s.OwnerId,
+                    imageUrl = s.ImageUrl,
+                    isOpen = s.IsOpen,
+                    // Sạp hết hạn nếu KHÔNG CÓ gói cước nào CÒN HẠN
+                    isExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now)
+                })
                 .ToListAsync();
             return Ok(stalls);
         }
@@ -189,17 +196,7 @@ namespace HeriStep.API.Controllers
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
-            var newStall = new Stall
-            {
-                Name = "Sạp mới (Chưa gán)",
-                Latitude = req.Latitude,
-                Longitude = req.Longitude,
-                IsOpen = true,
-                RadiusMeter = 20,
-                OwnerId = null
-            };
-
-            _context.Stalls.Add(newStall);
+            _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 });
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -229,7 +226,7 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 🔐 8. ĐỔI MẬT KHẨU CHỦ SẠP
+        // 8. ĐỔI MẬT KHẨU CHỦ SẠP
         // ==========================================
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
@@ -249,127 +246,141 @@ namespace HeriStep.API.Controllers
         }
 
         // ==========================================
-        // 🧪 ADMIN: TẠO MOCK DATA TỔNG HỢP (FULL BẢNG)
+        // 💡 10. THÊM MÓN ĂN MỚI (VÀ LƯU ẢNH LÊN SERVER)
         // ==========================================
-        [HttpPost("generate-mock")]
-        public async Task<IActionResult> GenerateMockData([FromBody] MockDataRequest req)
+        [HttpPost("add-product")]
+        public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
         {
-            var rand = new Random();
-            var now = DateTime.Now;
-
             try
             {
-                // 1. TẠO TOURS (Lộ trình) - Vì Stalls cần TourID
-                var tours = await _context.Tours.ToListAsync();
-                if (!tours.Any())
+                string imageUrl = "";
+
+                if (ImageFile != null && ImageFile.Length > 0)
                 {
-                    for (int i = 1; i <= 3; i++)
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+                    if (!Directory.Exists(uploadsFolder))
                     {
-                        var t = new Tour { TourName = $"Hành trình di sản {i}", Description = "Mô tả tour", IsActive = true };
-                        _context.Tours.Add(t);
+                        Directory.CreateDirectory(uploadsFolder);
                     }
-                    await _context.SaveChangesAsync();
-                    tours = await _context.Tours.ToListAsync();
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(fileStream);
+                    }
+
+                    imageUrl = "/images/products/" + uniqueFileName;
                 }
 
-                // 2. TẠO USERS (Chủ sạp)
-                var createdUsers = new List<User>();
-                for (int i = 0; i < req.UserCount; i++)
+                var newProduct = new Product
                 {
-                    var user = new User
-                    {
-                        Username = $"user_{Guid.NewGuid().ToString("N").Substring(0, 5)}",
-                        PasswordHash = "123456",
-                        FullName = $"Chủ Sạp {i + 1}",
-                        Role = "StallOwner"
-                    };
-                    _context.Users.Add(user);
-                    createdUsers.Add(user);
-                }
+                    StallId = StallId,
+                    BasePrice = BasePrice,
+                    ImageUrl = imageUrl,
+                    IsSignature = false
+                };
+
+                _context.Products.Add(newProduct);
                 await _context.SaveChangesAsync();
 
-                // 2. TẠO STALLS & SUBS
-                var createdStalls = new List<Stall>();
-                for (int i = 0; i < req.StallCount; i++)
-            {
-                double randomLat = 10.7601 + (rand.NextDouble() * 0.006 - 0.003);
-                double randomLng = 106.7025 + (rand.NextDouble() * 0.006 - 0.003);
-
-                var stall = new Stall
+                var translation = new ProductTranslation
                 {
-                    Name = $"Quán Ăn {rand.Next(100, 999)}",
-                    Latitude = randomLat,
-                    Longitude = randomLng,
-                    IsOpen = true,
-                    RadiusMeter = 15,
-                    OwnerId = createdUsers.Count > 0 ? createdUsers[rand.Next(createdUsers.Count)].Id : null
+                    ProductId = newProduct.Id,
+                    LangCode = "vi",
+                    ProductName = Name
                 };
-                _context.Stalls.Add(stall);
-                 createdStalls.Add(stall);
-                    var sub = new Subscription
-                {
-                    DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
-                    ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                    StartDate = DateTime.Now,
-                    ExpiryDate = DateTime.Now.AddDays(30),
-                    IsActive = true
-                };
-                _context.Subscriptions.Add(sub);
-            }
-            await _context.SaveChangesAsync();
 
-                // 4. TẠO TICKET PACKAGES (Gói vé)
-                var package = await _context.TicketPackages.FirstOrDefaultAsync();
-                if (package == null)
-                {
-                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
-                    _context.TicketPackages.Add(package);
-                    await _context.SaveChangesAsync();
-                }
-
-                // 5. TẠO VÉ & LƯỢT GHÉ (Rải đều 90 ngày qua)
-                for (int i = 0; i < req.VisitCount; i++)
-                {
-                    var randomDate = now.AddDays(-rand.Next(0, 90));
-
-                    // Thêm vé
-                    _context.TouristTickets.Add(new TouristTicket
-                    {
-                        TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
-                        DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                        PackageId = package.Id,
-                        AmountPaid = package.Price,
-                        CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(package.DurationHours)
-                    });
-
-                    // Thêm lượt ghé sạp
-                    if (createdStalls.Any())
-                    {
-                        _context.StallVisits.Add(new StallVisit
-                        {
-                            StallId = createdStalls[rand.Next(createdStalls.Count)].Id,
-                            DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                            VisitedAt = randomDate
-                        });
-                    }
-                }
-
+                _context.ProductTranslations.Add(translation);
                 await _context.SaveChangesAsync();
-                return Ok(new { message = "Mock data đã khớp 100% với cấu trúc DB VinhKhanhTour!" });
+
+                return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });
             }
             catch (Exception ex)
             {
-                // Trả về lỗi chi tiết nhất có thể
-                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return BadRequest(new { error = "Lỗi khi lưu DB", detail = msg });
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
+
+        // ==========================================
+        // 💡 11. LẤY DANH SÁCH THỰC ĐƠN CỦA 1 SẠP
+        // ==========================================
+        [HttpGet("{stallId}/products")]
+        public async Task<IActionResult> GetProductsByStall(int stallId)
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.StallId == stallId)
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        BasePrice = p.BasePrice,
+                        ImageUrl = p.ImageUrl,
+                        Name = _context.ProductTranslations
+                                .Where(t => t.ProductId == p.Id && t.LangCode == "vi")
+                                .Select(t => t.ProductName)
+                                .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
+            }
+        }
+
+        // ==========================================
+        // 💡 12. GIA HẠN GÓI CƯỚC (NÚT THANH TOÁN WEB)
+        // ==========================================
+        [HttpPost("extend-subscription/{id}")]
+        public async Task<IActionResult> ExtendSubscription(int id)
+        {
+            try
+            {
+                var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
+
+                if (sub != null)
+                {
+                    // Nếu đã quá hạn thì tính từ hôm nay + 30 ngày. Nếu còn hạn thì cộng dồn.
+                    if (sub.ExpiryDate < DateTime.Now || sub.ExpiryDate == null)
+                        sub.ExpiryDate = DateTime.Now.AddDays(30);
+                    else
+                        sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30);
+
+                    sub.IsActive = true;
+                }
+                else
+                {
+                    // Nếu sạp này chưa từng có gói cước, tạo mới 1 cái 
+                    sub = new Subscription
+                    {
+                        StallId = id,
+                        DeviceId = $"WEB-PAID-{id}",
+                        ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
+                        StartDate = DateTime.Now,
+                        ExpiryDate = DateTime.Now.AddDays(30),
+                        IsActive = true
+                    };
+                    _context.Subscriptions.Add(sub);
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Gia hạn thành công! Sạp đã được mở lại." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi gia hạn", detail = ex.Message });
+            }
+        }
+
         // --- DTOs ---
         public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; }
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
-        public class MockDataRequest { public int UserCount { get; set; } public int StallCount { get; set; } public int VisitCount { get; set; } }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using BCrypt.Net;
 using HeriStep.API.Data;
 using HeriStep.Shared;
-using HeriStep.Shared.Models; // Đảm bảo namespace này khớp với file UserDto của bạn
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +28,6 @@ namespace HeriStep.API.Controllers
                     Username = u.Username,
                     FullName = u.FullName ?? "Chưa đặt tên",
                     Role = u.Role,
-                    // Đếm số sạp thuộc về User này trong bảng Stalls
                     StallCount = _context.Stalls.Count(s => (int?)s.OwnerId == u.Id)
                 })
                 .ToListAsync();
@@ -62,10 +61,10 @@ namespace HeriStep.API.Controllers
             if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
                 return BadRequest("Số điện thoại này đã được cấp tài khoản!");
 
-            // Tự động băm mật khẩu (Mặc định 123456 nếu để trống)
+            // 💡 Tự động băm mật khẩu (Mặc định 123456 nếu để trống) bằng BCrypt
             string passwordToHash = string.IsNullOrEmpty(dto.Password) ? "123456" : dto.Password;
 
-            var newUser = new User // Entity Model
+            var newUser = new User
             {
                 Username = dto.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordToHash),
@@ -87,6 +86,7 @@ namespace HeriStep.API.Controllers
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound();
 
+            // 💡 Băm lại 123456 bằng BCrypt
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
 
             _context.Entry(user).State = EntityState.Modified;
@@ -108,7 +108,7 @@ namespace HeriStep.API.Controllers
 
             existingUser.FullName = dto.FullName;
 
-            // Chỉ cập nhật mật khẩu nếu Admin nhập mật khẩu mới
+            // 💡 Chỉ cập nhật mật khẩu nếu Admin nhập mật khẩu mới
             if (!string.IsNullOrEmpty(dto.Password))
             {
                 existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
@@ -129,7 +129,6 @@ namespace HeriStep.API.Controllers
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound();
 
-            // Lưu ý: Nếu có ràng buộc khóa ngoại, hãy đảm bảo xử lý Cascade Delete trong SQL
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return NoContent();

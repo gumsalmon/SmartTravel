@@ -1,5 +1,4 @@
 ﻿using HeriStep.API.Data;
-using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

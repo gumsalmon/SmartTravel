@@ -1,8 +1,9 @@
 ﻿using HeriStep.Shared;
-using HeriStep.Shared.Models; // Nhớ using Model của bạn
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text.Json; // 💡 Nhớ phải có using này
 
 namespace HeriStep.Merchant.Pages
 {
@@ -25,9 +26,15 @@ namespace HeriStep.Merchant.Pages
 
             try
             {
-                // Gọi API để lấy thông tin chi tiết của sạp (Tên, Ảnh, Giờ mở cửa, Lời chào TTS...)
-                // Lưu ý: Nếu API này bạn chưa viết, giao diện vẫn lên nhưng các ô input sẽ trống.
-                var data = await _http.GetFromJsonAsync<Stall>($"api/Stalls/{stallId}");
+                // 💡 BỌC THÉP JSON: Ép C# đọc JSON không phân biệt chữ hoa/thường
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                // Gọi API để lấy thông tin chi tiết của sạp
+                var data = await _http.GetFromJsonAsync<Stall>($"api/Stalls/{stallId}", options);
+
                 if (data != null)
                 {
                     StallInfo = data;

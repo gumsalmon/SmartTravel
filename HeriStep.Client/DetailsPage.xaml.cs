@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared;
+﻿using HeriStep.Shared.Models;
 
 namespace HeriStep.Client
 {

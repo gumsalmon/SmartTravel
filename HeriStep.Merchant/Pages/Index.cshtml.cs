@@ -1,12 +1,13 @@
-﻿using HeriStep.Shared.Models;
+﻿using HeriStep.Shared.Models; // 💡 DÒNG SINH TỬ ĐỂ GỌI ĐƯỢC CLASS STALL
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace HeriStep.Merchant.Pages
 {
-    [Authorize] // 💡 Chỉ cho phép người đã đăng nhập mới vào được trang này
+    [Authorize] // Chỉ cho phép người đã đăng nhập mới vào được trang này
     public class IndexModel : PageModel
     {
         private readonly HttpClient _http;
@@ -17,7 +18,7 @@ namespace HeriStep.Merchant.Pages
         }
 
         // Danh sách các sạp mà chủ này sở hữu
-        public List<StallDto> MyStalls { get; set; } = new();
+        public List<Stall> MyStalls { get; set; } = new();
 
         // ID của người dùng đang đăng nhập
         public string CurrentUserId { get; set; } = "";
@@ -25,7 +26,6 @@ namespace HeriStep.Merchant.Pages
         public async Task<IActionResult> OnGetAsync()
         {
             // 1. Lấy UserId từ Cookie Authentication (Claims)
-            // ClaimTypes.NameIdentifier thường chứa ID của User
             CurrentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                             ?? User.FindFirst("sub")?.Value
                             ?? "";
@@ -37,37 +37,31 @@ namespace HeriStep.Merchant.Pages
 
             try
             {
-                // 2. Gọi API để lấy danh sách sạp của riêng ông chủ này
-                // Giả sử API có endpoint lấy sạp theo OwnerId
+                // 2. Gọi API lấy toàn bộ sạp
                 var response = await _http.GetAsync($"api/Stalls/admin-map");
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var allStalls = await response.Content.ReadFromJsonAsync<List<StallDto>>();
+                    // 💡 Bật chế độ không phân biệt chữ Hoa - chữ Thường để biến IsExpired không bị nuốt mất
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                    // Chuyển JSON thành danh sách Stall
+                    var allStalls = await response.Content.ReadFromJsonAsync<List<Stall>>(options);
 
                     // Lọc ra những sạp thuộc về User này
                     MyStalls = allStalls?
                         .Where(s => s.OwnerId.ToString() == CurrentUserId)
-                        .ToList() ?? new List<StallDto>();
+                        .ToList() ?? new List<Stall>();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[Lỗi trang chủ]: {ex.Message}");
                 // Nếu lỗi API thì trả về danh sách trống, tránh sập web
-                MyStalls = new List<StallDto>();
+                MyStalls = new List<Stall>();
             }
 
             return Page();
         }
-    }
-
-    // Class DTO tạm thời để hứng dữ liệu từ API
-    public class StallDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string? ImageUrl { get; set; }
-        public bool IsOpen { get; set; }
-        public int? OwnerId { get; set; }
     }
 }
