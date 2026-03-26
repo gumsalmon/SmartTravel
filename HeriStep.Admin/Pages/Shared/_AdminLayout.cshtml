@@ -85,6 +85,9 @@
                 <a href="/Tourists/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Tourists/") == true ? "active" : "")">
                     <i class="bi bi-people"></i> Quản lý khách du lịch
                 </a>
+                <a href="/PRD/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/PRD") == true ? "active" : "")">
+                    <i class="bi bi-journal-richtext"></i> Tài liệu Dự án (PRD)
+                </a>
             </div>
 
             <div class="mt-auto p-4 border-top border-secondary">

@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared;
+using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -135,12 +135,17 @@ namespace HeriStep.API.Data
             // 11. Cấu hình bảng ProductTranslations
             modelBuilder.Entity<ProductTranslation>(entity => {
                 entity.ToTable("ProductTranslations");
-                entity.HasKey(pt => pt.Id); // Sửa thành chữ hoa: Id
-                entity.Property(pt => pt.ProductId).HasColumnName("product_id"); // ProductId
-                entity.Property(pt => pt.LangCode).HasColumnName("lang_code"); // LangCode
-                entity.Property(pt => pt.ProductName).HasColumnName("product_name"); // ProductName
-                entity.Property(pt => pt.ProductDesc).HasColumnName("product_desc"); // ProductDesc
+                entity.HasKey(pt => pt.Id); 
+                entity.Property(pt => pt.ProductId).HasColumnName("product_id"); 
+                entity.Property(pt => pt.LangCode).HasColumnName("lang_code"); 
+                entity.Property(pt => pt.ProductName).HasColumnName("product_name"); 
+                entity.Property(pt => pt.ProductDesc).HasColumnName("product_desc"); 
             });
+
+            // 12. Seeding Data thay cho MockDataController
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"), FullName = "System Admin", Role = "Admin" }
+            );
         }
     }
 }
