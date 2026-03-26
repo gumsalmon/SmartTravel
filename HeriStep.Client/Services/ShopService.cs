@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using HeriStep.Shared.Models; // Cần thiết để nhận diện lớp Shop
 
 namespace HeriStep.Client.Services;
@@ -11,6 +11,11 @@ public class ShopService
     public ShopService(HttpClient httpClient)
     {
         _httpClient = httpClient;
+        string? savedToken = Microsoft.Maui.Storage.Preferences.Default.Get("jwt_token", string.Empty);
+        if (!string.IsNullOrEmpty(savedToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", savedToken);
+        }
     }
 
     public async Task<List<Shop>> GetNearbyShopsAsync(double lat, double lon)

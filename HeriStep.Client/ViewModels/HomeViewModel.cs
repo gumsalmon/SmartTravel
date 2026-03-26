@@ -22,15 +22,78 @@ namespace HeriStep.Client.ViewModels
         // List 2: Dành cho khu vực "Top Quán" (Chờ API bạn của bạn)
         public ObservableCollection<Stall> TopRatedPoints { get; set; } = new();
 
+        // List 3: Dành cho Top 10 Tours
+        public ObservableCollection<Tour> TopTours { get; set; } = new();
+
+        private bool _isManualLocation;
+        public bool IsManualLocation
+        {
+            get => _isManualLocation;
+            set { if (_isManualLocation != value) { _isManualLocation = value; OnPropertyChanged(); } }
+        }
+
+        private string _selectedManualLocation = "Vị trí hiện tại (Auto)";
+        public string SelectedManualLocation
+        {
+            get => _selectedManualLocation;
+            set 
+            { 
+                if (_selectedManualLocation != value) 
+                { 
+                    _selectedManualLocation = value; 
+                    OnPropertyChanged();
+                    IsManualLocation = value != "Vị trí hiện tại (Auto)";
+                    // Tự động gọi filter hoặc tính toán lại Haversine
+                    // LoadPointsAsync().ConfigureAwait(false);
+                } 
+            }
+        }
+
+
         public Command LoadDataCommand { get; set; }
         public Command<string> FilterCommand { get; set; }
 
-        public HomeViewModel(HttpClient httpClient)
+        private readonly HeriStep.Client.Services.Location.ILocationService _locationService;
+
+        public HomeViewModel(HttpClient httpClient, HeriStep.Client.Services.Location.ILocationService locationService)
         {
             _httpClient = httpClient;
+            _locationService = locationService;
+            string? savedToken = Microsoft.Maui.Storage.Preferences.Default.Get("jwt_token", string.Empty);
+            if (!string.IsNullOrEmpty(savedToken))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", savedToken);
+            }
+
             LoadDataCommand = new Command(async () => await LoadPointsAsync());
             FilterCommand = new Command<string>(FilterAndNavigate);
+            
+            StartBackgroundGpsLoop();
         }
+
+        private void StartBackgroundGpsLoop()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    if (!IsManualLocation)
+                    {
+                        var loc = await _locationService.GetLocationAsync();
+                        if (loc != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[TopGPS Loop] Lat: {loc.Latitude}, Lon: {loc.Longitude}");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TopGPS Loop] Manual override mode active: {SelectedManualLocation}");
+                    }
+                    await Task.Delay(5000); // Mỗi 5s quét 1 lần (chuẩn Zero-click Radar)
+                }
+            });
+        }
+
 
         public async Task LoadPointsAsync()
         {
@@ -66,6 +129,21 @@ namespace HeriStep.Client.ViewModels
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}"); }
+            
+            // Load Top Tours song song
+            try {
+                var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("http://10.0.2.2:5297/api/Tours/top-hot");
+                if (toursData != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        TopTours.Clear();
+                        foreach (var t in toursData) TopTours.Add(t);
+                    });
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error TopTours: {ex.Message}"); }
+
             finally { IsBusy = false; }
         }
 

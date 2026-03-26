@@ -41,6 +41,9 @@ public partial class ShopDetailPage : ContentPage
                 var result = System.Text.Json.JsonDocument.Parse(json);
                 string textToSpeech = result.RootElement.GetProperty("text").GetString() ?? "";
 
+                // Hiển thị tooltip cho người dùng
+                Application.Current.Windows[0].Page.DisplayAlert("Đang tải âm thanh", "Vui lòng chờ giây lát...", "OK");
+                
                 // Gọi hàm lõi AI Native của thiết bị
                 await TextToSpeech.Default.SpeakAsync(textToSpeech);
             }

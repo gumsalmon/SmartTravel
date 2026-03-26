@@ -1,4 +1,3 @@
-using HeriStep.Shared.Models.DTOs.Requests;
 using HeriStep.Shared.Models.DTOs.Responses;
 using HeriStep.API.Data;
 using HeriStep.Shared;
@@ -10,6 +9,288 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
-namespace HeriStep.API.Controllers { [Route("api/[controller]")][ApiController] public class StallsController : ControllerBase { private readonly HeriStepDbContext _context; public StallsController(HeriStepDbContext context) { _context = context; }          /*  ========================================== */ /*  ?? 0. ADMIN: L?Y T?T C? S?P (HI?N B?NG) */ /*  ========================================== */ [HttpGet] public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls() { var query = from s in _context.Stalls join u in _context.Users on s.OwnerId equals u.Id into userGroup from user in userGroup.DefaultIfEmpty() select new PointOfInterest { Id = s.Id, Name = s.Name, Latitude = s.Latitude, Longitude = s.Longitude, RadiusMeter = s.RadiusMeter, IsOpen = s.IsOpen, ImageUrl = s.ImageUrl, OwnerId = s.OwnerId, OwnerName = user != null ? user.FullName : "Chua cÛ ch?", UpdatedAt = s.UpdatedAt }; return await query.OrderByDescending(x => x.Id).ToListAsync(); }          /*  ========================================== */ /*  1. L?Y CHI TI?T 1 S?P */ /*  ========================================== */ [HttpGet("{id}")] public async Task<IActionResult> GetStall(int id) { var stall = await _context.Stalls.FindAsync(id); if (stall == null) return NotFound(new { message = "KhÙng tÏm th?y s?p h‡ng n‡y!" }); var ttsContent = await _context.StallContents.Where(c => c.StallId == id && c.LangCode == "vi").FirstOrDefaultAsync(); return Ok(new { id = stall.Id, name = stall.Name ?? "S?p chua d?t tÍn", imageUrl = stall.ImageUrl ?? "", isOpen = stall.IsOpen, ownerId = stall.OwnerId, latitude = stall.Latitude, longitude = stall.Longitude, radiusMeter = stall.RadiusMeter, ttsScript = ttsContent != null ? (ttsContent.TtsScript ?? "") : "" }); }          /*  ========================================== */ /*  2. C?P NH?T S?P & TTS & UPLOAD ?NH */ /*  ========================================== */ [HttpPut("{id}")] public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req) { if (id != req.Id) return BadRequest(new { message = "ID khÙng kh?p!" }); var stall = await _context.Stalls.FindAsync(id); if (stall == null) return NotFound(new { message = "KhÙng tÏm th?y s?p h‡ng!" }); if (req.ImageFile != null) { var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads"); if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder); var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName); var filePath = Path.Combine(uploadsFolder, fileName); using (var fileStream = new FileStream(filePath, FileMode.Create)) { await req.ImageFile.CopyToAsync(fileStream); } stall.ImageUrl = "/uploads/" + fileName; } stall.Name = req.Name; stall.IsOpen = req.IsOpen; stall.OwnerId = req.OwnerId; stall.RadiusMeter = req.RadiusMeter; stall.UpdatedAt = DateTime.Now; if (!string.IsNullOrEmpty(req.TtsScript)) { var oldContents = _context.StallContents.Where(c => c.StallId == id); _context.StallContents.RemoveRange(oldContents); _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true }); string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" }; foreach (var lang in foreignLangs) { _context.StallContents.Add(new StallContent { StallId = id, LangCode = lang, TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}", IsActive = true }); } } await _context.SaveChangesAsync(); return Ok(new { message = "C?p nh?t thÙng tin s?p th‡nh cÙng!" }); }          /*  ========================================== */ /*  2.1 X”A S?P */ /*  ========================================== */ [HttpDelete("{id}")] public async Task<IActionResult> DeleteStall(int id) { var stall = await _context.Stalls.FindAsync(id); if (stall == null) return NotFound(); var contents = _context.StallContents.Where(c => c.StallId == id); _context.StallContents.RemoveRange(contents); _context.Stalls.Remove(stall); await _context.SaveChangesAsync(); return Ok(new { message = "–„ xÛa s?p h‡ng!" }); }          /*  ========================================== */ /*  ?? 3. ADMIN: L?Y TO¿N B? S?P CHO B?N –? (–√ FIX TH M isExpired v‡ isOpen) */ /*  ========================================== */ [HttpGet("admin-map")] public async Task<IActionResult> GetAllStallsForMap() { var stalls = await _context.Stalls.Select(s => new { id = s.Id, name = s.Name ?? "S?p chua d?t tÍn", lat = s.Latitude, lng = s.Longitude, ownerId = s.OwnerId, imageUrl = s.ImageUrl, isOpen = s.IsOpen,                     /*  S?p h?t h?n n?u KH‘NG C” gÛi cu?c n‡o C“N H?N */ isExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now) }).ToListAsync(); return Ok(stalls); }          /*  ========================================== */ /*  4. ADMIN: G¡N CH? CHO S?P (Assign Nhanh) */ /*  ========================================== */ [HttpPut("assign")] public async Task<IActionResult> AssignStall([FromBody] AssignStallRequest req) { var stall = await _context.Stalls.FindAsync(req.StallId); if (stall == null) return NotFound(new { message = "KhÙng tÏm th?y t?a d? s?p n‡y!" }); stall.OwnerId = req.OwnerId; stall.Name = req.NewStallName; stall.IsOpen = true; stall.UpdatedAt = DateTime.Now; await _context.SaveChangesAsync(); return Ok(new { message = "–„ g·n s?p th‡nh cÙng!" }); }          /*  ========================================== */ /*  5. ADMIN: T?O S?P T?I V? TRÕ (Click b?n d?) */ /*  ========================================== */ [HttpPost("create-at-pos")] public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req) { _context.Stalls.Add(new Stall { Name = "S?p m?i", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 }); await _context.SaveChangesAsync(); return Ok(); }          /*  ========================================== */ /*  6. ADMIN: L?Y DANH S¡CH CH? S?P */ /*  ========================================== */ [HttpGet("available-owners")] public async Task<IActionResult> GetAvailableOwners() { var owners = await _context.Users.Select(u => new { id = u.Id, fullName = u.FullName ?? "Chua c?p nh?t tÍn", username = u.Username }).ToListAsync(); return Ok(owners); }          /*  ========================================== */ /*  7. L?Y TTS THEO NG‘N NG? */ /*  ========================================== */ [HttpGet("{id}/tts/{langCode}")] public async Task<IActionResult> GetStallTts(int id, string langCode) { var content = await _context.StallContents.FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode); if (content == null) return NotFound(new { message = "KhÙng tÏm th?y TTS" }); return Ok(new { text = content.TtsScript }); }          /*  ========================================== */ /*  8. –?I M?T KH?U CH? S?P */ /*  ========================================== */ [HttpPost("change-password")] public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req) { var user = await _context.Users.FindAsync(req.UserId); if (user == null) return NotFound(new { message = "KhÙng tÏm th?y ngu?i d˘ng!" }); if (user.PasswordHash != req.OldPassword) { return BadRequest(new { message = "M?t kh?u cu khÙng chÌnh x·c!" }); } user.PasswordHash = req.NewPassword; await _context.SaveChangesAsync(); return Ok(new { message = "–?i m?t kh?u th‡nh cÙng!" }); }          /*  ========================================== */ /*  ?? 10. TH M M”N AN M?I (V¿ LUU ?NH L N SERVER) */ /*  ========================================== */ [HttpPost("add-product")] public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile) { try { string imageUrl = ""; if (ImageFile != null && ImageFile.Length > 0) { var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products"); if (!Directory.Exists(uploadsFolder)) { Directory.CreateDirectory(uploadsFolder); } var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName; var filePath = Path.Combine(uploadsFolder, uniqueFileName); using (var fileStream = new FileStream(filePath, FileMode.Create)) { await ImageFile.CopyToAsync(fileStream); } imageUrl = "/images/products/" + uniqueFileName; } var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false }; _context.Products.Add(newProduct); await _context.SaveChangesAsync(); var translation = new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name }; _context.ProductTranslations.Add(translation); await _context.SaveChangesAsync(); return Ok(new { message = "ThÍm mÛn an th‡nh cÙng!", imageUrl = imageUrl }); } catch (Exception ex) { return BadRequest(ex.InnerException?.Message ?? ex.Message); } }          /*  ========================================== */ /*  ?? 11. L?Y DANH S¡CH TH?C –ON C?A 1 S?P */ /*  ========================================== */ [HttpGet("{stallId}/products")] public async Task<IActionResult> GetProductsByStall(int stallId) { try { var products = await _context.Products.Where(p => p.StallId == stallId).Select(p => new { Id = p.Id, BasePrice = p.BasePrice, ImageUrl = p.ImageUrl, Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault() }).ToListAsync(); return Ok(products); } catch (Exception ex) { return BadRequest(new { message = "L?i khi t?i th?c don", detail = ex.Message }); } }          /*  ========================================== */ /*  ?? 12. GIA H?N G”I CU?C (N⁄T THANH TO¡N WEB) */ /*  ========================================== */ [HttpPost("extend-subscription/{id}")] public async Task<IActionResult> ExtendSubscription(int id) { try { var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id); if (sub != null) {                     /*  N?u d„ qu· h?n thÏ tÌnh t? hÙm nay + 30 ng‡y. N?u cÚn h?n thÏ c?ng d?n. */ if (sub.ExpiryDate < DateTime.Now || sub.ExpiryDate == null) sub.ExpiryDate = DateTime.Now.AddDays(30); else sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30); sub.IsActive = true; } else {                     /*  N?u s?p n‡y chua t?ng cÛ gÛi cu?c, t?o m?i 1 c·i */ sub = new Subscription { StallId = id, DeviceId = $"WEB-PAID-{id}", ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(), StartDate = DateTime.Now, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true }; _context.Subscriptions.Add(sub); } await _context.SaveChangesAsync(); return Ok(new { message = "Gia h?n th‡nh cÙng! S?p d„ du?c m? l?i." }); } catch (Exception ex) { return BadRequest(new { message = "L?i gia h?n", detail = ex.Message }); } }          /*  --- DTOs --- */ public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; } public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } } public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; } public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } } } }
 
+namespace HeriStep.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class StallsController : ControllerBase
+    {
+        private readonly HeriStepDbContext _context;
+
+        public StallsController(HeriStepDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
+        {
+            var query = from s in _context.Stalls
+                        join u in _context.Users on s.OwnerId equals u.Id into userGroup
+                        from user in userGroup.DefaultIfEmpty()
+                        select new PointOfInterest
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            Latitude = s.Latitude,
+                            Longitude = s.Longitude,
+                            RadiusMeter = s.RadiusMeter,
+                            IsOpen = s.IsOpen,
+                            ImageUrl = s.ImageUrl,
+                            OwnerId = s.OwnerId,
+                            OwnerName = user != null ? user.FullName : "Ch∆∞a c√≥ ch·ªß",
+                            UpdatedAt = s.UpdatedAt
+                        };
+
+            return await query.OrderByDescending(x => x.Id).ToListAsync();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetStall(int id)
+        {
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y s·∫°p h√†ng n√†y!" });
+
+            var ttsContent = await _context.StallContents
+                .Where(c => c.StallId == id && c.LangCode == "vi")
+                .FirstOrDefaultAsync();
+
+            return Ok(new
+            {
+                id = stall.Id,
+                name = stall.Name ?? "S·∫°p ch∆∞a ƒë·∫∑t t√™n",
+                imageUrl = stall.ImageUrl ?? "",
+                isOpen = stall.IsOpen,
+                ownerId = stall.OwnerId,
+                latitude = stall.Latitude,
+                longitude = stall.Longitude,
+                radiusMeter = stall.RadiusMeter,
+                ttsScript = ttsContent != null ? (ttsContent.TtsScript ?? "") : ""
+            });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req)
+        {
+            if (id != req.Id) return BadRequest(new { message = "ID kh√¥ng kh·ªõp!" });
+
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y s·∫°p h√†ng!" });
+
+            if (req.ImageFile != null)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName);
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await req.ImageFile.CopyToAsync(fileStream);
+                }
+                stall.ImageUrl = "/uploads/" + fileName;
+            }
+
+            stall.Name = req.Name;
+            stall.IsOpen = req.IsOpen;
+            stall.OwnerId = req.OwnerId;
+            stall.RadiusMeter = req.RadiusMeter;
+            stall.UpdatedAt = DateTime.Now;
+
+            if (!string.IsNullOrEmpty(req.TtsScript))
+            {
+                var oldContents = _context.StallContents.Where(c => c.StallId == id);
+                _context.StallContents.RemoveRange(oldContents);
+
+                _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
+
+                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                foreach (var lang in foreignLangs)
+                {
+                    _context.StallContents.Add(new StallContent
+                    {
+                        StallId = id,
+                        LangCode = lang,
+                        TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
+                        IsActive = true
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "C·∫≠p nh·∫≠t th√¥ng tin s·∫°p th√†nh c√¥ng!" });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteStall(int id)
+        {
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound();
+
+            var contents = _context.StallContents.Where(c => c.StallId == id);
+            _context.StallContents.RemoveRange(contents);
+
+            _context.Stalls.Remove(stall);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "ƒê√£ x√≥a s·∫°p h√†ng!" });
+        }
+
+        [HttpGet("admin-map")]
+        public async Task<IActionResult> GetAllStallsForMap()
+        {
+            var stalls = await _context.Stalls
+                .Select(s => new
+                {
+                    id = s.Id,
+                    name = s.Name ?? "S·∫°p ch∆∞a ƒë·∫∑t t√™n",
+                    lat = s.Latitude,
+                    lng = s.Longitude,
+                    ownerId = s.OwnerId,
+                    imageUrl = s.ImageUrl,
+                    isOpen = s.IsOpen,
+                    isExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now)
+                })
+                .ToListAsync();
+            return Ok(stalls);
+        }
+
+        [HttpPut("assign")]
+        public async Task<IActionResult> AssignStall([FromBody] AssignStallRequest req)
+        {
+            var stall = await _context.Stalls.FindAsync(req.StallId);
+            if (stall == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y t·ªça ƒë·ªô s·∫°p n√†y!" });
+
+            stall.OwnerId = req.OwnerId;
+            stall.Name = req.NewStallName;
+            stall.IsOpen = true;
+            stall.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "ƒê√£ g√°n s·∫°p th√†nh c√¥ng!" });
+        }
+
+        [HttpPost("create-at-pos")]
+        public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
+        {
+            _context.Stalls.Add(new Stall { Name = "S·∫°p m·ªõi", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 });
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpGet("available-owners")]
+        public async Task<IActionResult> GetAvailableOwners()
+        {
+            var owners = await _context.Users
+                .Select(u => new { id = u.Id, fullName = u.FullName ?? "Ch∆∞a c·∫≠p nh·∫≠t t√™n", username = u.Username })
+                .ToListAsync();
+            return Ok(owners);
+        }
+
+        [HttpGet("{id}/tts/{langCode}")]
+        public async Task<IActionResult> GetStallTts(int id, string langCode)
+        {
+            var content = await _context.StallContents
+                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode);
+            if (content == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y TTS" });
+            return Ok(new { text = content.TtsScript });
+        }
+
+        [HttpPost("add-product")]
+        public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
+        {
+            try
+            {
+                string imageUrl = "";
+                if (ImageFile != null && ImageFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(fileStream);
+                    }
+                    imageUrl = "/images/products/" + uniqueFileName;
+                }
+
+                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false };
+                _context.Products.Add(newProduct);
+                await _context.SaveChangesAsync();
+
+                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name });
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Th√™m m√≥n ƒÉn th√†nh c√¥ng!", imageUrl = imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
+        }
+
+        [HttpGet("{stallId}/products")]
+        public async Task<IActionResult> GetProductsByStall(int stallId)
+        {
+            try
+            {
+                var products = await _context.Products.Where(p => p.StallId == stallId).Select(p => new
+                {
+                    Id = p.Id,
+                    BasePrice = p.BasePrice,
+                    ImageUrl = p.ImageUrl,
+                    Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
+                }).ToListAsync();
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "L·ªói khi t·∫£i th·ª±c ƒë∆°n", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("my-stalls")]
+        public async Task<IActionResult> GetMyStalls([FromQuery] int? ownerId)
+        {
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            int finalOwnerId = ownerId ?? (int.TryParse(claimId, out var id) ? id : 0);
+            
+            if (finalOwnerId == 0) return Unauthorized(new { message = "Kh√¥ng x√°c ƒë·ªãnh ƒë∆∞·ª£c ch·ªß s·∫°p. Vui l√≤ng ƒëƒÉng nh·∫≠p l·∫°i!" });
+
+            var stalls = await _context.Stalls.Where(s => s.OwnerId == finalOwnerId).ToListAsync();
+            return Ok(stalls);
+        }
+
+        [HttpGet("top5")]
+        public async Task<IActionResult> GetTop5Stalls()
+        {
+            var top = await _context.Stalls
+                .Where(s => s.IsOpen)
+                .OrderByDescending(s => s.RadiusMeter) // Default to something mockable
+                .Take(5)
+                .Select(s => new {
+                    Id = s.Id,
+                    Name = s.Name,
+                    ImageUrl = string.IsNullOrEmpty(s.ImageUrl) ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80" : s.ImageUrl,
+                    Rating = 5.0,
+                    ReviewCount = 100
+                })
+                .ToListAsync();
+            return Ok(top);
+        }
+
+        [HttpGet("nearby")]
+        public async Task<IActionResult> GetNearbyStalls() // for app map
+        {
+            return await GetAllStallsForMap();
+        }
+
+        public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
+        public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
+        public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
+    }
+}

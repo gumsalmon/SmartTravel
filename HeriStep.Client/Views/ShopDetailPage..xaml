@@ -57,4 +57,22 @@
         </Grid>
     </ScrollView>
 
+    <!-- Floating Audio Button -->
+    <AbsoluteLayout>
+        <Button Text="🔊 Nghe Thuyết Minh" 
+                FontAttributes="Bold"
+                BackgroundColor="#1A73E8" 
+                TextColor="White"
+                CornerRadius="25"
+                HeightRequest="50"
+                Margin="0,0,20,30"
+                AbsoluteLayout.LayoutFlags="PositionProportional"
+                AbsoluteLayout.LayoutBounds="1,1,AutoSize,AutoSize"
+                Clicked="PlayAudio_Clicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.3"/>
+            </Button.Shadow>
+        </Button>
+    </AbsoluteLayout>
+
 </ContentPage>
