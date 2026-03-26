@@ -10,7 +10,7 @@ namespace HeriStep.API.Services
         public async Task<bool> DeleteFileAsync(string fileUrl)
         {
             // TODO: Call AmazonS3Client DeleteObjectRequest
-            await Task.Delay(100); 
+            await Task.Delay(100);
             return true;
         }
 

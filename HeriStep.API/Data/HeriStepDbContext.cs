@@ -27,7 +27,8 @@ namespace HeriStep.API.Data
             base.OnModelCreating(modelBuilder);
 
             // 1. Cấu hình bảng Users
-            modelBuilder.Entity<User>(entity => {
+            modelBuilder.Entity<User>(entity =>
+            {
                 entity.ToTable("Users");
                 entity.HasIndex(u => u.Username).IsUnique();
                 entity.Property(u => u.Username).HasColumnName("username");
@@ -37,7 +38,8 @@ namespace HeriStep.API.Data
             });
 
             // 2. Cấu hình bảng Tours
-            modelBuilder.Entity<Tour>(entity => {
+            modelBuilder.Entity<Tour>(entity =>
+            {
                 entity.ToTable("Tours");
                 entity.Property(t => t.TourName).HasColumnName("tour_name");
                 entity.Property(t => t.ImageUrl).HasColumnName("image_url");
@@ -47,7 +49,8 @@ namespace HeriStep.API.Data
             });
 
             // 3. Cấu hình bảng Stall (Stalls)
-            modelBuilder.Entity<Stall>(entity => {
+            modelBuilder.Entity<Stall>(entity =>
+            {
                 // Fix lỗi Trigger cho EF Core 7+
                 entity.ToTable("Stalls", tb => tb.HasTrigger("SomeTriggerName"));
 
@@ -65,7 +68,8 @@ namespace HeriStep.API.Data
             });
 
             // 4. Cấu hình bảng StallContents
-            modelBuilder.Entity<StallContent>(entity => {
+            modelBuilder.Entity<StallContent>(entity =>
+            {
                 entity.ToTable("StallContents");
                 entity.Property(c => c.StallId).HasColumnName("stall_id");
                 entity.Property(c => c.LangCode).HasColumnName("lang_code");
@@ -74,7 +78,8 @@ namespace HeriStep.API.Data
             });
 
             // 5. Cấu hình bảng Subscriptions
-            modelBuilder.Entity<Subscription>(entity => {
+            modelBuilder.Entity<Subscription>(entity =>
+            {
                 entity.ToTable("Subscriptions");
                 entity.Property(s => s.DeviceId).HasColumnName("device_id");
                 entity.Property(s => s.ActivationCode).HasColumnName("activation_code");
@@ -84,7 +89,8 @@ namespace HeriStep.API.Data
             });
 
             // 6. Cấu hình bảng Languages
-            modelBuilder.Entity<Language>(entity => {
+            modelBuilder.Entity<Language>(entity =>
+            {
                 entity.ToTable("Languages");
                 entity.HasKey(l => l.LangCode);
                 entity.Property(l => l.LangCode).HasColumnName("lang_code");
@@ -92,7 +98,8 @@ namespace HeriStep.API.Data
             });
 
             // 7. Cấu hình bảng Products
-            modelBuilder.Entity<Product>(entity => {
+            modelBuilder.Entity<Product>(entity =>
+            {
                 entity.ToTable("Products");
                 entity.Property(p => p.BasePrice).HasColumnType("decimal(18,2)").HasColumnName("base_price");
                 entity.Property(p => p.ImageUrl).HasColumnName("image_url");
@@ -100,7 +107,8 @@ namespace HeriStep.API.Data
             });
 
             // 8. Cấu hình bảng StallVisits
-            modelBuilder.Entity<StallVisit>(entity => {
+            modelBuilder.Entity<StallVisit>(entity =>
+            {
                 entity.ToTable("StallVisits");
                 entity.HasKey(v => v.Id);
                 entity.Property(v => v.StallId).HasColumnName("stall_id");
@@ -109,7 +117,8 @@ namespace HeriStep.API.Data
             });
 
             // 💡 ĐÃ THÊM: 9. Cấu hình bảng TicketPackages
-            modelBuilder.Entity<TicketPackage>(entity => {
+            modelBuilder.Entity<TicketPackage>(entity =>
+            {
                 entity.ToTable("TicketPackages");
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.PackageName).HasColumnName("package_name");
@@ -119,7 +128,8 @@ namespace HeriStep.API.Data
             });
 
             // 💡 ĐÃ THÊM: 10. Cấu hình bảng TouristTickets
-            modelBuilder.Entity<TouristTicket>(entity => {
+            modelBuilder.Entity<TouristTicket>(entity =>
+            {
                 entity.ToTable("TouristTickets");
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.TicketCode).HasColumnName("ticket_code");
@@ -133,13 +143,14 @@ namespace HeriStep.API.Data
                 entity.Ignore(t => t.PackageName); // Bỏ qua biến ảo để ghép tên
             });
             // 11. Cấu hình bảng ProductTranslations
-            modelBuilder.Entity<ProductTranslation>(entity => {
+            modelBuilder.Entity<ProductTranslation>(entity =>
+            {
                 entity.ToTable("ProductTranslations");
-                entity.HasKey(pt => pt.Id); 
-                entity.Property(pt => pt.ProductId).HasColumnName("product_id"); 
-                entity.Property(pt => pt.LangCode).HasColumnName("lang_code"); 
-                entity.Property(pt => pt.ProductName).HasColumnName("product_name"); 
-                entity.Property(pt => pt.ProductDesc).HasColumnName("product_desc"); 
+                entity.HasKey(pt => pt.Id);
+                entity.Property(pt => pt.ProductId).HasColumnName("product_id");
+                entity.Property(pt => pt.LangCode).HasColumnName("lang_code");
+                entity.Property(pt => pt.ProductName).HasColumnName("product_name");
+                entity.Property(pt => pt.ProductDesc).HasColumnName("product_desc");
             });
 
             // 12. Seeding Data thay cho MockDataController

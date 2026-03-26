@@ -1,4 +1,5 @@
-﻿using HeriStep.Client.Services;
+using HeriStep.Client.Services;
+using HeriStep.Client.Services.Location; // Thêm cái này
 using HeriStep.Client.ViewModels;
 using HeriStep.Client.Views;
 using Microsoft.Extensions.Logging;
@@ -20,24 +21,35 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // 1. ĐÃ FIX: Bỏ chữ "api/" ở đuôi để không bị nối trùng lặp
+        // 1. Cấu hình HttpClient (Lưu ý: 10.0.2.2 chỉ dùng cho Android Emulator)
         builder.Services.AddSingleton(new HttpClient
         {
             BaseAddress = new Uri("http://10.0.2.2:5297/")
         });
 
-        // 2. Đăng ký các dịch vụ và Giao diện
+        // 2. Đăng ký Services
         builder.Services.AddSingleton<ShopService>();
+
+        // 💡 Đã dùng Alias gọn gàng hơn nhờ using ở trên
+#if DEBUG
+        builder.Services.AddSingleton<ILocationService, MockLocationService>();
+#else
+        builder.Services.AddSingleton<ILocationService, RealLocationService>();
+#endif
+
+        // 3. Đăng ký ViewModels (Đăng ký Singleton nếu muốn giữ trạng thái, Transient nếu muốn reset)
         builder.Services.AddSingleton<HomeViewModel>();
+        // builder.Services.AddTransient<LoginViewModel>(); // Sếp nên thêm dòng này nếu có LoginViewModel
+
+        // 4. Đăng ký Views
+        builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<MainPage>();
 
-        // 3. ĐÃ FIX: Dời dòng này lên TRÊN chữ return để App có thể chạy được trang Login
-        builder.Services.AddTransient<LoginPage>();
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
-        // Dòng chốt sổ bắt buộc phải nằm ở sát đáy!
+
         return builder.Build();
     }
 }

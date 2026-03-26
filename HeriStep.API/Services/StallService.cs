@@ -27,7 +27,7 @@ namespace HeriStep.API.Services
         {
             var cacheKey = "StallMapCache";
             var cachedData = await _cache.GetStringAsync(cacheKey);
-            
+
             if (!string.IsNullOrEmpty(cachedData))
             {
                 return JsonSerializer.Deserialize<IEnumerable<PointOfInterest>>(cachedData);
@@ -45,9 +45,9 @@ namespace HeriStep.API.Services
                             Longitude = s.Longitude,
                             IsOpen = s.IsOpen
                         };
-            
+
             var result = await query.ToListAsync();
-            
+
             // Lên Redis Server: Cache 10 mins
             var cacheOptions = new DistributedCacheEntryOptions
             {
@@ -70,7 +70,10 @@ namespace HeriStep.API.Services
             {
                 _context.Subscriptions.Add(new Subscription
                 {
-                    StallId = stallId, StartDate = DateTime.Now, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true
+                    StallId = stallId,
+                    StartDate = DateTime.Now,
+                    ExpiryDate = DateTime.Now.AddDays(30),
+                    IsActive = true
                 });
             }
             await _context.SaveChangesAsync();

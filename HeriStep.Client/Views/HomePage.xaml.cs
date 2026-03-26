@@ -1,4 +1,4 @@
-﻿using HeriStep.Client.ViewModels;
+using HeriStep.Client.ViewModels;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -19,7 +19,22 @@ public partial class HomePage : ContentPage
     {
         base.OnAppearing();
 
-        // Chỉ cần gọi API lấy data để hiển thị lên mấy cái thẻ trượt ngang là đủ
+        // Xin quyền GPS theo bài toán MVPs
+        var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+        if (status != PermissionStatus.Granted)
+        {
+            await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+        }
+
+        // Chọn ngôn ngữ nếu chưa có
+        if (!Microsoft.Maui.Storage.Preferences.Default.ContainsKey("lang_code"))
+        {
+            string action = await DisplayActionSheet("Chọn Ngôn Ngữ / Select Language", "Cancel", null, "Tiếng Việt", "English", "한국어", "日本語");
+            string langCode = action switch { "English" => "en", "한국어" => "ko", "日本語" => "ja", _ => "vi" };
+            Microsoft.Maui.Storage.Preferences.Default.Set("lang_code", langCode);
+        }
+
+        // Gọi API với ngôn ngữ (query lang có thể bỏ vào LoadPointsAsync sau)
         if (_viewModel.Points.Count == 0)
         {
             await _viewModel.LoadPointsAsync();

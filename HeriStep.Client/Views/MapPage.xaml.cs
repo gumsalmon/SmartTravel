@@ -1,4 +1,4 @@
-﻿using Mapsui;
+using Mapsui;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling;
@@ -14,7 +14,7 @@ namespace HeriStep.Client.Views;
 
 public partial class MapPage : ContentPage
 {
-    private Stall _currentSelectedShop;
+    private Stall _currentSelectedShop = new Stall();
 
     // 💡 ĐÃ SỬA: Dùng hàm khởi tạo không tham số để AppShell tự mở được trang này
     public MapPage()

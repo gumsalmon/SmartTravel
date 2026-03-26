@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared.Models;
+﻿using HeriStep.Shared.Models.DTOs.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;

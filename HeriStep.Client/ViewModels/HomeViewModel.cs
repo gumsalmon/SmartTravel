@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using HeriStep.Shared.Models;
 
@@ -38,8 +38,8 @@ namespace HeriStep.Client.ViewModels
             IsBusy = true;
             try
             {
-                double lat = 10.7595; double lon = 106.7025;
-                var url = "api/Stalls";
+                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("lang_code", "vi");
+                var url = $"api/Stalls?lang={lang}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
 
@@ -99,12 +99,12 @@ namespace HeriStep.Client.ViewModels
         private async Task NavigateToPage(string keyword, List<Stall> dataToPass)
         {
             // Cách gọi chuyển trang "bất bại" trong .NET MAUI từ ViewModel
-            if (Application.Current?.MainPage != null)
+            if (Application.Current?.Windows.Count > 0 && Application.Current.Windows[0].Page != null)
             {
                 // Dùng MainThread để đảm bảo không bị crash khi chuyển UI
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await Application.Current.MainPage.Navigation.PushAsync(new Views.FilterResultPage(keyword, dataToPass));
+                    await Application.Current.Windows[0].Page.Navigation.PushAsync(new Views.FilterResultPage(keyword, dataToPass));
                 });
             }
         }

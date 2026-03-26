@@ -19,7 +19,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<HeriStepDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddStackExchangeRedisCache(options => {
+builder.Services.AddStackExchangeRedisCache(options =>
+{
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
 });
 
@@ -37,8 +38,10 @@ builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetCon
 // 1.4 JWT Authentication
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "superSecretKey_NeedToChange_InProduction_123456789");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => {
-        options.TokenValidationParameters = new TokenValidationParameters {
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ValidateIssuer = false,
@@ -47,8 +50,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // 1.5 CẤU HÌNH CORS (Sửa lại đoạn này để SignalR không bị chặn)
-builder.Services.AddCors(options => {
-    options.AddPolicy("AllowAll", policy => {
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
         policy.SetIsOriginAllowed(_ => true) // 💡 Thay cho AllowAnyOrigin để SignalR chấp nhận
               .AllowAnyMethod()
               .AllowAnyHeader()

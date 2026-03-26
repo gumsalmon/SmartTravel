@@ -1,38 +1,6 @@
-Ôªøusing HeriStep.Shared.Models;
+using HeriStep.Shared.Models.DTOs.Requests;
+using HeriStep.Shared.Models.DTOs.Responses;
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
+[ApiController][Route("api/[controller]")] public class ShopController : ControllerBase {     /*  Gi? l?p database t? SSMS */ private List<Shop> _allShops = new List<Shop>(); [HttpGet("nearby")] public IActionResult GetNearbyShops(double userLat, double userLon) {         /*  Logic: TÌnh kho?ng c·ch v‡ l?y c·c shop trong b·n kÌnh 2km */ var nearby = _allShops.Select(s => { s.Distance = CalculateDistance(userLat, userLon, s.Latitude, s.Longitude); return s; }).Where(s => s.Distance <= 2.0) /*  B·n kÌnh 2km */ .OrderBy(s => s.Distance).ToList(); return Ok(nearby); } private double CalculateDistance(double lat1, double lon1, double lat2, double lon2) {         /*  CÙng th?c Haversine d? tÌnh kho?ng c·ch trÍn m?t c?u */ var R = 6371; /*  B·n kÌnh Tr·i –?t (km) */ var dLat = (lat2 - lat1) * (Math.PI / 180); var dLon = (lon2 - lon1) * (Math.PI / 180); var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) + Math.Cos(lat1 * (Math.PI / 180)) * Math.Cos(lat2 * (Math.PI / 180)) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2); var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a)); return R * c; } }
 
-[ApiController]
-[Route("api/[controller]")]
-public class ShopController : ControllerBase
-{
-    // Gi·∫£ l·∫≠p database t·ª´ SSMS
-    private List<Shop> _allShops = new List<Shop>();
-
-    [HttpGet("nearby")]
-    public IActionResult GetNearbyShops(double userLat, double userLon)
-    {
-        // Logic: T√≠nh kho·∫£ng c√°ch v√† l·∫•y c√°c shop trong b√°n k√≠nh 2km
-        var nearby = _allShops.Select(s => {
-            s.Distance = CalculateDistance(userLat, userLon, s.Latitude, s.Longitude);
-            return s;
-        })
-        .Where(s => s.Distance <= 2.0) // B√°n k√≠nh 2km
-        .OrderBy(s => s.Distance)
-        .ToList();
-
-        return Ok(nearby);
-    }
-
-    private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
-    {
-        // C√¥ng th·ª©c Haversine ƒë·ªÉ t√≠nh kho·∫£ng c√°ch tr√™n m·∫∑t c·∫ßu
-        var R = 6371; // B√°n k√≠nh Tr√°i ƒê·∫•t (km)
-        var dLat = (lat2 - lat1) * (Math.PI / 180);
-        var dLon = (lon2 - lon1) * (Math.PI / 180);
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(lat1 * (Math.PI / 180)) * Math.Cos(lat2 * (Math.PI / 180)) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return R * c;
-    }
-}

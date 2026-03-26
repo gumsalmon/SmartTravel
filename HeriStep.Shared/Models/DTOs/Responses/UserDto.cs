@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace HeriStep.Shared.Models
+namespace HeriStep.Shared.Models.DTOs.Responses
 {
     public class UserDto
     {

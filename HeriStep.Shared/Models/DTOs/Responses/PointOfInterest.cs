@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace HeriStep.Shared.Models
+namespace HeriStep.Shared.Models.DTOs.Responses
 {
     [Table("Stalls")]
     public class PointOfInterest
