@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace HeriStep.Shared.Models
+namespace HeriStep.Shared.Models.DTOs.Responses
 {
     public class DashboardStats
     {

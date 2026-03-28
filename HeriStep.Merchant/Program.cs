@@ -1,11 +1,21 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies; // 💡 ĐÃ THÊM: Thư viện quản lý Cookie Đăng nhập
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 
-// 1. Cấu hình HttpClient để gọi API
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5297/") });
+// 1. ĐÃ FIX: Đăng ký HttpClient chuẩn chỉ
+builder.Services.AddHttpClient();
+builder.Services.AddScoped(sp => {
+    var client = new HttpClient();
+    client.BaseAddress = new Uri("http://127.0.0.1:5297/");
+    return client;
+});
+
+// ==================================================
+// 💡 ĐÃ FIX LỖI CRASH: Bắt buộc phải có dòng này trước khi AddSession
+builder.Services.AddDistributedMemoryCache();
+// ==================================================
 
 // 2. Kích hoạt Session
 builder.Services.AddSession(options => {
@@ -14,14 +24,16 @@ builder.Services.AddSession(options => {
     options.Cookie.IsEssential = true;
 });
 
-// 💡 ĐÃ THÊM: 3. Cấu hình Cookie Authentication để sửa lỗi "No authenticationScheme"
+// 3. Cấu hình Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Login"; // Chuyển hướng về trang Login nếu chưa đăng nhập
-        options.ExpireTimeSpan = TimeSpan.FromDays(30); // Giữ đăng nhập 30 ngày cho Cô Ba đỡ cực
-        options.AccessDeniedPath = "/Login"; // Không có quyền cũng đuổi về Login
+        options.LoginPath = "/Login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.AccessDeniedPath = "/Login";
     });
+
+builder.Services.AddAuthorization(); // Thêm dòng này cho chắc cú
 
 var app = builder.Build();
 
@@ -32,16 +44,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(); // Chỉ gọi 1 lần duy nhất ở đây!
 app.UseRouting();
 
-// 4. Phải có dòng UseSession (nếu bạn có xài Session)
+// 4. Khởi chạy Session
 app.UseSession();
 
-// 💡 ĐÃ THÊM: 5. Kích hoạt Xác thực danh tính (BẮT BUỘC NẰM TRƯỚC UseAuthorization)
+// 5. Kích hoạt Xác thực danh tính 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseStaticFiles();
 
 app.MapRazorPages();
+
 app.Run();

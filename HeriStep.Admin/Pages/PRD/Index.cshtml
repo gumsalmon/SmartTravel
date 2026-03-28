@@ -1,0 +1,880 @@
+﻿@page
+@model HeriStep.Admin.Pages.PRD.IndexModel
+@{
+    // 💡 TẮT LAYOUT MẶC ĐỊNH ĐỂ GIỮ NGUYÊN GIAO DIỆN DARK MODE GLASSMORPHISM
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTravel PRD — HeriStep System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            /* Premium Dark Mode Glassmorphism Palette */
+            --bg-base: #020617; /* Slate 950 */
+            --bg-surface: rgba(15, 23, 42, 0.6); /* Slate 900 w/ opacity */
+            --bg-surface-hover: rgba(30, 41, 59, 0.8);
+            --accent-primary: #0ea5e9; /* Sky blue */
+            --accent-secondary: #8b5cf6; /* Violet */
+            --accent-tertiary: #10b981; /* Emerald */
+            --accent-warning: #f59e0b; /* Amber */
+            --accent-danger: #ef4444; /* Red */
+            --accent-glow: rgba(14, 165, 233, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(14, 165, 233, 0.3);
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: rgba(139, 92, 246, 0.12);
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: rgba(14, 165, 233, 0.12);
+            bottom: 20%;
+            right: -150px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: rgba(16, 185, 129, 0.1);
+            top: 40%;
+            left: 20%;
+            animation-duration: 15s;
+        }
+
+        @@keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 100px;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            z-index: 100;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            white-space: nowrap;
+        }
+
+            nav a {
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 0.9rem;
+                font-weight: 500;
+                transition: color 0.2s;
+            }
+
+                nav a:hover, nav a.active {
+                    color: var(--accent-primary);
+                }
+
+        /* Hero Section */
+        header {
+            padding: 10rem 0 5rem;
+            text-align: center;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid var(--border-highlight);
+            color: var(--accent-primary);
+            padding: 0.4rem 1.2rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        header p {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        section {
+            margin-bottom: 6rem;
+            scroll-margin-top: 100px;
+        }
+
+        /* Section Titles */
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+            .section-title::before {
+                content: '';
+                display: block;
+                width: 40px;
+                height: 4px;
+                background: linear-gradient(90deg, var(--accent-primary), transparent);
+                border-radius: 2px;
+            }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .glass-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            }
+
+            .glass-card:hover {
+                transform: translateY(-5px);
+                border-color: var(--border-highlight);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            }
+
+            .glass-card h3 {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+                color: var(--text-main);
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .glass-card p {
+                color: var(--text-muted);
+                font-size: 0.95rem;
+            }
+
+        /* Lists inside cards */
+        .feature-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+            .feature-list li {
+                position: relative;
+                padding-left: 1.5rem;
+                margin-bottom: 0.75rem;
+                font-size: 0.9rem;
+                color: var(--text-muted);
+            }
+
+                .feature-list li::before {
+                    content: '→';
+                    position: absolute;
+                    left: 0;
+                    color: var(--accent-primary);
+                    font-weight: bold;
+                }
+
+        /* Stats Component */
+        .stat-box {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+            .stat-box .num {
+                font-size: 3rem;
+                font-weight: 800;
+                font-family: var(--font-mono);
+                line-height: 1;
+                margin-bottom: 0.5rem;
+            }
+
+                .stat-box .num.blue {
+                    color: var(--accent-primary);
+                }
+
+                .stat-box .num.purple {
+                    color: var(--accent-secondary);
+                }
+
+                .stat-box .num.emerald {
+                    color: var(--accent-tertiary);
+                }
+
+                .stat-box .num.amber {
+                    color: var(--accent-warning);
+                }
+
+            .stat-box .label {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+        /* API & DB Tables */
+        .data-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .data-header {
+            background: rgba(14, 165, 233, 0.1);
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-row {
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+            .data-row:last-child {
+                border-bottom: none;
+            }
+
+        /* Specific column widths for DB */
+        .db-row .col-name {
+            width: 40%;
+            color: #e2e8f0;
+        }
+
+        .db-row .col-type {
+            width: 30%;
+            color: var(--accent-secondary);
+        }
+
+        .db-row .col-desc {
+            width: 30%;
+            color: #64748b;
+            font-family: var(--font-sans);
+        }
+
+        /* Specific styles for API list */
+        .api-method {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-right: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .method-get {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-tertiary);
+        }
+
+        .method-post {
+            background: rgba(14, 165, 233, 0.2);
+            color: var(--accent-primary);
+        }
+
+        .method-put {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-warning);
+        }
+
+        .method-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-danger);
+        }
+
+        .api-endpoint {
+            color: #e2e8f0;
+            width: 45%;
+        }
+
+        .api-desc {
+            color: #64748b;
+            font-family: var(--font-sans);
+            flex: 1;
+        }
+
+        /* Mermaid Wrapper */
+        .mermaid-wrapper {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 2rem;
+            overflow-x: auto;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        code.inline {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            color: var(--accent-primary);
+        }
+
+        footer {
+            border-top: 1px solid var(--border-glass);
+            padding: 4rem 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @@media (max-width: 992px) {
+            .grid-3, .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            header h1 {
+                font-size: 2.8rem;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: none;
+            }
+            /* Hide complex nav on mobile for simplicity */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <nav id="navbar">
+        <a href="/Index" style="color: var(--accent-primary);"><i class="bi bi-arrow-left"></i> Admin</a>
+        <a href="#overview">Tổng quan</a>
+        <a href="#ecosystem">Hệ sinh thái</a>
+        <a href="#monetization">Mô hình</a>
+        <a href="#database">Database</a>
+        <a href="#api-specs">API & Realtime</a>
+        <a href="#flows">User Journeys</a>
+        <a href="#tech-stack">Kiến trúc</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <div class="badge-pill">
+                <i class="bi bi-file-earmark-text"></i> Product Requirements Document v1.0
+            </div>
+            <h1>Hệ Thống Phố Ẩm Thực Vĩnh Khánh <br><span class="gradient-text">HeriStep Platform</span></h1>
+            <p>Giải pháp Chuyển đổi số toàn diện kết nối Ban Quản Lý, Tiểu Thương và Khách Du Lịch Quốc Tế thông qua công nghệ Geofencing GPS, Âm thanh AI Đa ngôn ngữ và Real-time Radar.</p>
+        </header>
+
+        <section>
+            <div class="glass-card grid-4" style="padding: 1rem 2rem;">
+                <div class="stat-box">
+                    <div class="num blue">3</div>
+                    <div class="label">Nền tảng (Apps/Web)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num purple">11</div>
+                    <div class="label">Core DB Tables</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num emerald">50m</div>
+                    <div class="label">Bán kính Geofence</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num amber">~ms</div>
+                    <div class="label">Độ trễ SignalR</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="overview">
+            <h2 class="section-title">1. Bài Toán & Tầm Nhìn</h2>
+            <div class="grid-2">
+                <div class="glass-card" style="border-left: 4px solid var(--accent-danger);">
+                    <h3><i class="bi bi-exclamation-triangle text-danger"></i> Vấn đề hiện tại</h3>
+                    <p>Khu phố ẩm thực Vĩnh Khánh thu hút lượng lớn khách du lịch nhưng gặp nhiều rào cản:</p>
+                    <ul class="feature-list">
+                        <li><strong>Rào cản ngôn ngữ:</strong> Khách nước ngoài khó tiếp cận lịch sử và menu món ăn.</li>
+                        <li><strong>Chèo kéo phản cảm:</strong> Phương thức vẫy khách truyền thống gây khó chịu.</li>
+                        <li><strong>Thiếu số liệu:</strong> Ban quản lý không có dữ liệu thật về lưu lượng khách và doanh thu.</li>
+                    </ul>
+                </div>
+                <div class="glass-card" style="border-left: 4px solid var(--accent-tertiary);">
+                    <h3><i class="bi bi-lightbulb text-success"></i> Giải pháp HeriStep</h3>
+                    <p>Ứng dụng công nghệ "Zero-click" Experience:</p>
+                    <ul class="feature-list">
+                        <li><strong>Du lịch rảnh tay:</strong> Khách chỉ cần đi bộ, đến gần sạp sẽ tự động nghe thuyết minh bằng tiếng mẹ đẻ.</li>
+                        <li><strong>Radar số hóa:</strong> Chủ sạp nhận được thông báo ngay khi có khách tiến vào bán kính sạp.</li>
+                        <li><strong>Quản trị tập trung:</strong> Admin nắm bắt toàn bộ dòng tiền bán vé và lưu lượng khách theo thời gian thực.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="ecosystem">
+            <h2 class="section-title">2. Hệ Sinh Thái Đa Nền Tảng</h2>
+            <div class="grid-3">
+                <div class="glass-card">
+                    <h3><i class="bi bi-pc-display-horizontal text-primary"></i> Web Admin</h3>
+                    <p>Trung tâm chỉ huy dành cho Ban Quản Lý (BQL).</p>
+                    <ul class="feature-list">
+                        <li><strong>Quy hoạch bản đồ:</strong> Thiết lập tọa độ GPS và bán kính nhận diện cho từng sạp.</li>
+                        <li><strong>Quản lý bảo mật:</strong> Cấp tài khoản cho tiểu thương (Mã hóa BCrypt).</li>
+                        <li><strong>Mock Data Engine:</strong> Thuật toán nội suy tuyến tính tạo hàng chục điểm sạp và giả lập khách phục vụ Load Testing.</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3><i class="bi bi-shop text-success"></i> App Chủ Sạp</h3>
+                    <p>Trạm phát sóng và Radar cảnh báo khách.</p>
+                    <ul class="feature-list">
+                        <li><strong>E-Menu đa ngôn ngữ:</strong> Cập nhật món ăn, đánh dấu Signature.</li>
+                        <li><strong>Xưởng AI TTS:</strong> Soạn lời chào tiếng Việt -> Tự động dịch và lưu thành 9 ngôn ngữ.</li>
+                        <li><strong>Real-time Radar:</strong> Màn hình chớp đỏ báo hiệu khi khách (đang mở App) lọt vào bán kính nhận diện.</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3><i class="bi bi-phone text-warning"></i> App Khách Du Lịch</h3>
+                    <p>Hướng dẫn viên ảo & Ví vé điện tử.</p>
+                    <ul class="feature-list">
+                        <li><strong>Mua vé thông minh:</strong> E-Ticket gắn liền với DeviceID chống gian lận.</li>
+                        <li><strong>Geofencing Audio:</strong> Quét GPS nền. Tự động phát âm thanh giới thiệu món ăn khi đến gần sạp.</li>
+                        <li><strong>Nhật ký hành trình:</strong> Tự động check-in các điểm đã đi qua.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="monetization">
+            <h2 class="section-title">3. Mô hình Doanh thu (Monetization)</h2>
+            <div class="grid-2">
+                <div class="glass-card" style="border-top: 4px solid var(--accent-primary);">
+                    <h3><i>🎟️</i> Doanh thu B2C: Khách Du Lịch</h3>
+                    <p>Khách mua <code class="inline">TicketPackages</code> (VD: Gói trải nghiệm 1 tuần - 168 giờ, giá 150.000đ). Hệ thống cấp <code class="inline">ticket_code</code> gắn cứng với thiết bị.</p>
+                    <ul class="feature-list">
+                        <li>Mở khóa bản đồ không độ trễ.</li>
+                        <li>Kích hoạt tính năng nghe âm thanh Geofence tự động.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card" style="border-top: 4px solid var(--accent-tertiary);">
+                    <h3><i>🏪</i> Doanh thu B2B: Gói Cước Chủ Sạp</h3>
+                    <p>BQL bán các gói <code class="inline">Subscriptions</code> duy trì hạ tầng số cho sạp. Chủ sạp nhập <code class="inline">activation_code</code> để kích hoạt.</p>
+                    <ul class="feature-list">
+                        <li>Hiển thị sạp lên bản đồ định vị của khách.</li>
+                        <li>Kích hoạt luồng gửi tín hiệu Radar đến thiết bị sạp.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="database">
+            <h2 class="section-title">4. Thiết Kế Cơ Sở Dữ Liệu (SQL Server)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Thiết kế chuẩn hóa (Normalized) với các ràng buộc khóa ngoại (Cascade Delete) chặt chẽ và Trigger tự động Audit cập nhật thời gian.</p>
+
+            <div class="mermaid-wrapper">
+                <pre class="mermaid">
+                erDiagram
+                    USERS ||--o{ STALLS : "owns (owner_id)"
+                    TOURS ||--o{ STALLS : "contains (TourID)"
+                    STALLS ||--o{ SUBSCRIPTIONS : "has package (stall_id)"
+                    
+                    TICKET_PACKAGES ||--o{ TOURIST_TICKETS : "generates config"
+                    
+                    STALLS ||--o{ STALL_CONTENTS : "has TTS script"
+                    LANGUAGES ||--o{ STALL_CONTENTS : "translated in"
+                    
+                    STALLS ||--o{ PRODUCTS : "sells"
+                    PRODUCTS ||--o{ PRODUCT_TRANSLATIONS : "has translation"
+                    LANGUAGES ||--o{ PRODUCT_TRANSLATIONS : "translated in"
+                    
+                    STALLS ||--o{ STALL_VISITS : "tracks check-in"
+                </pre>
+            </div>
+
+            <div class="grid-3" style="margin-top: 2rem;">
+                <div>
+                    <h3 style="font-size: 1.1rem; color: var(--accent-primary); margin-bottom: 1rem;">Core Auth & B2C</h3>
+                    <div class="data-panel">
+                        <div class="data-header">Users <span>Auth</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">id</div><div class="col-type">INT (PK)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">username</div><div class="col-type">NVARCHAR</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">password_hash</div><div class="col-type">BCRYPT</div>
+                        </div>
+                    </div>
+                    <div class="data-panel">
+                        <div class="data-header">TouristTickets <span>B2C</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">ticket_code</div><div class="col-type">NVARCHAR (UQ)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">device_id</div><div class="col-type">NVARCHAR</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">expiry_date</div><div class="col-type">DATETIME</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 1.1rem; color: var(--accent-secondary); margin-bottom: 1rem;">Spatial & B2B Ops</h3>
+                    <div class="data-panel">
+                        <div class="data-header">Stalls <span>Geofence</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">latitude</div><div class="col-type">FLOAT</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">longitude</div><div class="col-type">FLOAT</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">radius_meter</div><div class="col-type">INT (Def: 50)</div>
+                        </div>
+                    </div>
+                    <div class="data-panel">
+                        <div class="data-header">Subscriptions <span>B2B</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">stall_id</div><div class="col-type">INT (FK)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">activation_code</div><div class="col-type">NVARCHAR(UQ)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">device_id</div><div class="col-type">NVARCHAR</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 1.1rem; color: var(--accent-tertiary); margin-bottom: 1rem;">Content & Multilingual</h3>
+                    <div class="data-panel">
+                        <div class="data-header">StallContents <span>TTS</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">lang_code</div><div class="col-type">NVARCHAR(FK)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">tts_script</div><div class="col-type">NVARCHAR(1000)</div>
+                        </div>
+                    </div>
+                    <div class="data-panel">
+                        <div class="data-header">ProductTranslations <span>Menu</span></div>
+                        <div class="data-row db-row">
+                            <div class="col-name">product_id</div><div class="col-type">INT (FK)</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">product_name</div><div class="col-type">NVARCHAR</div>
+                        </div>
+                        <div class="data-row db-row">
+                            <div class="col-name">lang_code</div><div class="col-type">NVARCHAR(FK)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="api-specs">
+            <h2 class="section-title">5. RESTful API & Realtime Contracts</h2>
+            <div class="glass-card p-0" style="padding: 0 !important;">
+                <div class="data-panel m-0 border-0" style="border-radius: 20px;">
+                    <div class="data-row">
+                        <span class="api-method method-post">POST</span>
+                        <span class="api-endpoint">/api/Auth/login</span>
+                        <span class="api-desc">Xác thực người dùng. So khớp mật khẩu đã băm (BCrypt Verify). Trả về UserId & Role.</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="api-method method-post">POST</span>
+                        <span class="api-endpoint">/api/MockData/generate</span>
+                        <span class="api-desc">Engine tự động tạo tập dữ liệu test khổng lồ (Sạp, User, Tọa độ, Vé khách).</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="api-method method-post">POST</span>
+                        <span class="api-endpoint">/api/MockData/simulate-tourist/{stallId}</span>
+                        <span class="api-desc">Giả lập một tín hiệu GPS khách lọt vào sạp. Trigger lưu StallVisits.</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="api-method method-get">GET</span>
+                        <span class="api-endpoint">/api/Stalls/nearby</span>
+                        <span class="api-desc">Tính toán khoảng cách Haversine, trả về danh sách sạp nằm trong bán kính người dùng.</span>
+                    </div>
+                    <div class="data-row" style="background: rgba(139, 92, 246, 0.05);">
+                        <span class="api-method" style="background: var(--accent-secondary); color: white;">WSS</span>
+                        <span class="api-endpoint">/hubs/radar</span>
+                        <span class="api-desc">Kết nối WebSockets. Push sự kiện <code>ReceiveTouristAlert</code> đến thiết bị Chủ sạp.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="flows">
+            <h2 class="section-title">6. Luồng Nghiệp Vụ Cốt Lõi (Core Journeys)</h2>
+
+            <div class="grid-2">
+                <div class="glass-card">
+                    <h3><i>🚶</i> Khách Du Lịch (B2C) — Geofence Automation</h3>
+                    <p style="margin-bottom: 1.5rem;">Cơ chế Zero-click: Đi bộ -> Quét tọa độ -> Gọi API -> Phát âm thanh AI ngôn ngữ mẹ đẻ.</p>
+                    <div class="mermaid-wrapper" style="box-shadow: none; padding: 1rem; border: none; background: rgba(0,0,0,0.2);">
+                        <pre class="mermaid">
+                        sequenceDiagram
+                            autonumber
+                            participant T as App Khách
+                            participant DB as System API
+                            participant TTS as OS Audio Engine
+                            
+                            T->>DB: Kích hoạt Vé (168 giờ)
+                            loop Background GPS (Mỗi 5s)
+                                T->>T: Tính khoảng cách tới Sạp
+                                alt Khách lọt vào `radius_meter` (50m)
+                                    T->>DB: Fetch `StallContents` (lang_code)
+                                    DB-->>T: Trả về `tts_script` tiếng Hàn
+                                    T->>TTS: Native Speak()
+                                    T->>DB: Ghi nhận Check-in
+                                end
+                            end
+                        </pre>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3><i>📡</i> Radar Chủ Sạp — Realtime SignalR</h3>
+                    <p style="margin-bottom: 1.5rem;">Luồng dữ liệu thời gian thực: Khách đến gần -> API bắn tín hiệu Socket -> Màn hình sạp chớp đỏ.</p>
+                    <div class="mermaid-wrapper" style="box-shadow: none; padding: 1rem; border: none; background: rgba(0,0,0,0.2);">
+                        <pre class="mermaid">
+                        sequenceDiagram
+                            participant T as App Khách
+                            participant Hub as SignalR Hub
+                            participant S as App Chủ Sạp
+                            
+                            S->>Hub: Connect (StallGroup)
+                            Note over T,S: Khách đi vào vùng 50m
+                            T->>Hub: POST /simulate-visit
+                            Hub->>Hub: Lưu Database
+                            Hub->>S: Invoke "TouristArrived"
+                            S->>S: Màn hình nháy đỏ Cảnh Báo
+                            S->>S: Phát loa: "Có khách đang tới"
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tech-stack">
+            <h2 class="section-title">7. Kiến Trúc & Công Nghệ (Tech Stack)</h2>
+            <div class="grid-3">
+                <div class="glass-card">
+                    <h3><i class="bi bi-gear-wide-connected text-primary"></i> Backend & Database</h3>
+                    <ul class="feature-list">
+                        <li><strong>C# .NET Core 8 API:</strong> Kiến trúc RESTful, hiệu năng cao.</li>
+                        <li><strong>Entity Framework Core:</strong> ORM quản lý Schema bằng Code-First Migration.</li>
+                        <li><strong>SQL Server:</strong> Đảm bảo ACID cho các giao dịch bán vé và gia hạn.</li>
+                        <li><strong>BCrypt.Net:</strong> Mã hóa mật khẩu 1 chiều an toàn tuyệt đối.</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3><i class="bi bi-window-sidebar text-success"></i> Web Admin (Frontend)</h3>
+                    <ul class="feature-list">
+                        <li><strong>ASP.NET Razor Pages:</strong> Render phía Server (SSR) nhanh chóng, chuẩn SEO nội bộ.</li>
+                        <li><strong>Bootstrap 5 & CSS3:</strong> Giao diện Responsive, Dark Mode Glassmorphism.</li>
+                        <li><strong>Fetch API:</strong> Giao tiếp bất đồng bộ với Backend không cần reload trang.</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3><i class="bi bi-phone-vibrate text-warning"></i> Mobile & Realtime</h3>
+                    <ul class="feature-list">
+                        <li><strong>.NET MAUI:</strong> Build 1 lần chạy cả iOS và Android.</li>
+                        <li><strong>SignalR:</strong> WebSockets đẩy thông báo Real-time cực thấp độ trễ.</li>
+                        <li><strong>Mapsui:</strong> Map Engine nhẹ vẽ vòng tròn (Polygon) hiển thị Geofence.</li>
+                        <li><strong>Native TTS:</strong> Gọi thẳng bộ đọc Siri/Google để phát âm thanh.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p><strong>HeriStep Platform</strong> - VinhKhanhTour Core Architecture</p>
+        <p style="margin-top: 0.5rem; color: rgba(255,255,255,0.4);">Ready for Production | Coded by Pro PM</p>
+    </footer>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            sequence: { showSequenceNumbers: true },
+            fontFamily: 'JetBrains Mono, monospace'
+        });
+
+        // 💡 Smooth Scroll & Active Nav Highlighter
+        document.addEventListener("DOMContentLoaded", () => {
+            const sections = document.querySelectorAll("section[id]");
+            const navLinks = document.querySelectorAll("#navbar a[href^='#']");
+
+            // Smooth scroll
+            navLinks.forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute("href").substring(1);
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        window.scrollTo({
+                            top: targetSection.offsetTop - 80,
+                            behavior: "smooth"
+                        });
+                    }
+                });
+            });
+
+            // Highlight active menu on scroll
+            window.addEventListener("scroll", () => {
+                let current = "";
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (pageYOffset >= (sectionTop - 150)) {
+                        current = section.getAttribute("id");
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove("active");
+                    if (link.getAttribute("href").includes(current)) {
+                        link.classList.add("active");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

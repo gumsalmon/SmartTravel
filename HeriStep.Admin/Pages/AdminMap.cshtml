@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model HeriStep.Admin.Pages.AdminMapModel
 @{
     ViewData["Title"] = "Bản đồ Phố Ẩm Thực";
@@ -160,9 +160,13 @@
         }
 
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch('http://127.0.0.1:5297/api/Stalls/assign', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
                 body: JSON.stringify(reqData)
             });
 
@@ -223,9 +227,13 @@
 
     async function createNewStall(lat, lng) {
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch('http://127.0.0.1:5297/api/Stalls/create-at-pos', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
                 body: JSON.stringify({ latitude: lat, longitude: lng })
             });
             if (res.ok) {

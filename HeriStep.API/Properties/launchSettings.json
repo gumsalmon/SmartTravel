@@ -1,14 +1,16 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "http://0.0.0.0:5297", // 👈 ĐỔI THÀNH THẾ NÀY
+      "applicationUrl": "http://0.0.0.0:5297",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "1"
+      },
+      "hotReloadEnabled": false
     }
   }
 }

@@ -16,19 +16,45 @@ public partial class ShopDetailPage : ContentPage
         BindingContext = shop;
     }
 
-    // Nút quay lại
-    // Nút quay lại "Bất tử" chuẩn MAUI
     private async void BackButton_Clicked(object sender, EventArgs e)
     {
-        // Thử lùi về bằng Navigation mặc định
-        if (Navigation.NavigationStack.Count > 1)
+        if (Navigation.NavigationStack.Count > 1) { await Navigation.PopAsync(); }
+        else { await Shell.Current.GoToAsync(".."); }
+    }
+
+    private async void PlayAudio_Clicked(object sender, EventArgs e)
+    {
+        var stall = BindingContext as Stall;
+        if (stall == null) return;
+
+        try
         {
-            await Navigation.PopAsync();
+            // Lấy preference language đã lưu, mặc định tiếng Việt
+            string lang = Microsoft.Maui.Storage.Preferences.Default.Get("lang_code", "vi");
+            using var client = new System.Net.Http.HttpClient();
+            var url = $"http://10.0.2.2:5297/api/Stalls/{stall.Id}/tts/{lang}";
+            
+            var response = await client.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonDocument.Parse(json);
+                string textToSpeech = result.RootElement.GetProperty("text").GetString() ?? "";
+
+                // Hiển thị tooltip cho người dùng
+                Application.Current.Windows[0].Page.DisplayAlert("Đang tải âm thanh", "Vui lòng chờ giây lát...", "OK");
+                
+                // Gọi hàm lõi AI Native của thiết bị
+                await TextToSpeech.Default.SpeakAsync(textToSpeech);
+            }
+            else 
+            {
+                await Application.Current.Windows[0].Page.DisplayAlert("Lỗi", "Không tìm thấy nội dung audio", "OK");
+            }
         }
-        else
+        catch(Exception ex)
         {
-            // Nếu bị kẹt, dùng Shell để ép lùi về
-            await Shell.Current.GoToAsync("..");
+            System.Diagnostics.Debug.WriteLine($"TTS Error: {ex.Message}");
         }
     }
 }

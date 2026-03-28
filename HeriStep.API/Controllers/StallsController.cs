@@ -1,4 +1,5 @@
-﻿using HeriStep.API.Data;
+using HeriStep.Shared.Models.DTOs.Responses;
+using HeriStep.API.Data;
 using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace HeriStep.API.Controllers
@@ -23,9 +25,6 @@ namespace HeriStep.API.Controllers
             _context = context;
         }
 
-        // ==========================================
-        // 💡 0. ADMIN: LẤY TẤT CẢ SẠP (HIỆN BẢNG)
-        // ==========================================
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
@@ -49,9 +48,6 @@ namespace HeriStep.API.Controllers
             return await query.OrderByDescending(x => x.Id).ToListAsync();
         }
 
-        // ==========================================
-        // 1. LẤY CHI TIẾT 1 SẠP
-        // ==========================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetStall(int id)
         {
@@ -76,65 +72,72 @@ namespace HeriStep.API.Controllers
             });
         }
 
-        // ==========================================
-        // 2. CẬP NHẬT SẠP & TTS & UPLOAD ẢNH
-        // ==========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req)
         {
-            if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
-
-            var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
-
-            if (req.ImageFile != null)
+            try
             {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
 
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName);
-                var filePath = Path.Combine(uploadsFolder, fileName);
+                var stall = await _context.Stalls.FindAsync(id);
+                if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
 
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                if (req.ImageFile != null && req.ImageFile.Length > 0)
                 {
-                    await req.ImageFile.CopyToAsync(fileStream);
-                }
-                stall.ImageUrl = "/uploads/" + fileName;
-            }
+                    // Giới hạn 5MB
+                    if (req.ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
 
-            stall.Name = req.Name;
-            stall.IsOpen = req.IsOpen;
-            stall.OwnerId = req.OwnerId;
-            stall.RadiusMeter = req.RadiusMeter;
-            stall.UpdatedAt = DateTime.Now;
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
 
-            if (!string.IsNullOrEmpty(req.TtsScript))
-            {
-                var oldContents = _context.StallContents.Where(c => c.StallId == id);
-                _context.StallContents.RemoveRange(oldContents);
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, fileName);
 
-                _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
-
-                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
-                foreach (var lang in foreignLangs)
-                {
-                    _context.StallContents.Add(new StallContent
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        StallId = id,
-                        LangCode = lang,
-                        TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
-                        IsActive = true
-                    });
+                        await req.ImageFile.CopyToAsync(fileStream);
+                    }
+                    stall.ImageUrl = "/uploads/" + fileName;
                 }
-            }
 
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
+                stall.Name = req.Name;
+                stall.IsOpen = req.IsOpen;
+                stall.OwnerId = req.OwnerId;
+                stall.RadiusMeter = req.RadiusMeter;
+                stall.UpdatedAt = DateTime.Now;
+
+                if (req.TtsScript != null)
+                {
+                    var oldContents = _context.StallContents.Where(c => c.StallId == id);
+                    _context.StallContents.RemoveRange(oldContents);
+
+                    _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
+
+                    string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                    foreach (var lang in foreignLangs)
+                    {
+                        _context.StallContents.Add(new StallContent
+                        {
+                            StallId = id,
+                            LangCode = lang,
+                            TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
+                            IsActive = true
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
+            }
+            catch (Exception ex)
+            {
+                var detail = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail });
+            }
         }
 
-        // ==========================================
-        // 2.1 XÓA SẠP
-        // ==========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStall(int id)
         {
@@ -149,9 +152,6 @@ namespace HeriStep.API.Controllers
             return Ok(new { message = "Đã xóa sạp hàng!" });
         }
 
-        // ==========================================
-        // 💡 3. ADMIN: LẤY TOÀN BỘ SẠP CHO BẢN ĐỒ (ĐÃ FIX THÊM isExpired và isOpen)
-        // ==========================================
         [HttpGet("admin-map")]
         public async Task<IActionResult> GetAllStallsForMap()
         {
@@ -165,16 +165,12 @@ namespace HeriStep.API.Controllers
                     ownerId = s.OwnerId,
                     imageUrl = s.ImageUrl,
                     isOpen = s.IsOpen,
-                    // Sạp hết hạn nếu KHÔNG CÓ gói cước nào CÒN HẠN
                     isExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now)
                 })
                 .ToListAsync();
             return Ok(stalls);
         }
 
-        // ==========================================
-        // 4. ADMIN: GÁN CHỦ CHO SẠP (Assign Nhanh)
-        // ==========================================
         [HttpPut("assign")]
         public async Task<IActionResult> AssignStall([FromBody] AssignStallRequest req)
         {
@@ -190,9 +186,6 @@ namespace HeriStep.API.Controllers
             return Ok(new { message = "Đã gán sạp thành công!" });
         }
 
-        // ==========================================
-        // 5. ADMIN: TẠO SẠP TẠI VỊ TRÍ (Click bản đồ)
-        // ==========================================
         [HttpPost("create-at-pos")]
         public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
         {
@@ -201,9 +194,6 @@ namespace HeriStep.API.Controllers
             return Ok();
         }
 
-        // ==========================================
-        // 6. ADMIN: LẤY DANH SÁCH CHỦ SẠP
-        // ==========================================
         [HttpGet("available-owners")]
         public async Task<IActionResult> GetAvailableOwners()
         {
@@ -213,9 +203,6 @@ namespace HeriStep.API.Controllers
             return Ok(owners);
         }
 
-        // ==========================================
-        // 7. LẤY TTS THEO NGÔN NGỮ
-        // ==========================================
         [HttpGet("{id}/tts/{langCode}")]
         public async Task<IActionResult> GetStallTts(int id, string langCode)
         {
@@ -225,74 +212,37 @@ namespace HeriStep.API.Controllers
             return Ok(new { text = content.TtsScript });
         }
 
-        // ==========================================
-        // 8. ĐỔI MẬT KHẨU CHỦ SẠP
-        // ==========================================
-        [HttpPost("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
-        {
-            var user = await _context.Users.FindAsync(req.UserId);
-            if (user == null) return NotFound(new { message = "Không tìm thấy người dùng!" });
-
-            if (user.PasswordHash != req.OldPassword)
-            {
-                return BadRequest(new { message = "Mật khẩu cũ không chính xác!" });
-            }
-
-            user.PasswordHash = req.NewPassword;
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Đổi mật khẩu thành công!" });
-        }
-
-        // ==========================================
-        // 💡 10. THÊM MÓN ĂN MỚI (VÀ LƯU ẢNH LÊN SERVER)
-        // ==========================================
         [HttpPost("add-product")]
         public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
         {
             try
             {
                 string imageUrl = "";
-
                 if (ImageFile != null && ImageFile.Length > 0)
                 {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
-                    if (!Directory.Exists(uploadsFolder))
-                    {
-                        Directory.CreateDirectory(uploadsFolder);
-                    }
+                    // Giới hạn 5MB
+                    if (ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
 
-                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName;
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "images", "products");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + Path.GetFileName(ImageFile.FileName);
                     var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
                         await ImageFile.CopyToAsync(fileStream);
                     }
-
                     imageUrl = "/images/products/" + uniqueFileName;
                 }
 
-                var newProduct = new Product
-                {
-                    StallId = StallId,
-                    BasePrice = BasePrice,
-                    ImageUrl = imageUrl,
-                    IsSignature = false
-                };
-
+                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false };
                 _context.Products.Add(newProduct);
                 await _context.SaveChangesAsync();
 
-                var translation = new ProductTranslation
-                {
-                    ProductId = newProduct.Id,
-                    LangCode = "vi",
-                    ProductName = Name
-                };
-
-                _context.ProductTranslations.Add(translation);
+                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name });
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });
@@ -303,28 +253,18 @@ namespace HeriStep.API.Controllers
             }
         }
 
-        // ==========================================
-        // 💡 11. LẤY DANH SÁCH THỰC ĐƠN CỦA 1 SẠP
-        // ==========================================
         [HttpGet("{stallId}/products")]
         public async Task<IActionResult> GetProductsByStall(int stallId)
         {
             try
             {
-                var products = await _context.Products
-                    .Where(p => p.StallId == stallId)
-                    .Select(p => new
-                    {
-                        Id = p.Id,
-                        BasePrice = p.BasePrice,
-                        ImageUrl = p.ImageUrl,
-                        Name = _context.ProductTranslations
-                                .Where(t => t.ProductId == p.Id && t.LangCode == "vi")
-                                .Select(t => t.ProductName)
-                                .FirstOrDefault()
-                    })
-                    .ToListAsync();
-
+                var products = await _context.Products.Where(p => p.StallId == stallId).Select(p => new
+                {
+                    Id = p.Id,
+                    BasePrice = p.BasePrice,
+                    ImageUrl = p.ImageUrl,
+                    Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
+                }).ToListAsync();
                 return Ok(products);
             }
             catch (Exception ex)
@@ -333,52 +273,85 @@ namespace HeriStep.API.Controllers
             }
         }
 
-        // ==========================================
-        // 💡 12. GIA HẠN GÓI CƯỚC (NÚT THANH TOÁN WEB)
-        // ==========================================
+        [HttpGet("my-stalls")]
+        public async Task<IActionResult> GetMyStalls([FromQuery] int? ownerId)
+        {
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            int finalOwnerId = ownerId ?? (int.TryParse(claimId, out var id) ? id : 0);
+
+            if (finalOwnerId == 0) return Unauthorized(new { message = "Không xác định được chủ sạp. Vui lòng đăng nhập lại!" });
+
+            var stalls = await _context.Stalls.Where(s => s.OwnerId == finalOwnerId).ToListAsync();
+            return Ok(stalls);
+        }
+
+        [HttpGet("top5")]
+        public async Task<IActionResult> GetTop5Stalls()
+        {
+            var top = await _context.Stalls
+                .Where(s => s.IsOpen)
+                .OrderByDescending(s => s.RadiusMeter) // Default to something mockable
+                .Take(5)
+                .Select(s => new {
+                    Id = s.Id,
+                    Name = s.Name,
+                    ImageUrl = string.IsNullOrEmpty(s.ImageUrl) ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80" : s.ImageUrl,
+                    Rating = 5.0,
+                    ReviewCount = 100
+                })
+                .ToListAsync();
+            return Ok(top);
+        }
+
+        [HttpGet("nearby")]
+        public async Task<IActionResult> GetNearbyStalls() // for app map
+        {
+            return await GetAllStallsForMap();
+        }
+
+        // =======================================================
+        // 💡 ĐÃ FIX: BỔ SUNG API GIA HẠN GÓI CƯỚC VỪA BỊ MẤT
+        // =======================================================
         [HttpPost("extend-subscription/{id}")]
         public async Task<IActionResult> ExtendSubscription(int id)
         {
-            try
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound("Không tìm thấy sạp.");
+
+            // Tìm gói cước (Subscription) hiện tại của sạp này
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
+
+            if (sub == null)
             {
-                var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
-
-                if (sub != null)
-                {
-                    // Nếu đã quá hạn thì tính từ hôm nay + 30 ngày. Nếu còn hạn thì cộng dồn.
-                    if (sub.ExpiryDate < DateTime.Now || sub.ExpiryDate == null)
-                        sub.ExpiryDate = DateTime.Now.AddDays(30);
-                    else
-                        sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30);
-
-                    sub.IsActive = true;
-                }
-                else
-                {
-                    // Nếu sạp này chưa từng có gói cước, tạo mới 1 cái 
-                    sub = new Subscription
-                    {
-                        StallId = id,
-                        DeviceId = $"WEB-PAID-{id}",
-                        ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                        StartDate = DateTime.Now,
-                        ExpiryDate = DateTime.Now.AddDays(30),
-                        IsActive = true
-                    };
-                    _context.Subscriptions.Add(sub);
-                }
-
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Gia hạn thành công! Sạp đã được mở lại." });
+                // Nếu sạp chưa từng có gói cước, tạo mới 30 ngày
+                sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
+                _context.Subscriptions.Add(sub);
             }
-            catch (Exception ex)
+            else
             {
-                return BadRequest(new { message = "Lỗi gia hạn", detail = ex.Message });
+                // Nếu gói cước đã hết hạn -> Bắt đầu tính 30 ngày từ hôm nay
+                // Nếu gói cước vẫn còn hạn -> Cộng dồn thêm 30 ngày
+if (!sub.ExpiryDate.HasValue || sub.ExpiryDate.Value < DateTime.Now) 
+{
+    // Nếu sạp chưa từng có ngày hết hạn, hoặc đã hết hạn trong quá khứ 
+    // -> Bắt đầu tính 30 ngày từ khoảnh khắc ngay bây giờ
+    sub.ExpiryDate = DateTime.Now.AddDays(30);
+} 
+else 
+{
+    // Nếu gói cước vẫn còn hạn -> Lấy giá trị thực sự (.Value) rồi mới cộng dồn thêm 30 ngày
+    sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30); 
+}
+                sub.IsActive = true;
             }
+
+            // Mở cửa lại cho sạp sau khi gia hạn
+            stall.IsOpen = true;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Gia hạn thành công" });
         }
 
-        // --- DTOs ---
-        public class ChangePasswordRequest { public int UserId { get; set; } public string OldPassword { get; set; } = ""; public string NewPassword { get; set; } = ""; }
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
