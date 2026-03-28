@@ -1,9 +1,10 @@
 using HeriStep.Client.Services;
-using HeriStep.Client.Services.Location; // Thêm cái này
+using HeriStep.Client.Services.Location;
 using HeriStep.Client.ViewModels;
 using HeriStep.Client.Views;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using Mapsui.UI.Maui; // 💡 ĐÃ FIX: Thêm Using của Mapsui
 
 namespace HeriStep.Client;
 
@@ -24,7 +25,7 @@ public static class MauiProgram
         // 1. Cấu hình HttpClient (Lưu ý: 10.0.2.2 chỉ dùng cho Android Emulator)
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://172.21.8.215:5297/")
+            BaseAddress = new Uri("http://10.0.2.2:5297/")
         });
 
         // 2. Đăng ký Services

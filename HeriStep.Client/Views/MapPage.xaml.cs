@@ -25,7 +25,8 @@ public partial class MapPage : ContentPage
         var map = new Mapsui.Map();
 
         // 2. Tải lớp hình ảnh đường phố từ OpenStreetMap và đắp vào bản đồ
-        map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
+        // LƯU Ý: OpenStreetMap BẮT BUỘC User-Agent phải có chứa Email hoặc Link thật để họ biết ai đang crawl data. Nếu không sẽ bị 403 Trắng Xóa.
+        map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer("HeriStepDemo/1.0 (sinhvien@sgu.edu.vn)"));
 
         // 3. Gán bản đồ vừa tạo vào cái giao diện
         mapView.Map = map;

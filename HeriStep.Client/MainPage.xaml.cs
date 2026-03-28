@@ -1,4 +1,4 @@
-﻿using Mapsui.Tiling;
+using Mapsui.Tiling;
 using Mapsui.UI.Maui;
 using Mapsui;
 using Mapsui.Projections;
@@ -23,11 +23,23 @@ namespace HeriStep.Client
         {
             InitializeComponent();
 
-            // 1. Gán thẳng cái viewModel có sẵn vào giao diện (Xóa luôn dòng new bị lỗi đỏ)
+            // 1. Gán thẳng cái viewModel có sẵn vào giao diện
             BindingContext = viewModel;
 
-            // 2. Lưu lại vào biến cục bộ để xài cho các hàm khác ở dưới (Hết luôn lỗi vàng)
+            // 2. Lưu lại vào biến cục bộ
             _viewModel = viewModel;
+        }
+
+        private void Button_Clicked(object sender, EventArgs e)
+        {
+            // Nút làm mới
+            _viewModel.LoadDataCommand.Execute(null);
+        }
+
+        private async void OnViewDetailsClicked(object sender, EventArgs e)
+        {
+            // Tạm thời hiển thị alert khi bấm xem chi tiết ở cửa hàng
+            await DisplayAlert("Thông báo", "Chức năng xem chi tiết đang phát triển", "OK");
         }
     }
 }

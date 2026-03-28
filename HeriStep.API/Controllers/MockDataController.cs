@@ -70,14 +70,20 @@ namespace HeriStep.API.Controllers
                         IsOpen = true,
                         RadiusMeter = 50,
                         OwnerId = createdUsers[rand.Next(createdUsers.Count)].Id,
-                        TourID = tours[rand.Next(tours.Count)].Id // 💡 ĐÃ FIX: Nhét trực tiếp TourID vào Sạp
+                        TourID = tours[rand.Next(tours.Count)].Id
                     };
                     _context.Stalls.Add(stall);
                     createdStalls.Add(stall);
+                }
+                // 💡 ĐÃ FIX: Bắt buộc phải lưu Sạp xuống DB để SQL Server nhả ra cái Id thật
+                await _context.SaveChangesAsync();
 
+                foreach (var stall in createdStalls)
+                {
+                    var randomDate = now.AddDays(-rand.Next(0, 90));
                     var sub = new Subscription
                     {
-                        StallId = stall.Id,
+                        StallId = stall.Id, // 💡 Lúc này ID đã có do Sạp ở trên đã lưu thành công
                         DeviceId = $"HS-DEV-{rand.Next(1000, 9999)}",
                         ActivationCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
                         StartDate = randomDate,
