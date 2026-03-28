@@ -28,18 +28,20 @@ namespace HeriStep.API.Controllers
 
             try
             {
+                // 1. Tạo Tours
                 var tours = await _context.Tours.ToListAsync();
                 if (!tours.Any())
                 {
-                    for (int i = 1; i <= 3; i++)
+                    for (int i = 1; i <= 10; i++) // Sinh 10 Tour cho phong phú
                     {
-                        var t = new Tour { TourName = $"Hành trình di sản {i}", Description = "Mô tả tour", IsActive = true };
+                        var t = new Tour { TourName = $"Hành trình di sản {i}", Description = "Mô tả tour khám phá Vĩnh Khánh", IsActive = true };
                         _context.Tours.Add(t);
                     }
                     await _context.SaveChangesAsync();
                     tours = await _context.Tours.ToListAsync();
                 }
 
+                // 2. Tạo Users (Chủ sạp)
                 var createdUsers = new List<User>();
                 for (int i = 0; i < req.UserCount; i++)
                 {
@@ -55,6 +57,7 @@ namespace HeriStep.API.Controllers
                 }
                 await _context.SaveChangesAsync();
 
+                // 3. Tạo Sạp & Phân bổ luôn vào Tour
                 var createdStalls = new List<Stall>();
                 for (int i = 0; i < req.StallCount; i++)
                 {
@@ -67,7 +70,7 @@ namespace HeriStep.API.Controllers
                         IsOpen = true,
                         RadiusMeter = 50,
                         OwnerId = createdUsers[rand.Next(createdUsers.Count)].Id,
-                        TourID = tours[rand.Next(tours.Count)].Id
+                        TourID = tours[rand.Next(tours.Count)].Id // 💡 ĐÃ FIX: Nhét trực tiếp TourID vào Sạp
                     };
                     _context.Stalls.Add(stall);
                     createdStalls.Add(stall);
@@ -85,6 +88,19 @@ namespace HeriStep.API.Controllers
                 }
                 await _context.SaveChangesAsync();
 
+                // 💡 CƠ CHẾ SỬA LỖI (SELF-HEALING): 
+                // Vét toàn bộ các sạp cũ đang mồ côi (TourID = null) nhét ngẫu nhiên vào Tour
+                var orphanStalls = await _context.Stalls.Where(s => s.IsOpen && (s.TourID == null || s.TourID == 0)).ToListAsync();
+                if (orphanStalls.Any() && tours.Any())
+                {
+                    foreach (var s in orphanStalls)
+                    {
+                        s.TourID = tours[rand.Next(tours.Count)].Id;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
+                // 4. Tạo Package & Lịch sử mua vé
                 var package = await _context.TicketPackages.FirstOrDefaultAsync();
                 if (package == null)
                 {
@@ -152,11 +168,10 @@ namespace HeriStep.API.Controllers
                 lang = langCode
             });
         }
-        
+
         [HttpPost("init-first-day-tours")]
         public async Task<IActionResult> InitFirstDayTours()
         {
-            // Sinh ngay 10 tours nếu chưa có cho ngày bắt đầu chạy
             if (!await _context.Tours.AnyAsync())
             {
                 var newTours = new List<Tour>();
@@ -170,7 +185,19 @@ namespace HeriStep.API.Controllers
                     });
                 }
                 _context.Tours.AddRange(newTours);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // Cần lưu trước để có ID
+
+                // Phân bổ sạp vào 10 tour mới này
+                var stalls = await _context.Stalls.Where(s => s.IsOpen).ToListAsync();
+                if (stalls.Any())
+                {
+                    var rand = new Random();
+                    foreach (var s in stalls)
+                    {
+                        s.TourID = newTours[rand.Next(newTours.Count)].Id;
+                    }
+                    await _context.SaveChangesAsync();
+                }
                 return Ok(new { message = "Đã sinh thành công 10 tour tức thời cho ngày đầu!" });
             }
             return Ok(new { message = "Tours đã tồn tại trong hệ thống." });

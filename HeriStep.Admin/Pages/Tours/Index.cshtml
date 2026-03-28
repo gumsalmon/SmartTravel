@@ -21,6 +21,10 @@
                 <button class="btn btn-sm btn-light ms-3 rounded-circle shadow-sm" onclick="location.reload()">
                     <i class="bi bi-arrow-clockwise text-primary"></i>
                 </button>
+
+                <button class="btn btn-warning btn-sm ms-3 fw-bold shadow-sm rounded-pill px-3" onclick="reshuffleData()">
+                    <i class="bi bi-shuffle"></i> Trộn Lại Lộ Trình
+                </button>
             </h4>
         </div>
 
@@ -38,7 +42,7 @@
                 <tbody>
                     @if (!Model.Tours.Any())
                     {
-                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có dữ liệu lộ trình. Bấm "Tạo Dữ Liệu Ảo" để thử nghiệm!</td></tr>
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có dữ liệu lộ trình. Hệ thống sẽ tự động cập nhật!</td></tr>
                     }
                     @foreach (var t in Model.Tours)
                     {
@@ -95,8 +99,7 @@
     </div>
 </div>
 
-<!-- ================= MODAL THÊM / SỬA (Giữ nguyên như sếp gửi) ================= -->
-@* ... (Các Modal Create/Edit của sếp dán vào đây) ... *@
+@* Giữ nguyên các Modal cũ của sếp ở đây nhé *@
 
 @section Scripts {
     <script>
@@ -104,27 +107,38 @@
             setTimeout(function() { $(".alert").fadeOut('slow'); }, 3000);
         });
 
-        // 💡 HÀM GỌI API TẠO DỮ LIỆU ẢO
-        async function generateVirtualData() {
-                const check = confirm("⚠️ CẢNH BÁO NGUY HIỂM: Hành động này sẽ XÓA SẠCH toàn bộ lộ trình hiện tại và thay bằng dữ liệu ngẫu nhiên. Sếp có chắc chắn muốn làm lại từ đầu không?");
-        if (!check) return;
-            if (!confirm("Hệ thống sẽ xóa sạch lộ trình cũ và tạo mới 10 lộ trình ngẫu nhiên. Sếp đồng ý chứ?")) return;
+        // 💡 HÀM MỚI: TRỘN LẠI SẠP VÀO LỘ TRÌNH (DÀNH CHO ADMIN)
+        async function reshuffleData() {
+            const check = confirm("Hệ thống sẽ dùng thuật toán AI để sắp xếp lại toàn bộ sạp đang mở cửa vào các lộ trình. Bạn có chắc chắn không?");
+            if (!check) return;
+
+            const btn = document.activeElement;
+            const oldText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang trộn...';
+
+            const token = localStorage.getItem('token');
 
             try {
-                // Sếp kiểm tra port API của sếp có đúng là 5297 không nhé
-                const response = await fetch('http://127.0.0.1:5297/api/Tours/generate-daily', {
-                    method: 'POST'
+                const response = await fetch('http://localhost:5297/api/Tours/reshuffle', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
                 if (response.ok) {
-                    alert("🎉 Đã tạo thành công 10 lộ trình mới cùng các sạp hàng ngẫu nhiên!");
+                    alert("✅ Thuật toán đã phân bổ lại các sạp thành công!");
                     location.reload();
                 } else {
                     const errorMsg = await response.text();
-                    alert("❌ Lỗi API: " + errorMsg);
+                    alert("❌ Lỗi: " + errorMsg);
                 }
             } catch (err) {
-                alert("❌ Không thể kết nối tới Server API. Sếp nhớ bật project API lên nhé!");
+                alert("❌ Lỗi kết nối máy chủ API.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldText;
             }
         }
 

@@ -75,54 +75,67 @@ namespace HeriStep.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStall(int id, [FromForm] UpdateStallRequest req)
         {
-            if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
-
-            var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
-
-            if (req.ImageFile != null)
+            try
             {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
 
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName);
-                var filePath = Path.Combine(uploadsFolder, fileName);
+                var stall = await _context.Stalls.FindAsync(id);
+                if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
 
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                if (req.ImageFile != null && req.ImageFile.Length > 0)
                 {
-                    await req.ImageFile.CopyToAsync(fileStream);
-                }
-                stall.ImageUrl = "/uploads/" + fileName;
-            }
+                    // Giới hạn 5MB
+                    if (req.ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
 
-            stall.Name = req.Name;
-            stall.IsOpen = req.IsOpen;
-            stall.OwnerId = req.OwnerId;
-            stall.RadiusMeter = req.RadiusMeter;
-            stall.UpdatedAt = DateTime.Now;
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
 
-            if (!string.IsNullOrEmpty(req.TtsScript))
-            {
-                var oldContents = _context.StallContents.Where(c => c.StallId == id);
-                _context.StallContents.RemoveRange(oldContents);
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(req.ImageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, fileName);
 
-                _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
-
-                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
-                foreach (var lang in foreignLangs)
-                {
-                    _context.StallContents.Add(new StallContent
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        StallId = id,
-                        LangCode = lang,
-                        TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
-                        IsActive = true
-                    });
+                        await req.ImageFile.CopyToAsync(fileStream);
+                    }
+                    stall.ImageUrl = "/uploads/" + fileName;
                 }
-            }
 
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
+                stall.Name = req.Name;
+                stall.IsOpen = req.IsOpen;
+                stall.OwnerId = req.OwnerId;
+                stall.RadiusMeter = req.RadiusMeter;
+                stall.UpdatedAt = DateTime.Now;
+
+                if (req.TtsScript != null)
+                {
+                    var oldContents = _context.StallContents.Where(c => c.StallId == id);
+                    _context.StallContents.RemoveRange(oldContents);
+
+                    _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
+
+                    string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                    foreach (var lang in foreignLangs)
+                    {
+                        _context.StallContents.Add(new StallContent
+                        {
+                            StallId = id,
+                            LangCode = lang,
+                            TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
+                            IsActive = true
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
+            }
+            catch (Exception ex)
+            {
+                var detail = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -207,10 +220,17 @@ namespace HeriStep.API.Controllers
                 string imageUrl = "";
                 if (ImageFile != null && ImageFile.Length > 0)
                 {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
-                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + ImageFile.FileName;
+                    // Giới hạn 5MB
+                    if (ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
+
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "images", "products");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + Path.GetFileName(ImageFile.FileName);
                     var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
                         await ImageFile.CopyToAsync(fileStream);
@@ -258,7 +278,7 @@ namespace HeriStep.API.Controllers
         {
             var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
             int finalOwnerId = ownerId ?? (int.TryParse(claimId, out var id) ? id : 0);
-            
+
             if (finalOwnerId == 0) return Unauthorized(new { message = "Không xác định được chủ sạp. Vui lòng đăng nhập lại!" });
 
             var stalls = await _context.Stalls.Where(s => s.OwnerId == finalOwnerId).ToListAsync();
@@ -287,6 +307,49 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GetNearbyStalls() // for app map
         {
             return await GetAllStallsForMap();
+        }
+
+        // =======================================================
+        // 💡 ĐÃ FIX: BỔ SUNG API GIA HẠN GÓI CƯỚC VỪA BỊ MẤT
+        // =======================================================
+        [HttpPost("extend-subscription/{id}")]
+        public async Task<IActionResult> ExtendSubscription(int id)
+        {
+            var stall = await _context.Stalls.FindAsync(id);
+            if (stall == null) return NotFound("Không tìm thấy sạp.");
+
+            // Tìm gói cước (Subscription) hiện tại của sạp này
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
+
+            if (sub == null)
+            {
+                // Nếu sạp chưa từng có gói cước, tạo mới 30 ngày
+                sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
+                _context.Subscriptions.Add(sub);
+            }
+            else
+            {
+                // Nếu gói cước đã hết hạn -> Bắt đầu tính 30 ngày từ hôm nay
+                // Nếu gói cước vẫn còn hạn -> Cộng dồn thêm 30 ngày
+if (!sub.ExpiryDate.HasValue || sub.ExpiryDate.Value < DateTime.Now) 
+{
+    // Nếu sạp chưa từng có ngày hết hạn, hoặc đã hết hạn trong quá khứ 
+    // -> Bắt đầu tính 30 ngày từ khoảnh khắc ngay bây giờ
+    sub.ExpiryDate = DateTime.Now.AddDays(30);
+} 
+else 
+{
+    // Nếu gói cước vẫn còn hạn -> Lấy giá trị thực sự (.Value) rồi mới cộng dồn thêm 30 ngày
+    sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30); 
+}
+                sub.IsActive = true;
+            }
+
+            // Mở cửa lại cho sạp sau khi gia hạn
+            stall.IsOpen = true;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Gia hạn thành công" });
         }
 
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }

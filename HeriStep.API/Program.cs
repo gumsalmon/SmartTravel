@@ -15,14 +15,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// 1.1 Cấu hình Database & Redis
+// 1.1 Cấu hình Database
 builder.Services.AddDbContext<HeriStepDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddStackExchangeRedisCache(options =>
+// 💡 ĐÃ FIX: Logic tự động "Quay xe" tùy môi trường để không bị Crash do Redis
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+
+if (builder.Environment.IsDevelopment())
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-});
+    // Ở máy Local (Dev): Dùng RAM máy tính để code cho lẹ, không bị văng lỗi nếu lười bật Redis
+    builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSignalR();
+}
+else
+{
+    // Trên Server (Production): Bắt buộc xài Redis để chịu tải & đồng bộ nhiều máy chủ
+    if (!string.IsNullOrEmpty(redisConnectionString))
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+        });
+
+        builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
+            options.Configuration.AbortOnConnectFail = false; // Chống crash khi Redis giật lag
+        });
+    }
+}
 
 // 1.2 Đăng ký các Services phụ trợ (Clean Architecture)
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -31,9 +51,6 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // T
 
 builder.Services.AddHostedService<DailyTourUpdateService>();
 builder.Services.AddHttpClient<TranslationService>();
-
-// 1.3 KHAI BÁO SIGNALR & Redis Backplane
-builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis"));
 
 // 1.4 JWT Authentication
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "superSecretKey_NeedToChange_InProduction_123456789");
@@ -73,6 +90,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 app.UseStaticFiles();
+
+// 💡 Serve uploaded files từ thư mục UploadedFiles (nằm NGOÀI wwwroot để tránh Hot Reload crash)
+var uploadedFilesPath = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles");
+if (!Directory.Exists(uploadedFilesPath))
+    Directory.CreateDirectory(uploadedFilesPath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadedFilesPath),
+    RequestPath = ""
+});
 
 app.UseRouting();
 

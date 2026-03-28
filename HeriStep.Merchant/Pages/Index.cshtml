@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model HeriStep.Merchant.Pages.IndexModel
 @{
     ViewData["Title"] = "Chọn Sạp Quản Lý";
@@ -159,6 +159,7 @@
         }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // --- KỊCH BẢN THANH TOÁN ---
     let currentPaymentStallId = 0;
@@ -166,54 +167,76 @@
     function showPaymentModal(stallId, stallName) {
         currentPaymentStallId = stallId;
         document.getElementById('payStallName').innerText = stallName;
-        var myModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        const modalEl = document.getElementById('paymentModal');
+        const myModal = new bootstrap.Modal(modalEl);
         myModal.show();
     }
 
+    // 💡 ĐÃ FIX: Bổ sung Token vào Headers để gọi API
     async function executePayment() {
+        const btn = document.querySelector('button[onclick="executePayment()"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+
+        const token = localStorage.getItem('token');
+
         try {
-            // 💡 GỌI API GIA HẠN CỦA SẾP Ở ĐÂY
             const response = await fetch(`http://127.0.0.1:5297/api/Stalls/extend-subscription/${currentPaymentStallId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (response.ok) {
-                alert("🎉 Thanh toán thành công! Sạp đã được mở lại.");
-                location.reload(); // F5 lại trang để sạp sáng màu lên
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: '🎉 Thanh toán thành công! Sạp đã được mở lại.',
+                    timer: 2000
+                });
+                window.location.reload();
             } else {
-                alert("❌ Lỗi gia hạn. Sếp kiểm tra lại API nhé.");
+                const errText = await response.text();
+                Swal.fire("Thất bại", "Lỗi gia hạn: " + errText, "error");
             }
         } catch (e) {
-            alert("🧨 Lỗi kết nối đến máy chủ thanh toán!");
+            Swal.fire("Lỗi", "Mất kết nối đến máy chủ thanh toán!", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> XÁC NHẬN ĐÃ CHUYỂN KHOẢN';
         }
     }
 
-    // --- KỊCH BẢN ĐỔI MẬT KHẨU (Giữ nguyên của sếp) ---
+    // --- KỊCH BẢN ĐỔI MẬT KHẨU ---
     async function executeChangePassword() {
         const oldPass = document.getElementById('oldPass').value;
         const newPass = document.getElementById('newPass').value;
         const confirmPass = document.getElementById('confirmPass').value;
 
         if (!oldPass || !newPass) {
-            alert("Sếp vui lòng nhập đủ mật khẩu nhé!");
-            return;
+            return Swal.fire("Chú ý", "Sếp vui lòng nhập đủ mật khẩu nhé!", "warning");
         }
         if (newPass !== confirmPass) {
-            alert("Mật khẩu xác nhận không khớp rồi sếp ơi!");
-            return;
+            return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp!", "error");
         }
 
         const userId = "@(Model.MyStalls?.FirstOrDefault()?.OwnerId ?? 0)";
-
         if (userId === "0") {
-            alert("Không tìm thấy ID người dùng. Sếp thử đăng nhập lại xem sao!");
-            return;
+            return Swal.fire("Lỗi", "Không tìm thấy ID người dùng. Thử đăng nhập lại nhé!", "error");
         }
+
+        const btn = document.querySelector('button[onclick="executeChangePassword()"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang đổi...';
 
         try {
             const response = await fetch('http://127.0.0.1:5297/api/Stalls/change-password', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     UserId: parseInt(userId),
                     OldPassword: oldPass,
@@ -222,14 +245,17 @@
             });
 
             if (response.ok) {
-                alert("🎉 Tuyệt vời! Đổi mật khẩu thành công rồi sếp!");
-                location.reload();
+                await Swal.fire("Thành công", "🎉 Đổi mật khẩu thành công rồi sếp!", "success");
+                window.location.reload();
             } else {
                 const err = await response.json();
-                alert("❌ Lỗi rồi sếp ơi: " + (err.message || "Kiểm tra lại mật khẩu cũ nhé!"));
+                Swal.fire("Thất bại", err.message || "Kiểm tra lại mật khẩu cũ nhé!", "error");
             }
         } catch (e) {
-            alert("🧨 Lỗi kết nối API rồi. Sếp kiểm tra xem Server API đã bật chưa nhé!");
+            Swal.fire("Lỗi", "Không kết nối được API. Sếp kiểm tra Server nhé!", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'XÁC NHẬN ĐỔI';
         }
     }
 </script>

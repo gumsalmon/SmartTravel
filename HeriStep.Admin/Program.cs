@@ -1,36 +1,54 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies; // BƯỚC 1: Thêm thư viện này
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. ĐĂNG KÝ HTTPCLIENT: Dòng này để Web Admin gọi được vào API
-// Thay cổng 5297 bằng cổng thực tế của HeriStep.API nếu khác
-builder.Services.AddScoped(sp => new HttpClient
-{
-    BaseAddress = new Uri("http://localhost:5297/")
+// 1. CÁCH ĐĂNG KÝ HTTPCLIENT CHUẨN SERVER-SIDE
+builder.Services.AddHttpClient();
+builder.Services.AddScoped(sp => {
+    var client = new HttpClient();
+    client.BaseAddress = new Uri("http://localhost:5297/"); // Đảm bảo API đang chạy ở cổng này
+    return client;
 });
 
-// ==========================================
-// 2. CẤU HÌNH BẢO MẬT & ĐĂNG NHẬP (THÊM MỚI Ở ĐÂY)
-// ==========================================
+// 2. CẤU HÌNH BẢO MẬT & ĐĂNG NHẬP
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Login"; // Nếu chưa đăng nhập, tự động đá về trang này
+        options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
         options.AccessDeniedPath = "/Login";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8); // Cho phép login tối đa 8 tiếng
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 
-// 3. KHÓA CỬA TOÀN BỘ TRANG WEB (SỬA LẠI ĐOẠN AddRazorPages CŨ)
+// Bổ sung dòng này để hệ thống hiểu các quy tắc phân quyền
+builder.Services.AddAuthorization();
+
+// 3. KHÓA CỬA TOÀN BỘ TRANG WEB
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/"); // Bắt buộc đăng nhập cho mọi trang (/, /Index, /Stalls...)
-    options.Conventions.AllowAnonymousToPage("/Login"); // NGOẠI TRỪ trang Login thì ai cũng được vào
+    options.Conventions.AuthorizeFolder("/");
+    options.Conventions.AllowAnonymousToPage("/Login");
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ==============================================================
+// 💡 ĐÃ FIX: TỰ ĐỘNG GỌI API KHỞI TẠO 10 TOUR KHI VỪA BẬT WEB
+// ==============================================================
+using (var scope = app.Services.CreateScope())
+{
+    var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
+    try
+    {
+        // Gọi thẳng vào hàm Init mà sếp đã có sẵn bên MockDataController
+        httpClient.PostAsync("http://localhost:5297/api/MockData/init-first-day-tours", null).Wait();
+    }
+    catch
+    {
+        // Bỏ qua lỗi nếu lỡ project API chưa bật kịp
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -38,16 +56,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Cho phép dùng CSS/JS/Ảnh trong wwwroot
+app.UseStaticFiles();
 
 app.UseRouting();
 
-// ==========================================
-// 4. KÍCH HOẠT CHẾ ĐỘ BẢO VỆ (THÊM UseAuthentication VÀO ĐÂY)
-// Lưu ý: Authentication phải đứng TRƯỚC Authorization
-// ==========================================
-app.UseAuthentication(); // <-- Dòng này để hỏi "Bạn là ai? Có thẻ/cookie chưa?"
-app.UseAuthorization();  // <-- Dòng này để hỏi "Bạn có quyền vào trang này không?"
+// 4. KÍCH HOẠT CHẾ ĐỘ BẢO VỆ
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapRazorPages();
 
