@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model HeriStep.Merchant.Pages.StallDashboardModel
 @{
     ViewData["Title"] = "Quản lý Sạp - Hệ thống Loa AI Thông Minh";
@@ -55,10 +55,43 @@
                             </div>
                         }
                     </div>
+<!-- 💡 Inject SweetAlert2 cho Thông báo (UX) -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-success">🔊 Lời chào gốc (Tiếng Việt)</label>
-                        <textarea id="stallTts" class="form-control" rows="3">@Model.StallInfo.TtsScript</textarea>
-                        <small class="text-muted">Hệ thống AI sẽ tự động dịch sang 9 ngôn ngữ khác khi có khách tới.</small>
+                        <label class="form-label fw-bold text-success">🔊 Tùy chỉnh Nội dung Thuyết minh tự động (TTS)</label>
+
+                        <!-- TAB ĐA NGÔN NGỮ -->
+                        <ul class="nav nav-tabs mb-2" id="ttsLanguageTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tts-vi" type="button">🇻🇳 Tiếng Việt</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tts-en" type="button">🇺🇸 Tiếng Anh</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tts-ko" type="button">🇰🇷 Tiếng Hàn</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tts-ja" type="button">🇯🇵 Tiếng Nhật</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content border border-top-0 p-3 rounded-bottom bg-light" id="ttsLanguageTabsContent">
+                            <div class="tab-pane fade show active" id="tts-vi">
+                                <textarea id="stallTts" class="form-control" rows="3" placeholder="Nhập lời chào bằng tiếng Việt...">@Model.StallInfo.TtsScript</textarea>
+                                <small class="text-muted mt-2 d-block">Hệ thống AI sẽ tự động dịch sang 9 ngôn ngữ khác, nhưng bạn có thể tinh chỉnh thủ công các tab bên cạnh nếu cần thiết.</small>
+                            </div>
+                            <div class="tab-pane fade" id="tts-en">
+                                <textarea id="stallTtsEn" class="form-control" rows="3" placeholder="Welcome to our stall..."></textarea>
+                            </div>
+                            <div class="tab-pane fade" id="tts-ko">
+                                <textarea id="stallTtsKo" class="form-control" rows="3" placeholder="환영합니다..."></textarea>
+                            </div>
+                            <div class="tab-pane fade" id="tts-ja">
+                                <textarea id="stallTtsJa" class="form-control" rows="3" placeholder="いらっしゃいませ..."></textarea>
+                            </div>
+                        </div>
                     </div>
                     <button type="button" class="btn btn-success fw-bold w-100 py-2 shadow" onclick="updateStallInfo()">💾 LƯU THÔNG TIN SẠP</button>
                 </form>
