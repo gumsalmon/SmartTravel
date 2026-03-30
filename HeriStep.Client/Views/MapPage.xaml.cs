@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using HeriStep.Shared.Models;
+using HeriStep.Client.Services;
 using System;
 
 namespace HeriStep.Client.Views;
@@ -15,113 +16,243 @@ namespace HeriStep.Client.Views;
 public partial class MapPage : ContentPage
 {
     private Stall _currentSelectedShop = new Stall();
+    private WritableLayer? _userLocationLayer;
+    private double _userBearingDeg = 0;
+    private double _lastUserLat = 10.7595;
+    private double _lastUserLon = 106.7025;
+    private CancellationTokenSource? _locationLoopCts;
 
-    // 💡 ĐÃ SỬA: Dùng hàm khởi tạo không tham số để AppShell tự mở được trang này
     public MapPage()
     {
         InitializeComponent();
 
-        // 1. Khởi tạo một đối tượng bản đồ mới
         var map = new Mapsui.Map();
+        map.Layers.Add(LocalProxyMapLayer.Create());
 
-        // 2. Tải lớp hình ảnh đường phố từ OpenStreetMap và đắp vào bản đồ
-        map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
+        // Layer user location (dưới layer sạp)
+        _userLocationLayer = new WritableLayer { Name = "UserLocationLayer", Style = null };
+        map.Layers.Add(_userLocationLayer);
 
-        // 3. Gán bản đồ vừa tạo vào cái giao diện
         mapView.Map = map;
 
-        var loggingWidget = mapView.Map?.Widgets.FirstOrDefault(w => w.GetType().Name == "LoggingWidget");
-        if (loggingWidget != null)
-        {
-            loggingWidget.Enabled = false;
-        }
+        // Tắt widget log
+        var logW = mapView.Map?.Widgets.FirstOrDefault(w => w.GetType().Name == "LoggingWidget");
+        if (logW != null) logW.Enabled = false;
 
-        // Tọa độ trung tâm Vĩnh Khánh
-        var (x, y) = SphericalMercator.FromLonLat(106.7025, 10.7595);
-        mapView.Map?.Navigator?.CenterOn(new MPoint(x, y));
+        // Center Vĩnh Khánh
+        var (cx, cy) = SphericalMercator.FromLonLat(106.7025, 10.7595);
+        mapView.Map?.Navigator?.CenterOn(new MPoint(cx, cy));
         mapView.Map?.Navigator?.ZoomTo(2.5);
 
-        // BÍ QUYẾT SENIOR (CHUẨN MAPSUI V5): Bắt sự kiện click vào ghim
-        mapView.Info += (sender, e) =>
-        {
-            var layers = mapView.Map?.Layers;
-            if (layers == null) return;
-
-            var mapInfo = e.GetMapInfo(layers);
-
-            if (mapInfo?.Feature != null)
-            {
-                var clickedPoint = mapInfo.Feature["PointData"] as Stall;
-
-                if (clickedPoint != null)
-                {
-                    _currentSelectedShop = clickedPoint;
-
-                    // Bơm dữ liệu vào thẻ Bottom Sheet
-                    popupName.Text = clickedPoint.Name;
-
-                    if (!string.IsNullOrEmpty(clickedPoint.ImageUrl))
-                    {
-                        // 💡 ĐÃ FIX LỖI ẢNH TÀNG HÌNH: Tự động nối thêm IP của máy chủ
-                        string fullImageUrl = clickedPoint.ImageUrl.StartsWith("http")
-                            ? clickedPoint.ImageUrl
-                            : $"http://10.0.2.2:5297{clickedPoint.ImageUrl}";
-
-                        popupImage.Source = fullImageUrl;
-                    }
-
-                    // Hiện thẻ Popup lên
-                    overlay.IsVisible = true;
-                    shopPopup.IsVisible = true;
-
-                    e.Handled = true; // Ngăn bản đồ zoom/pan khi đang bấm vào ghim
-                }
-            }
-            else
-            {
-                ClosePopup();
-            }
-        };
+        // Click handler - dùng lambda inline để tránh lỗi EventArgs type
+        mapView.Info += (sender, e) => HandleMapInfo(e);
     }
 
-    // ==========================================
-    // 💡 THẦN DƯỢC MAUI: Tự động gọi API tải sạp mỗi khi mở trang Bản Đồ
-    // ==========================================
+    // ══════════════ LIFECYCLE ══════════════
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        ClosePopup();
+        await LoadStallsAsync();
+        StartUserLocationLoop();
+    }
 
-        try
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _locationLoopCts?.Cancel();
+    }
+
+    // ══════════════ MAP CLICK ══════════════
+
+    private void HandleMapInfo(dynamic e)
+    {
+        var layers = mapView.Map?.Layers;
+        if (layers == null) return;
+
+        var mapInfo = e.GetMapInfo(layers);
+
+        if (mapInfo?.Feature != null)
         {
-            using var client = new HttpClient();
-
-            // LƯU Ý: Nhớ đổi 10.0.2.2 thành IP máy tính (VD: 192.168.1.45) nếu test trên điện thoại thật!
-            var url = "http://10.0.2.2:5297/api/Stalls";
-            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-            // Kéo dữ liệu từ Backend của sếp về
-            var freshData = await client.GetFromJsonAsync<List<Stall>>(url, options);
-
-            if (freshData != null && freshData.Count > 0)
+            var stall = mapInfo.Feature["PointData"] as Stall;
+            if (stall != null)
             {
-                // Xóa lớp ghim cũ trên bản đồ để vẽ lại từ đầu (tránh đè ghim)
-                var existingLayer = mapView.Map?.Layers.FirstOrDefault(l => l.Name == "QuanOcLayer");
-                if (existingLayer != null)
+                _currentSelectedShop = stall;
+                popupName.Text = stall.Name;
+                lblOwner.Text = $"👤 {(string.IsNullOrEmpty(stall.OwnerName) ? "Chưa có chủ" : stall.OwnerName)}";
+
+                if (!stall.IsOpen)
                 {
-                    mapView.Map?.Layers.Remove(existingLayer);
+                    lblStatusTag.Text = "⛔ Đã đóng";
+                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
+                }
+                else if (stall.OwnerId == null)
+                {
+                    lblStatusTag.Text = "🟢 Trống";
+                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+                }
+                else
+                {
+                    lblStatusTag.Text = "🔴 Mở";
+                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
                 }
 
-                // Cắm ghim mới nhất lên bản đồ
-                DrawPinsOnMap(freshData);
+                if (!string.IsNullOrEmpty(stall.ImageUrl))
+                {
+                    popupImage.Source = stall.ImageUrl.StartsWith("http")
+                        ? stall.ImageUrl
+                        : $"http://10.0.2.2:5297{stall.ImageUrl}";
+                }
+
+                overlay.IsVisible = true;
+                shopPopup.IsVisible = true;
+                e.Handled = true;
+            }
+        }
+        else
+        {
+            ClosePopup();
+        }
+    }
+
+    // ══════════════ GPS USER LOCATION ══════════════
+
+    private void StartUserLocationLoop()
+    {
+        _locationLoopCts?.Cancel();
+        _locationLoopCts = new CancellationTokenSource();
+        var token = _locationLoopCts.Token;
+
+        Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var loc = await Geolocation.Default.GetLastKnownLocationAsync();
+                    if (loc != null)
+                    {
+                        _lastUserLat = loc.Latitude;
+                        _lastUserLon = loc.Longitude;
+                    }
+                }
+                catch { /* Emulator không có GPS thật → giữ toạ độ mặc định */ }
+
+                // Giả lập bearing (thực tế lấy từ Compass/Accelerometer)
+                _userBearingDeg = (_userBearingDeg + 3) % 360;
+                UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+
+                try { await Task.Delay(2000, token); }
+                catch (TaskCanceledException) { break; }
+            }
+        }, token);
+    }
+
+    private void UpdateUserLocationOnMap(double lat, double lon, double bearingDeg)
+    {
+        if (_userLocationLayer == null) return;
+
+        var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+
+        _userLocationLayer.Clear();
+
+        // ── Vòng xanh nhạt (vùng chính xác GPS, bán kính ~30m) ──
+        double accuracyRadius = 40; // meter
+        double mPerPixel = 1.0; // at this zoom
+        double resolution = mapView.Map?.Navigator?.Viewport.Resolution ?? 1;
+        double radiusPx = accuracyRadius / Math.Max(resolution, 0.1);
+
+        var accuracyFeature = new PointFeature(new MPoint(x, y));
+        accuracyFeature.Styles.Add(new SymbolStyle
+        {
+            SymbolType = SymbolType.Ellipse,
+            SymbolScale = Math.Max(0.4, radiusPx / 60.0),
+            Fill = new Mapsui.Styles.Brush(new Mapsui.Styles.Color(66, 133, 244, 30)),
+            Outline = new Mapsui.Styles.Pen(new Mapsui.Styles.Color(66, 133, 244, 60), 1)
+        });
+
+        // ── Hình nón hướng nhìn (FAN SHAPE bằng chuỗi chấm nhỏ) ──
+        double bearingRad = bearingDeg * Math.PI / 180.0;
+        double coneAngle = 35 * Math.PI / 180; // ±35° cho nón
+        int numDots = 12; // số chấm tạo thành fan
+        double maxRadius = 60000; // Đơn vị Mercator (~50m ở zoom này)
+
+        for (int ring = 1; ring <= 3; ring++)
+        {
+            double ringR = maxRadius * ring / 3.0;
+            double dotScale = 0.06 + (0.08 * (3 - ring) / 2.0); // Gần lớn, xa nhỏ
+            int alpha = 70 - (ring * 15); // Gần đậm, xa nhạt
+
+            for (int i = 0; i <= numDots; i++)
+            {
+                double angle = bearingRad - coneAngle + (2 * coneAngle * i / numDots);
+                double dx = ringR * Math.Sin(angle);
+                double dy = ringR * Math.Cos(angle);
+
+                var conePoint = new PointFeature(new MPoint(x + dx, y + dy));
+                conePoint.Styles.Add(new SymbolStyle
+                {
+                    SymbolType = SymbolType.Ellipse,
+                    SymbolScale = dotScale,
+                    Fill = new Mapsui.Styles.Brush(new Mapsui.Styles.Color(66, 133, 244, alpha))
+                });
+                _userLocationLayer.Add(conePoint);
+            }
+        }
+
+        // ── Chấm xanh trung tâm (vẽ SAU để nằm TRÊN hình nón) ──
+        var dotFeature = new PointFeature(new MPoint(x, y));
+        dotFeature.Styles.Add(new SymbolStyle
+        {
+            SymbolType = SymbolType.Ellipse,
+            SymbolScale = 0.35,
+            Fill = new Mapsui.Styles.Brush(new Mapsui.Styles.Color(66, 133, 244)),
+            Outline = new Mapsui.Styles.Pen(Mapsui.Styles.Color.White, 3)
+        });
+
+        _userLocationLayer.Add(accuracyFeature);
+        _userLocationLayer.Add(dotFeature);
+
+        MainThread.BeginInvokeOnMainThread(() => mapView.RefreshGraphics());
+    }
+
+    // ══════════════ LOAD STALLS ══════════════
+
+    private async Task LoadStallsAsync()
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var url = "http://10.0.2.2:5297/api/Stalls";
+            var poiList = await client.GetFromJsonAsync<List<HeriStep.Shared.Models.DTOs.Responses.PointOfInterest>>(url, options);
+
+            if (poiList != null && poiList.Count > 0)
+            {
+                var stalls = poiList.Select(p => new Stall
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Latitude = p.Latitude,
+                    Longitude = p.Longitude,
+                    RadiusMeter = p.RadiusMeter,
+                    IsOpen = p.IsOpen,
+                    ImageUrl = p.ImageUrl,
+                    OwnerId = p.OwnerId,
+                    OwnerName = p.OwnerName
+                }).ToList();
+
+                var old = mapView.Map?.Layers.FirstOrDefault(l => l.Name == "QuanOcLayer");
+                if (old != null) mapView.Map?.Layers.Remove(old);
+
+                DrawPinsOnMap(stalls);
                 mapView.RefreshGraphics();
-                System.Diagnostics.Debug.WriteLine($"[Thành công] Đã cắm {freshData.Count} sạp lên bản đồ!");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Lỗi Bản Đồ]: {ex.Message}");
-            // Báo lỗi lên màn hình nếu rớt mạng API
-            await DisplayAlert("Lỗi tải bản đồ", "Không thể lấy danh sách sạp. Vui lòng kiểm tra lại mạng hoặc API!", "OK");
+            System.Diagnostics.Debug.WriteLine($"[Map Error] {ex.Message}");
         }
     }
 
@@ -131,12 +262,10 @@ public partial class MapPage : ContentPage
 
         foreach (var point in points)
         {
-            // Bỏ qua các sạp lỗi tọa độ (0, 0) để không bị bay ra Châu Phi
             if (point.Latitude == 0 && point.Longitude == 0) continue;
 
             var (x, y) = SphericalMercator.FromLonLat(point.Longitude, point.Latitude);
 
-            // Giấu dữ liệu quán vào ghim
             var feature = new PointFeature(new MPoint(x, y))
             {
                 ["Name"] = point.Name,
@@ -145,49 +274,56 @@ public partial class MapPage : ContentPage
 
             feature.Styles.Clear();
 
-            // 💡 Tuyệt chiêu: Sạp có chủ màu Đỏ, Sạp trống màu Xanh lá
-            var pinColor = point.OwnerId == null
-                ? new Mapsui.Styles.Color(40, 167, 69) // Xanh lá
-                : new Mapsui.Styles.Color(220, 53, 69); // Đỏ
+            Mapsui.Styles.Color pinColor;
+            string stallLabel = point.Name ?? "Sạp";
 
-            var dotStyle = new SymbolStyle
+            if (!point.IsOpen)
+            {
+                pinColor = new Mapsui.Styles.Color(150, 150, 160);
+                stallLabel += " [Đóng]";
+            }
+            else if (point.OwnerId == null)
+            {
+                pinColor = new Mapsui.Styles.Color(40, 167, 69);
+            }
+            else
+            {
+                pinColor = new Mapsui.Styles.Color(220, 53, 69);
+            }
+
+            feature.Styles.Add(new SymbolStyle
             {
                 SymbolType = SymbolType.Ellipse,
                 SymbolScale = 0.4,
                 Fill = new Mapsui.Styles.Brush(pinColor),
                 Outline = new Mapsui.Styles.Pen(Mapsui.Styles.Color.White, 2)
-            };
+            });
 
-            var labelStyle = new LabelStyle
+            feature.Styles.Add(new LabelStyle
             {
-                Text = point.Name ?? "Sạp chưa đặt tên",
-                Font = new Mapsui.Styles.Font { Size = 13, Bold = true },
+                Text = stallLabel,
+                Font = new Mapsui.Styles.Font { Size = 12, Bold = true },
                 BackColor = new Mapsui.Styles.Brush(Mapsui.Styles.Color.Transparent),
                 ForeColor = pinColor,
                 Halo = new Mapsui.Styles.Pen(Mapsui.Styles.Color.White, 3),
                 HorizontalAlignment = LabelStyle.HorizontalAlignmentEnum.Left,
                 Offset = new Offset(12, 0)
-            };
+            });
 
-            feature.Styles.Add(dotStyle);
-            feature.Styles.Add(labelStyle);
             features.Add(feature);
         }
 
-        var pinLayer = new MemoryLayer
+        mapView.Map?.Layers.Add(new MemoryLayer
         {
             Name = "QuanOcLayer",
             Features = features,
             Style = null
-        };
-
-        mapView.Map?.Layers.Add(pinLayer);
+        });
     }
 
-    private void ClosePopup_Clicked(object sender, EventArgs e)
-    {
-        ClosePopup();
-    }
+    // ══════════════ UI HANDLERS ══════════════
+
+    private void ClosePopup_Clicked(object sender, EventArgs e) => ClosePopup();
 
     private void ClosePopup()
     {
@@ -197,9 +333,35 @@ public partial class MapPage : ContentPage
 
     private async void btnViewDetail_Clicked(object sender, EventArgs e)
     {
-        if (_currentSelectedShop != null)
+        if (_currentSelectedShop == null || _currentSelectedShop.Id == 0) return;
+        ClosePopup();
+        try
         {
             await Navigation.PushAsync(new ShopDetailPage(_currentSelectedShop));
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Nav Error] {ex.Message}");
+        }
+    }
+
+    private async void BackButton_Clicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
+    private void ToggleLegend_Clicked(object sender, EventArgs e)
+    {
+        legendPanel.IsVisible = !legendPanel.IsVisible;
+    }
+
+    /// <summary>
+    /// NÚT "VỀ VỊ TRÍ HIỆN TẠI" - Center map lên chấm xanh
+    /// </summary>
+    private void MyLocation_Clicked(object sender, EventArgs e)
+    {
+        var (mx, my) = SphericalMercator.FromLonLat(_lastUserLon, _lastUserLat);
+        mapView.Map?.Navigator?.CenterOn(new MPoint(mx, my));
+        mapView.Map?.Navigator?.ZoomTo(2.5);
     }
 }

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeriStep - Product Requirements Document (PRD)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+        :root {
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --accent: #c084fc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --border-color: #334155;
+            --glow: rgba(56, 189, 248, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(192, 132, 252, 0.08), transparent 25%);
+        }
+
+        /* Container chứa các Slide */
+        #presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Định dạng từng Slide */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem 10%;
+            text-align: center;
+        }
+
+        /* Slide đang hiển thị */
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Slide trước bị đẩy lên */
+        .slide.prev {
+            transform: scale(0.95) translateY(-5%);
+            opacity: 0;
+        }
+
+        /* Slide tiếp theo chờ ở dưới */
+        .slide.next {
+            transform: scale(1.05) translateY(5%);
+            opacity: 0;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 4.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+        }
+
+        .subtitle {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2rem;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-block;
+            align-self: flex-start;
+            text-align: left;
+            width: 100%;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 1.2rem;
+            text-align: left;
+            width: 100%;
+        }
+
+        ul {
+            text-align: left;
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+            margin-top: 1rem;
+            width: 100%;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 1rem;
+            position: relative;
+            list-style-type: none;
+        }
+
+        li::before {
+            content: '❖';
+            color: var(--accent);
+            position: absolute;
+            left: -2rem;
+            font-size: 1.2rem;
+        }
+
+        li span.highlight {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        /* Trang trí khung lưới */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: left;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px -5px var(--glow);
+            border-color: var(--primary);
+        }
+
+        .card h3 {
+            color: var(--secondary);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card p {
+            font-size: 1.1rem;
+            margin-bottom: 0;
+        }
+
+        /* Nút điều hướng góc dưới */
+        .controls {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .btn {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 0.8rem 1.8rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            z-index: 100;
+            transition: width 0.4s ease;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(192, 132, 252, 0.2);
+            color: #e879f9;
+            padding: 0.2rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid #c084fc;
+            margin-bottom: 1rem;
+        }
+
+        /* Bố cục nội dung chia 2 cột */
+        .split-layout {
+            display: flex;
+            width: 100%;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .split-content {
+            flex: 1;
+        }
+
+        /* Diagram Boxes */
+        .diagram-box {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            align-items: center;
+        }
+
+        .step-box {
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.1) 0%, rgba(30, 41, 59, 1) 100%);
+            border: 1px solid var(--primary);
+            padding: 1rem;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .arrow-down {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="progress-bar" id="progress"></div>
+
+    <div id="presentation-container">
+
+        <!-- SLIDE 1: TITLE -->
+        <div class="slide">
+            <div style="text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <span class="badge">Product Requirements Document (PRD)</span>
+                <h1>HeriStep</h1>
+                <div class="subtitle">Nền Tảng Du Lịch Thông Minh & Không Biên Giới</div>
+                <p style="text-align: center; max-width: 800px; margin: 0 auto;">Giải pháp đưa văn hóa ẩm thực đường phố
+                    và bản địa hóa chạm đến thế giới. Phá vỡ rào cản ngôn ngữ, dẫn lối khách hàng bằng siêu dữ liệu
+                    không gian, và tối ưu hóa doanh thu cho tiểu thương thông qua chuyển đổi số tự động.</p>
+                <p style="margin-top: 4rem; font-size: 1.1rem; color: #64748b; text-align: center;">Dự án tâm điểm: Phố
+                    Ẩm thực Vĩnh Khánh (Quận 4)</p>
+                <div style="margin-top: 2rem; animation: pulse 2s infinite;">
+                    <p style="text-align: center; color: var(--primary); font-size: 1rem;">Nhấn [Space] hoặc [Next] để
+                        tiếp tục</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: PROBLEM & OPPORTUNITY -->
+        <div class="slide">
+            <h2>Vấn đề Cốt lõi & Cơ hội Thị trường</h2>
+            <div class="split-layout">
+                <div class="split-content">
+                    <p>Khách du lịch quốc tế thường khao khát trải nghiệm văn hóa "đường phố sâu thẳm" (deep local
+                        experiences), nhưng thường gặp phải các rào cản quá lớn:</p>
+                    <ul>
+                        <li><span class="highlight">Rào cản Ngôn ngữ:</span> Mất kết nối giao tiếp tại các hàng quán
+                            nhỏ, không thể hiểu thực đơn và các chương trình khuyến mãi.</li>
+                        <li><span class="highlight">Thiếu chuẩn xác Không Gian:</span> Bản đồ truyền thống (Google Maps)
+                            thiếu chi tiết các sạp, xe đẩy nhỏ hoặc trong ngõ sâu (hẻm).</li>
+                        <li><span class="highlight">Hạn chế trong Tiếp thị (đối với Tiểu thương):</span> Chủ quán vỉa
+                            hè, sạp ẩm thực không có kinh phí/công nghệ để marketing tới khách du lịch quốc tế đang đi
+                            vãng lai xung quanh.</li>
+                    </ul>
+                </div>
+                <div class="split-content"
+                    style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border-left: 4px solid var(--accent);">
+                    <h3 style="color: white; font-size: 1.6rem; margin-bottom: 1rem;">Tầm quan trọng của Cột mốc Vĩnh
+                        Khánh</h3>
+                    <p style="font-size: 1.1rem;">Với hơn hàng trăm quán ốc/hải sản nối tiếp nhau san sát, việc một
+                        khách Hàn Quốc hay Âu-Mỹ có thể "nghe hiểu và chọn đúng" quán mà không cần người dẫn đường là
+                        một thị trường ngách đầy tiềm năng với tỷ lệ chuyển đổi cực cao.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: VALUE PROPOSITION -->
+        <div class="slide">
+            <h2>Mục tiêu Kinh doanh & Giá trị cốt lõi</h2>
+            <p>HeriStep không chỉ là một ứng dụng bản đồ. Đây là <b>Kênh Phân Phối Dịch Vụ Du lịch dựa trên Ngữ cảnh
+                    Không gian (Location-based Contextual Platform)</b>.</p>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>👤 B2C - Khách Du Lịch (Tourist)</h3>
+                    <p>Khám phá bản địa không độ trễ. Nhận thông báo âm thanh tự động dịch thuật sang tiếng mẹ đẻ
+                        (Zero-click interface) khi đi ngang qua các địa điểm ẩm thực. Thoải mái và tự lập tận hưởng
+                        đường phố.</p>
+                </div>
+                <div class="card">
+                    <h3>🏪 B2B - Tiểu thương (Merchant)</h3>
+                    <p><b>Marketing 0 đồng (Proximity Marketing)</b>. Tự động "kéo" khách vãng lai quốc tế vào quán bằng
+                        âm thanh khuyến mãi ảo, loại bỏ nhu cầu phải thuê phiên dịch hay nhân viên chèo kéo.</p>
+                </div>
+                <div class="card">
+                    <h3>🏛️ B2G - Quản lý Điểm đến</h3>
+                    <p>Cung cấp Dashboard bản đồ nhiệt (Heatmap) hành vi du khách. Số hóa quy hoạch vỉa hè, vị trí sạp
+                        kinh doanh, hỗ trợ kích cầu kinh tế đêm theo định hướng Smart City.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: ECOSYSTEM ARCHITECTURE -->
+        <div class="slide">
+            <h2>Kiến trúc Hệ sinh thái Giải pháp (Ecosystem)</h2>
+            <div class="grid-container">
+                <div class="card" style="border-top: 4px solid #38bdf8;">
+                    <h3>📱 HeriStep.Client (Tourist App)</h3>
+                    <p><b>.NET MAUI (iOS/Android)</b><br>
+                        Tích hợp bản đồ ngoại tuyến <b>Mapsui</b> siêu mượt. Dịch vụ chạy ngầm định vị liên tục, tối ưu
+                        tiêu thụ pin. Triển khai logic Geofencing ngay trên thiết bị.</p>
+                </div>
+                <div class="card" style="border-top: 4px solid #818cf8;">
+                    <h3>🏪 HeriStep.Merchant</h3>
+                    <p><b>App Quản lý Điểm bán</b><br>
+                        Dành cho chủ quán: Tạo và quản lý thực đơn đa ngôn ngữ, thiết lập chiến dịch khuyến mãi cục bộ
+                        (Flash sale), theo dõi lượt khách tiếp cận qua App.</p>
+                </div>
+                <div class="card" style="border-top: 4px solid #c084fc;">
+                    <h3>💻 HeriStep.Admin & API</h3>
+                    <p><b>.NET 9/10 / SQL Server (Spatial)</b><br>
+                        Quản trị tập trung tọa độ các điểm đến. Phê duyệt ngữ liệu Text-to-Speech. Cung cấp RESTful API
+                        xử lý thuật toán khoảng cách và đồng bộ hoá dữ liệu đám mây (Azure/AWS).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: CORE INNOVATIONS & TECH -->
+        <div class="slide">
+            <h2>Công nghệ Đột phá (Core Innovations)</h2>
+            <p>Những công cụ giúp HeriStep vượt trội so với các nền tảng OTA và bản đồ thông thường:</p>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>📍 Dynamic Geofencing (Thuật toán vây hãm GIS)</h3>
+                    <p>Thay vì chỉ vẽ đường, ứng dụng HeriStep thực hiện "đo lường đếm ngược" liên tục (VD: 5s/lần). Dựa
+                        trên bán kính tùy chỉnh (VD: <b>Vùng lõi 15 mét trải nghiệm</b>), trigger các sự kiện logic một
+                        cách chính xác khi khách hàng tiếp cận vùng không gian quán.</p>
+                </div>
+                <div class="card">
+                    <h3>🎙️ Contextual Text-To-Speech (TTS đa ngôn ngữ)</h3>
+                    <p>Ứng dụng triệt để nền tảng AI/TTS tích hợp của OS. Kịch bản động: Tự động dịch và phát giọng nói
+                        của cửa hàng ("Kính chào quý khách...") sang ngôn ngữ thiết lập của du khách (Hàn, Nhật, Anh)
+                        <b>ngay khoảnh khắc họ đặt chân vào vùng bán kính 15 mét của quán.</b>
+                    </p>
+                </div>
+                <div class="card">
+                    <h3>🗺️ Lightweight Mapsui Routing</h3>
+                    <p>Công nghệ bản đồ nhúng Mapsui cho phép tùy chỉnh dữ liệu bản đồ riêng. Render cực nhanh, không
+                        phụ thuộc tuyệt đối vào mạng 4G/5G, chuyển ngữ mượt mà từ bản đồ xem chung sang Chế độ Đi Bộ
+                        (Walking Navigation).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: USER JOURNEY MAP -->
+        <div class="slide">
+            <h2>Bản đồ Trải nghiệm Khách hàng (User Journey)</h2>
+            <div class="split-layout">
+                <div class="split-content">
+                    <ul>
+                        <li><span class="highlight">1. Aware & Discover:</span> Khách tải HeriStep. Chọn ngôn ngữ (Hàn).
+                            Bản đồ hiển thị tuyến phố Vĩnh Khánh với hàng chục "Pin" hải sản được số hóa.</li>
+                        <li><span class="highlight">2. Navigation:</span> Nhấn chọn "Ốc Oanh", chuyển qua chế độ chỉ
+                            đường bộ (Walking mode), GPS cập nhật thời gian thực trên bản đồ Mapsui.</li>
+                        <li><span class="highlight">3. Automated Engagement:</span> Khi còn cách quán 15m, Geofencing
+                            kích hoạt. Điện thoại phát thanh bằng tiếng Hàn: "Ốc Oanh xin chào! Tặng 1 đĩa hàu phô mai
+                            cho khách đặt chân đến ngay lúc này."</li>
+                        <li><span class="highlight">4. Action & Conversion:</span> Khách ngạc nhiên, bước vào quán, mở
+                            Menu điện tử đa ngôn ngữ bằng Merchant QR Code.</li>
+                    </ul>
+                </div>
+                <div class="diagram-box">
+                    <div class="step-box">App Loaded (Background GPS)</div>
+                    <div class="arrow-down">⬇</div>
+                    <div class="step-box">Distance < 15m (Geofence Trigger)</div>
+                            <div class="arrow-down">⬇</div>
+                            <div class="step-box">Fetch Localized Promo Script (API)</div>
+                            <div class="arrow-down">⬇</div>
+                            <div class="step-box" style="border-color: var(--accent); color: var(--accent);">Native TTS
+                                Broadcast (Zero-UI)</div>
+                            <div class="arrow-down">⬇</div>
+                            <div class="step-box" style="background: rgba(192, 132, 252, 0.2);">Customer Acquisition
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 7: BUSINESS MODEL & ROADMAP -->
+            <div class="slide">
+                <h2>Mô hình Kinh doanh & Lộ trình (Roadmap)</h2>
+                <div class="grid-container">
+                    <div class="card">
+                        <h3>💰 Luồng Doanh Thu (Monetization)</h3>
+                        <p>
+                            <b>Freemium Model:</b><br><br>
+                            - <b>Tier 1 (Free):</b> Đánh dấu điểm trên bản đồ cơ bản.<br>
+                            - <b>Tier 2 (Premium - Subscription):</b> Cho phép chủ quán thay đổi kịch bản âm thanh TTS
+                            theo thời gian thực (Giờ vàng giảm giá).<br>
+                            - <b>Sponsorships / Ads:</b> Các Local Brand (ví dụ Hãng Bia, Nước giải khát) đẩy quảng cáo
+                            xen kẽ định tuyến.
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>🚀 Road Map Triển khai</h3>
+                        <p>
+                            <b>Phase 1: Proof of Concept</b><br>
+                            MVP App Client + Core API. Tái tạo bản đồ số Phố Ẩm thực Vĩnh Khánh.<br><br>
+                            <b>Phase 2: Merchant Adoption</b><br>
+                            Ra mắt HeriStep.Merchant (Web/App). Target: 50+ sạp đăng ký sử dụng tính năng Audio
+                            Marketing ngầm.<br><br>
+                            <b>Phase 3: Scale & AI Agent</b><br>
+                            Mở rộng ra các phố đi bộ (Bùi Viện, Nguyễn Huệ). Tích hợp AI gợi ý lịch trình thông minh dựa
+                            trên Context lịch sử di chuyển.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 8: SUMMARY & Q&A -->
+            <div class="slide">
+                <div style="text-align: center; width: 100%;">
+                    <h1 style="font-size: 5rem; margin-bottom: 2rem;">Q & A</h1>
+                    <p
+                        style="text-align: center; font-size: 1.8rem; color: var(--text-main); font-weight: bold; margin-bottom: 2rem;">
+                        "Cách mạng hóa trải nghiệm du lịch nội địa, kết nối liền mạch Văn hoá - Kinh tế bằng Công nghệ."
+                    </p>
+                    <p style="text-align: center;">Dự án HeriStep - Nền tảng Định vị, Dẫn đường và Gắn kết Không biên
+                        giới.</p>
+                    <div style="margin-top: 3rem;">
+                        <button class="btn"
+                            style="background: var(--primary); color: #000; padding: 1rem 3rem; font-size: 1.2rem; border-radius: 50px;">Bắt
+                            đầu Trải nghiệm Demo</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="prevBtn" onclick="changeSlide(-1)">❮ Back</button>
+            <button class="btn" id="nextBtn" onclick="changeSlide(1)">Next ❯</button>
+        </div>
+
+        <script>
+            let currentSlide = 0;
+            const slides = document.querySelectorAll('.slide');
+            const progressBar = document.getElementById('progress');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            function updateSlide() {
+                slides.forEach((slide, index) => {
+                    slide.classList.remove('active', 'prev', 'next');
+                    if (index === currentSlide) {
+                        slide.classList.add('active');
+                    } else if (index < currentSlide) {
+                        slide.classList.add('prev');
+                    } else {
+                        slide.classList.add('next');
+                    }
+                });
+
+                // Cập nhật thanh tiến trình
+                const progressPercent = ((currentSlide) / (slides.length - 1)) * 100;
+                progressBar.style.width = progressPercent + '%';
+
+                // Cập nhật trạng thái Button
+                prevBtn.disabled = currentSlide === 0;
+                if (currentSlide === slides.length - 1) {
+                    nextBtn.innerHTML = "Finish ❖";
+                    nextBtn.style.color = "var(--accent)";
+                    nextBtn.style.borderColor = "var(--accent)";
+                } else {
+                    nextBtn.innerHTML = "Next ❯";
+                    nextBtn.style.color = "var(--primary)";
+                    nextBtn.style.borderColor = "var(--primary)";
+                    nextBtn.disabled = false;
+                }
+            }
+
+            function changeSlide(direction) {
+                currentSlide += direction;
+                if (currentSlide < 0) currentSlide = 0;
+                if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+                updateSlide();
+            }
+
+            // Bắt sự kiện bàn phím
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    changeSlide(1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    changeSlide(-1);
+                }
+            });
+
+            // Hỗ trợ cuộn chuột (Scroll) để chuyển slide (tuỳ chọn thêm)
+            let isScrolling = false;
+            document.addEventListener('wheel', (e) => {
+                if (isScrolling) return;
+                isScrolling = true;
+                if (e.deltaY > 0) {
+                    changeSlide(1);
+                } else {
+                    changeSlide(-1);
+                }
+                setTimeout(() => { isScrolling = false; }, 800); // Throttling để chuyển slide mượt
+            });
+
+            // Khởi tạo trạng thái ban đầu
+            updateSlide();
+        </script>
+</body>
+
+</html>

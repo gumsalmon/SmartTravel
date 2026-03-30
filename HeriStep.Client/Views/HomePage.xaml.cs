@@ -19,12 +19,14 @@ public partial class HomePage : ContentPage
     {
         base.OnAppearing();
 
-        // Xin quyền GPS theo bài toán MVPs
+#if !WINDOWS
+        // Xin quyền GPS theo bài toán MVPs (Windows Unpackaged sẽ tự động Crash nếu gọi hàm này, nên bỏ qua)
         var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
         if (status != PermissionStatus.Granted)
         {
             await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
         }
+#endif
 
         // Chọn ngôn ngữ nếu chưa có
         if (!Microsoft.Maui.Storage.Preferences.Default.ContainsKey("lang_code"))

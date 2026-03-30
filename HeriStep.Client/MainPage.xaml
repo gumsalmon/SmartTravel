@@ -1,79 +1,64 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
              x:Class="HeriStep.Client.MainPage"
-             Title="Heri Map Enterprise"
-             BackgroundColor="#F5F5F5">
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D0D1A">
 
-    <Grid>
+    <Grid RowDefinitions="Auto, *">
 
-        <mapsui:MapControl x:Name="mapControl" 
-                           VerticalOptions="Fill" 
-                           HorizontalOptions="Fill"/>
-
-        <Button Text="🔄 Làm mới" 
-                Clicked="Button_Clicked"
-                BackgroundColor="White"
-                TextColor="#333333"
-                FontSize="14"
-                FontAttributes="Bold"
-                CornerRadius="25"
-                HeightRequest="50"
-                Padding="20,0"
-                VerticalOptions="Start" 
-                HorizontalOptions="End" 
-                Margin="20"
-                Shadow="{Shadow Brush=Black, Offset='2,2', Opacity=0.2}"/>
-
-        <Border x:Name="bottomSheet"
-                TranslationY="300" 
-                VerticalOptions="End"
-                BackgroundColor="White"
-                StrokeShape="RoundRectangle 25,25,0,0"
-                StrokeThickness="0"
-                Padding="25" 
-                Margin="0"
-                HeightRequest="280"
-                Shadow="{Shadow Brush=Black, Offset='0,-10', Opacity=0.15}">
-
-            <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="12">
-
-                <BoxView HeightRequest="5" WidthRequest="40" Color="#E0E0E0" 
-                         CornerRadius="2.5" HorizontalOptions="Center"/>
-
-                <Label x:Name="lblStallName" Grid.Row="1"
-                       Text="Đang tải tên quán..." 
-                       FontSize="22" 
-                       FontAttributes="Bold" 
-                       TextColor="#1a1a1a"
-                       MaxLines="2" LineBreakMode="TailTruncation"/>
-
-                <VerticalStackLayout Grid.Row="2" Spacing="5">
-                    <Label x:Name="lblStallCategory" 
-                           Text="Loại: ..." 
-                           FontSize="15" 
-                           TextColor="#666666"/>
-
-                    <Label x:Name="lblStallLevel" 
-                           Text="..." 
-                           FontSize="15" 
-                           FontAttributes="Bold"/>
-                </VerticalStackLayout>
-
-                <Button Grid.Row="3" 
-                        Text="Xem Chi Tiết &amp; Menu ➔" 
-                        BackgroundColor="#FF4500" 
-                        TextColor="White"
-                        FontAttributes="Bold"
-                        FontSize="16"
-                        CornerRadius="12"
-                        HeightRequest="55"
-                        Clicked="OnViewDetailsClicked"
-                        Shadow="{Shadow Brush=#FF4500, Offset='0,4', Opacity=0.4}"/>
-            </Grid>
+        <!-- ═══ HEADER ═══ -->
+        <Border Grid.Row="0" BackgroundColor="#0D0D1A" StrokeThickness="0" Padding="16,50,16,14">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="🏪 Danh Sách Cửa Hàng" FontSize="22" FontAttributes="Bold" TextColor="White"/>
+                <Label x:Name="lblCount" Text="Đang tải..." FontSize="13" TextColor="#888AAA"/>
+            </VerticalStackLayout>
         </Border>
 
-    </Grid>
+        <!-- ═══ LOADING ═══ -->
+        <ActivityIndicator x:Name="loader" Grid.Row="1" IsRunning="True" IsVisible="True"
+                           Color="#4285F4" VerticalOptions="Center"/>
 
+        <!-- ═══ DANH SÁCH SẠP ═══ -->
+        <CollectionView x:Name="stallList" Grid.Row="1" Margin="12,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="0,0,0,10" BackgroundColor="#1AFFFFFF"
+                            StrokeThickness="1" Stroke="#22FFFFFF"
+                            StrokeShape="RoundRectangle 14" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnStallTapped" CommandParameter="{Binding .}"/>
+                        </Border.GestureRecognizers>
+
+                        <Grid ColumnDefinitions="100, *" HeightRequest="90">
+                            <!-- Ảnh -->
+                            <Image Source="{Binding DisplayImageUrl}" Aspect="AspectFill"
+                                   Grid.Column="0"/>
+
+                            <!-- Thông tin -->
+                            <VerticalStackLayout Grid.Column="1" Padding="12,10" Spacing="4"
+                                                 VerticalOptions="Center">
+                                <Label Text="{Binding Name}" FontSize="15" FontAttributes="Bold"
+                                       TextColor="White" LineBreakMode="TailTruncation"/>
+                                <Label Text="{Binding DisplayOwner}" FontSize="12" TextColor="#AAAACC"/>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding DisplayStatus}" FontSize="11"
+                                           FontAttributes="Bold"/>
+                                    <Label Text="📍 Vĩnh Khánh, Q4" FontSize="11" TextColor="#666688"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- ═══ EMPTY STATE ═══ -->
+        <VerticalStackLayout x:Name="emptyState" Grid.Row="1" IsVisible="False"
+                             VerticalOptions="Center" HorizontalOptions="Center" Spacing="10">
+            <Label Text="🏚️" FontSize="50" HorizontalOptions="Center"/>
+            <Label Text="Chưa có cửa hàng nào" FontSize="16" TextColor="#888AAA" HorizontalOptions="Center"/>
+            <Label Text="Vui lòng tạo dữ liệu từ Admin" FontSize="13" TextColor="#666688" HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+    </Grid>
 </ContentPage>

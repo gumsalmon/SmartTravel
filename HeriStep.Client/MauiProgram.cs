@@ -1,9 +1,10 @@
 using HeriStep.Client.Services;
-using HeriStep.Client.Services.Location; // Thêm cái này
+using HeriStep.Client.Services.Location;
 using HeriStep.Client.ViewModels;
 using HeriStep.Client.Views;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using Mapsui.UI.Maui; // 💡 ĐÃ FIX: Thêm Using của Mapsui
 
 namespace HeriStep.Client;
 

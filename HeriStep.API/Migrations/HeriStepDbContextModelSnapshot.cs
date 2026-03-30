@@ -32,7 +32,6 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LangName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("lang_name");
 
@@ -41,82 +40,12 @@ namespace HeriStep.API.Migrations
                     b.ToTable("Languages", (string)null);
                 });
 
-            modelBuilder.Entity("HeriStep.Shared.Models.Stall", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasJsonPropertyName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("image_thumb")
-                        .HasJsonPropertyName("imageUrl");
-
-                    b.Property<bool>("IsOpen")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_open")
-                        .HasJsonPropertyName("isOpen");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("float")
-                        .HasColumnName("latitude")
-                        .HasJsonPropertyName("latitude");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("float")
-                        .HasColumnName("longitude")
-                        .HasJsonPropertyName("longitude");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("name_default")
-                        .HasJsonPropertyName("name");
-
-                    b.Property<int?>("OwnerId")
-                        .HasColumnType("int")
-                        .HasColumnName("owner_id")
-                        .HasJsonPropertyName("ownerId");
-
-                    b.Property<int>("RadiusMeter")
-                        .HasColumnType("int")
-                        .HasColumnName("radius_meter")
-                        .HasJsonPropertyName("radiusMeter");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .HasJsonPropertyName("sortOrder");
-
-                    b.Property<int?>("TourID")
-                        .HasColumnType("int")
-                        .HasColumnName("TourID")
-                        .HasJsonPropertyName("tourId");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at")
-                        .HasJsonPropertyName("updatedAt");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Stalls", null, t =>
-                        {
-                            t.HasTrigger("SomeTriggerName");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
             modelBuilder.Entity("HeriStep.Shared.Models.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
@@ -133,11 +62,42 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("is_signature");
 
                     b.Property<int>("StallId")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("stall_id");
 
                     b.HasKey("Id");
 
                     b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("HeriStep.Shared.Models.ProductTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LangCode")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("lang_code");
+
+                    b.Property<string>("ProductDesc")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("product_desc");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("product_name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductTranslations", (string)null);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.StallVisit", b =>
@@ -199,6 +159,35 @@ namespace HeriStep.API.Migrations
                     b.ToTable("Subscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("HeriStep.Shared.Models.TicketPackage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DurationHours")
+                        .HasColumnType("int")
+                        .HasColumnName("duration_hours");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PackageName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("package_name");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("price");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TicketPackages", (string)null);
+                });
+
             modelBuilder.Entity("HeriStep.Shared.Models.Tour", b =>
                 {
                     b.Property<int>("Id")
@@ -224,13 +213,150 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("is_top_hot");
 
                     b.Property<string>("TourName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tour_name");
 
                     b.HasKey("Id");
 
                     b.ToTable("Tours", (string)null);
+                });
+
+            modelBuilder.Entity("HeriStep.Shared.Models.TouristTicket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("AmountPaid")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount_paid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeviceId")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("expiry_date");
+
+                    b.Property<int?>("PackageId")
+                        .HasColumnType("int")
+                        .HasColumnName("package_id");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("payment_method");
+
+                    b.Property<string>("TicketCode")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ticket_code");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TouristTickets", (string)null);
+                });
+
+            modelBuilder.Entity("HeriStep.Shared.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("full_name");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("password_hash");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("role");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("username");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasFilter("[username] IS NOT NULL");
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("HeriStep.Shared.Stall", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("image_thumb");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_open");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int")
+                        .HasColumnName("subscription_level");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name_default");
+
+                    b.Property<int?>("OwnerId")
+                        .HasColumnType("int")
+                        .HasColumnName("owner_id");
+
+                    b.Property<int>("RadiusMeter")
+                        .HasColumnType("int")
+                        .HasColumnName("radius_meter");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int?>("TourID")
+                        .HasColumnType("int")
+                        .HasColumnName("TourID");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Stalls", null, t =>
+                        {
+                            t.HasTrigger("SomeTriggerName");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.StallContent", b =>
@@ -246,7 +372,6 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("is_active");
 
                     b.Property<string>("LangCode")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("lang_code");
 
@@ -255,48 +380,12 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("stall_id");
 
                     b.Property<string>("TtsScript")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tts_script");
 
                     b.HasKey("id");
 
                     b.ToTable("StallContents", (string)null);
-                });
-
-            modelBuilder.Entity("User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("full_name");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("password_hash");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("role");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("username");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Username")
-                        .IsUnique();
-
-                    b.ToTable("Users", (string)null);
                 });
 #pragma warning restore 612, 618
         }
