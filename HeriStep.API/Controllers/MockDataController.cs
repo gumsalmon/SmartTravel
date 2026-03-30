@@ -173,36 +173,26 @@ namespace HeriStep.API.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // 5. Tạo 3 gói Package đa dạng (3 ngày, 5 ngày, 7 ngày) & Lịch sử mua vé
-                var packages = await _context.TicketPackages.ToListAsync();
-                if (!packages.Any())
+                // 5. Tạo Package & Lịch sử mua vé
+                var package = await _context.TicketPackages.FirstOrDefaultAsync();
+                if (package == null)
                 {
-                    // Sinh 3 loại vé với chiến lược giá Upsell
-                    packages = new List<TicketPackage>
-                    {
-                        new TicketPackage { PackageName = "Vé Khám Phá 3 Ngày", Price = 30000, DurationHours = 72, IsActive = true },
-                        new TicketPackage { PackageName = "Vé Trải Nghiệm 5 Ngày", Price = 40000, DurationHours = 120, IsActive = true },
-                        new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh (7 Ngày)", Price = 50000, DurationHours = 168, IsActive = true }
-                    };
-                    _context.TicketPackages.AddRange(packages);
+                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
+                    _context.TicketPackages.Add(package);
                     await _context.SaveChangesAsync();
                 }
 
                 for (int i = 0; i < req.VisitCount; i++)
                 {
                     var randomDate = now.AddDays(-rand.Next(0, 90));
-
-                    // 💡 Lắc xí ngầu: Bốc ngẫu nhiên 1 trong 3 loại vé để bán cho khách này
-                    var randomPackage = packages[rand.Next(packages.Count)];
-
                     _context.TouristTickets.Add(new TouristTicket
                     {
                         TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
                         DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                        PackageId = randomPackage.Id,
-                        AmountPaid = randomPackage.Price, // Lấy đúng giá của gói vé vừa bốc
+                        PackageId = package.Id,
+                        AmountPaid = package.Price,
                         CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(randomPackage.DurationHours) // Cộng đúng số giờ của gói vé
+                        ExpiryDate = randomDate.AddHours(package.DurationHours)
                     });
 
                     if (createdStalls.Any())
