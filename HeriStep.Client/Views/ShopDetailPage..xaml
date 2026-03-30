@@ -2,77 +2,125 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="HeriStep.Client.Views.ShopDetailPage"
-             Title="Chi tiết quán"
-             BackgroundColor="#F5F5F5">
+             Title=""
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D0D1A">
 
-    <ScrollView>
-        <Grid>
-            <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&amp;fit=crop&amp;w=800&amp;q=80" 
-       HeightRequest="280" 
-       Aspect="AspectFill" 
-       VerticalOptions="Start"/>
+    <Grid RowDefinitions="300, *">
 
-            <ImageButton Source="dotnet_bot.png" BackgroundColor="White" Opacity="0.8"
-                         CornerRadius="20" WidthRequest="40" HeightRequest="40"
-                         HorizontalOptions="Start" VerticalOptions="Start" Margin="15"
-                         Clicked="BackButton_Clicked"/>
+        <!-- ═══ HERO IMAGE với Gradient Overlay ═══ -->
+        <Grid Grid.Row="0">
+            <Image x:Name="heroImage"
+                   Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=800"
+                   Aspect="AspectFill" />
 
-            <Border Margin="0,240,0,0" BackgroundColor="White" Padding="20,25,20,40"
-                    StrokeShape="RoundRectangle 30,30,0,0" StrokeThickness="0">
-                <Border.Shadow>
-                    <Shadow Brush="Black" Offset="0,-5" Radius="10" Opacity="0.1"/>
-                </Border.Shadow>
+            <!-- Dark gradient overlay from transparent → dark -->
+            <BoxView>
+                <BoxView.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="Transparent" Offset="0.0"/>
+                        <GradientStop Color="#CC0D0D1A" Offset="0.7"/>
+                        <GradientStop Color="#FF0D0D1A" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </BoxView.Background>
+            </BoxView>
 
-                <VerticalStackLayout Spacing="15">
+            <!-- Back Button -->
+            <Button Text="←" FontSize="20" FontAttributes="Bold"
+                    TextColor="White" BackgroundColor="#44FFFFFF"
+                    CornerRadius="22" WidthRequest="44" HeightRequest="44"
+                    HorizontalOptions="Start" VerticalOptions="Start" Margin="15,50,0,0"
+                    Clicked="BackButton_Clicked"/>
 
-                    <Label Text="{Binding Name}" FontSize="26" FontAttributes="Bold" TextColor="Black"/>
+            <!-- TTS Floating Button -->
+            <Button x:Name="ttsButton" Text="🔊 Nghe Thuyết Minh"
+                    FontSize="13" FontAttributes="Bold"
+                    TextColor="White" BackgroundColor="#1A73E8"
+                    CornerRadius="20" HeightRequest="40" Padding="15,0"
+                    HorizontalOptions="End" VerticalOptions="Start" Margin="0,55,15,0"
+                    Clicked="PlayAudio_Clicked">
+                <Button.Shadow>
+                    <Shadow Brush="#1A73E8" Offset="0,4" Radius="12" Opacity="0.5"/>
+                </Button.Shadow>
+            </Button>
 
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="⭐ 4.8 (120+ đánh giá)" FontSize="14" TextColor="#FFA000" FontAttributes="Bold"/>
-                        <Label Text="• Vĩnh Khánh, Quận 4" FontSize="14" TextColor="Gray"/>
-                    </HorizontalStackLayout>
-
-                    <BoxView HeightRequest="1" Color="#EEEEEE" Margin="0,10"/>
-
-                    <Label Text="Món Ăn Nổi Bật 🌶️" FontSize="18" FontAttributes="Bold" TextColor="Black"/>
-
-                    <Frame CornerRadius="15" Padding="15" HasShadow="False" BackgroundColor="#F9F9F9" BorderColor="#EEEEEE">
-                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
-                            <Label Grid.Row="0" Grid.Column="0" Text="Ốc Hương Rang Muối" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
-                            <Label Grid.Row="1" Grid.Column="0" Text="Ngon bá cháy bọ chét" FontSize="13" TextColor="Gray"/>
-                            <Label Grid.Row="0" Grid.Column="1" Text="120.000đ" FontAttributes="Bold" TextColor="#1A73E8" VerticalOptions="Center"/>
-                        </Grid>
-                    </Frame>
-
-                    <Frame CornerRadius="15" Padding="15" HasShadow="False" BackgroundColor="#F9F9F9" BorderColor="#EEEEEE">
-                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
-                            <Label Grid.Row="0" Grid.Column="0" Text="Sò Huyết Cháy Tỏi" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
-                            <Label Grid.Row="1" Grid.Column="0" Text="Đậm đà hương vị biển" FontSize="13" TextColor="Gray"/>
-                            <Label Grid.Row="0" Grid.Column="1" Text="90.000đ" FontAttributes="Bold" TextColor="#1A73E8" VerticalOptions="Center"/>
-                        </Grid>
-                    </Frame>
-
-                </VerticalStackLayout>
-            </Border>
+            <!-- Shop Name chèn đè lên ảnh góc dưới -->
+            <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,20" Spacing="4">
+                <Label Text="{Binding Name}"
+                       FontSize="26" FontAttributes="Bold" TextColor="White"/>
+                <HorizontalStackLayout Spacing="8">
+                    <Label Text="📍 Phố Ẩm Thực Vĩnh Khánh" FontSize="13" TextColor="#AAAACC"/>
+                    <Label x:Name="lblStatus" Text="● Đang mở" FontSize="13"
+                           TextColor="#4ADE80" FontAttributes="Bold"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
         </Grid>
-    </ScrollView>
 
-    <!-- Floating Audio Button -->
-    <AbsoluteLayout>
-        <Button Text="🔊 Nghe Thuyết Minh" 
-                FontAttributes="Bold"
-                BackgroundColor="#1A73E8" 
-                TextColor="White"
-                CornerRadius="25"
-                HeightRequest="50"
-                Margin="0,0,20,30"
-                AbsoluteLayout.LayoutFlags="PositionProportional"
-                AbsoluteLayout.LayoutBounds="1,1,AutoSize,AutoSize"
-                Clicked="PlayAudio_Clicked">
-            <Button.Shadow>
-                <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.3"/>
-            </Button.Shadow>
-        </Button>
-    </AbsoluteLayout>
+        <!-- ═══ CONTENT PANEL - Glassmorphism Dark ═══ -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="16" Padding="16,20,16,40">
 
+                <!-- Stats Row -->
+                <Grid ColumnDefinitions="*, *, *" ColumnSpacing="10">
+                    <Border Grid.Column="0" BackgroundColor="#1AFFFFFF" StrokeThickness="1" Stroke="#33FFFFFF"
+                            StrokeShape="RoundRectangle 14" Padding="12">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label Text="⭐ 4.8" FontAttributes="Bold" FontSize="16" TextColor="White" HorizontalOptions="Center"/>
+                            <Label Text="Đánh giá" FontSize="11" TextColor="#888AAA" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" BackgroundColor="#1AFFFFFF" StrokeThickness="1" Stroke="#33FFFFFF"
+                            StrokeShape="RoundRectangle 14" Padding="12">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="lblVisits" Text="..." FontAttributes="Bold" FontSize="16" TextColor="White" HorizontalOptions="Center"/>
+                            <Label Text="Lượt thăm" FontSize="11" TextColor="#888AAA" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="2" BackgroundColor="#1AFFFFFF" StrokeThickness="1" Stroke="#33FFFFFF"
+                            StrokeShape="RoundRectangle 14" Padding="12">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="lblRadius" Text="50m" FontAttributes="Bold" FontSize="16" TextColor="White" HorizontalOptions="Center"/>
+                            <Label Text="Bán kính" FontSize="11" TextColor="#888AAA" HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <BoxView HeightRequest="1" Color="#22FFFFFF"/>
+
+                <!-- Subscription Status Banner -->
+                <Border x:Name="subBanner" IsVisible="False"
+                        BackgroundColor="#FFCC001A" StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12" Padding="14,10">
+                    <Label x:Name="lblSubStatus" Text="⚠️ Gói cước đã hết hạn - Sạp này không còn hoạt động"
+                           TextColor="White" FontSize="13" FontAttributes="Bold"/>
+                </Border>
+
+                <!-- Menu Section Header -->
+                <Label Text="🍽️ Thực Đơn Nổi Bật" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+
+                <!-- Loading -->
+                <ActivityIndicator x:Name="menuLoader" IsRunning="True" IsVisible="True" Color="#1A73E8"/>
+
+                <!-- Dynamic menu list (populated from code) -->
+                <VerticalStackLayout x:Name="menuContainer" Spacing="10"/>
+
+                <!-- No menu fallback -->
+                <Label x:Name="lblNoMenu" Text="☕ Menu đang được cập nhật..." IsVisible="False"
+                       TextColor="#888AAA" FontSize="14" HorizontalOptions="Center" Margin="0,20"/>
+
+                <BoxView HeightRequest="1" Color="#22FFFFFF" Margin="0,10"/>
+
+                <!-- Location Info Card -->
+                <Label Text="📍 Thông Tin Vị Trí" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                <Border BackgroundColor="#1AFFFFFF" StrokeThickness="1" Stroke="#33FFFFFF"
+                        StrokeShape="RoundRectangle 14" Padding="16">
+                    <VerticalStackLayout Spacing="6">
+                        <Label x:Name="lblCoords" Text="Đang lấy tọa độ..." TextColor="#AAAACC" FontSize="13"/>
+                        <Label Text="Phố Ẩm Thực Vĩnh Khánh, Quận 4, TP.HCM" TextColor="#AAAACC" FontSize="13"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

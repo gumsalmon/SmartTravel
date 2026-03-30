@@ -3,46 +3,128 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
              x:Class="HeriStep.Client.Views.MapPage"
-             Title="Bản Đồ Vĩnh Khánh">
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D0D1A">
 
     <Grid>
-
+        <!-- ═══ BẢN ĐỒ FULL SCREEN ═══ -->
         <mapsui:MapView x:Name="mapView" VerticalOptions="Fill" HorizontalOptions="Fill" />
-        <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.3" IsVisible="False">
+
+        <!-- ═══ TOP BAR - tiêu đề + legend ═══ -->
+        <Border VerticalOptions="Start" HorizontalOptions="Fill" Margin="0"
+                BackgroundColor="#CC0D0D1A" StrokeThickness="0" Padding="16,45,16,12">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <!-- Nút Back -->
+                <Button Text="←" FontSize="18" FontAttributes="Bold"
+                        TextColor="White" BackgroundColor="#33FFFFFF"
+                        CornerRadius="18" WidthRequest="36" HeightRequest="36"
+                        Grid.Column="0" Clicked="BackButton_Clicked"/>
+
+                <!-- Tiêu đề -->
+                <Label Text="Phố Ẩm Thực Vĩnh Khánh" FontSize="17" FontAttributes="Bold"
+                       TextColor="White" VerticalOptions="Center" HorizontalOptions="Center"
+                       Grid.Column="1"/>
+
+                <!-- Legend toggle -->
+                <Button x:Name="btnLegend" Text="ℹ️" FontSize="16"
+                        BackgroundColor="#33FFFFFF" CornerRadius="18"
+                        WidthRequest="36" HeightRequest="36"
+                        Grid.Column="2" Clicked="ToggleLegend_Clicked"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ LEGEND PANEL (ẩn mặc định) ═══ -->
+        <Border x:Name="legendPanel" IsVisible="False"
+                HorizontalOptions="End" VerticalOptions="Start" Margin="0,100,12,0"
+                BackgroundColor="#EE1A1A2E" StrokeThickness="1" Stroke="#33FFFFFF"
+                StrokeShape="RoundRectangle 12" Padding="12,10">
+            <VerticalStackLayout Spacing="6">
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#EF4444"/>
+                    <Label Text="Đang hoạt động" FontSize="11" TextColor="White"/>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#22C55E"/>
+                    <Label Text="Chưa có chủ" FontSize="11" TextColor="White"/>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#9696A0"/>
+                    <Label Text="Hết hạn" FontSize="11" TextColor="White"/>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="6">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#4285F4"/>
+                    <Label Text="Vị trí của bạn" FontSize="11" TextColor="White"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ═══ NÚT "VỀ VỊ TRÍ HIỆN TẠI" (góc phải dưới, trên popup) ═══ -->
+        <Button x:Name="btnMyLocation" Text="📍" FontSize="20"
+                BackgroundColor="#EE1A1A2E"
+                CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"
+                Clicked="MyLocation_Clicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
+            </Button.Shadow>
+        </Button>
+
+        <!-- ═══ OVERLAY TỐI khi popup bật ═══ -->
+        <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.35" IsVisible="False">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="ClosePopup_Clicked" />
             </BoxView.GestureRecognizers>
         </BoxView>
 
-        <Border x:Name="shopPopup" IsVisible="False" VerticalOptions="End" Margin="15,0,15,30"
-                StrokeShape="RoundRectangle 20" StrokeThickness="0" BackgroundColor="White" Padding="0">
+        <!-- ═══ POPUP CHI TIẾT SẠP ═══ -->
+        <Border x:Name="shopPopup" IsVisible="False" VerticalOptions="End" Margin="12,0,12,20"
+                StrokeShape="RoundRectangle 20" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="0">
             <Border.Shadow>
-                <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.2"/>
+                <Shadow Brush="Black" Offset="0,8" Radius="20" Opacity="0.4"/>
             </Border.Shadow>
 
-            <Grid RowDefinitions="140, Auto" ColumnDefinitions="*">
-                <Image x:Name="popupImage" Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=2070&amp;auto=format&amp;fit=crop" 
-                       Aspect="AspectFill" Grid.Row="0" BackgroundColor="#E0E0E0"/>
+            <Grid RowDefinitions="120, Auto">
+                <!-- Ảnh -->
+                <Image x:Name="popupImage" Aspect="AspectFill" Grid.Row="0"
+                       Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=400"/>
 
-                <Button Text="✕" FontAttributes="Bold" TextColor="Black" BackgroundColor="White" 
-                        CornerRadius="15" WidthRequest="30" HeightRequest="30" Padding="0"
-                        HorizontalOptions="End" VerticalOptions="Start" Margin="10"
-                        Clicked="ClosePopup_Clicked" Opacity="0.8"/>
+                <!-- Gradient overlay trên ảnh -->
+                <BoxView Grid.Row="0" VerticalOptions="End" HeightRequest="50">
+                    <BoxView.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="Transparent" Offset="0"/>
+                            <GradientStop Color="#FF1A1A2E" Offset="1"/>
+                        </LinearGradientBrush>
+                    </BoxView.Background>
+                </BoxView>
 
-                <VerticalStackLayout Grid.Row="1" Padding="15" Spacing="8">
-                    <Label x:Name="popupName" Text="Tên quán ốc" FontSize="18" FontAttributes="Bold" TextColor="Black"/>
+                <!-- Nút đóng -->
+                <Button Text="✕" FontSize="13" TextColor="White" BackgroundColor="#55000000"
+                        CornerRadius="14" WidthRequest="28" HeightRequest="28" Padding="0"
+                        HorizontalOptions="End" VerticalOptions="Start" Margin="8"
+                        Grid.Row="0" Clicked="ClosePopup_Clicked"/>
 
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="⭐ 4.8 (120+ đánh giá)" FontSize="13" TextColor="#FFA000" FontAttributes="Bold"/>
-                        <Label Text="• Phố Ẩm Thực Vĩnh Khánh" FontSize="13" TextColor="Gray"/>
-                    </HorizontalStackLayout>
+                <!-- Nội dung -->
+                <VerticalStackLayout Grid.Row="1" Padding="14,10,14,14" Spacing="5">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label x:Name="popupName" Text="" FontSize="16" FontAttributes="Bold"
+                               TextColor="White" Grid.Column="0" LineBreakMode="TailTruncation"/>
+                        <Label x:Name="lblStatusTag" Text="" FontSize="11"
+                               VerticalOptions="Center" Grid.Column="1"/>
+                    </Grid>
+                    <Label x:Name="lblOwner" Text="" FontSize="12" TextColor="#AAAACC"/>
 
-                    <Button x:Name="btnViewDetail" Text="Xem Chi Tiết Quán" BackgroundColor="#1A73E8" TextColor="White" 
-        FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Margin="0,10,0,0"
-        Clicked="btnViewDetail_Clicked" />
+                    <Button x:Name="btnViewDetail" Text="📋 Xem Chi Tiết Quán"
+                            BackgroundColor="#4285F4" TextColor="White"
+                            FontAttributes="Bold" FontSize="14" CornerRadius="12"
+                            HeightRequest="42" Margin="0,6,0,0"
+                            Clicked="btnViewDetail_Clicked">
+                        <Button.Shadow>
+                            <Shadow Brush="#4285F4" Offset="0,3" Radius="8" Opacity="0.4"/>
+                        </Button.Shadow>
+                    </Button>
                 </VerticalStackLayout>
             </Grid>
         </Border>
-
     </Grid>
 </ContentPage>

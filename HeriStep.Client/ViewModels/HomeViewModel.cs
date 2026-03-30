@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using HeriStep.Shared.Models;
+using HeriStep.Client.Services;
 
 namespace HeriStep.Client.ViewModels
 {
@@ -71,25 +72,41 @@ namespace HeriStep.Client.ViewModels
             StartBackgroundGpsLoop();
         }
 
+        private readonly GeofenceService _geofenceService = new();
+
         private void StartBackgroundGpsLoop()
         {
+            // Đăng ký callback khi Radar phát hiện Khách vào gần Sạp
+            _geofenceService.StallEntered += async (stall) =>
+            {
+                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("lang_code", "vi");
+                string message = lang == "vi"
+                    ? $"Chào mừng bạn đến {stall.Name}! Hãy ghé thăm để trải nghiệm ẩm thực Vĩnh Khánh."
+                    : $"Welcome to {stall.Name}! Come and experience the best food street.";
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TTS] Đang phát thanh: {message}");
+                    // Phát loa TTS bằng AI giọng nói bản địa của thiết bị
+                    await TextToSpeech.Default.SpeakAsync(message);
+                });
+            };
+
             Task.Run(async () =>
             {
                 while (true)
                 {
-                    if (!IsManualLocation)
+                    if (!IsManualLocation && _allPoints.Any())
                     {
                         var loc = await _locationService.GetLocationAsync();
                         if (loc != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[TopGPS Loop] Lat: {loc.Latitude}, Lon: {loc.Longitude}");
+                            System.Diagnostics.Debug.WriteLine($"[GPS Radar] Lat: {loc.Latitude:F6}, Lon: {loc.Longitude:F6}");
+                            // Bắn thuật toán Haversine kiểm tra khoảng cách đến từng Sạp
+                            _geofenceService.CheckProximity(loc.Latitude, loc.Longitude, _allPoints);
                         }
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TopGPS Loop] Manual override mode active: {SelectedManualLocation}");
-                    }
-                    await Task.Delay(5000); // Mỗi 5s quét 1 lần (chuẩn Zero-click Radar)
+                    await Task.Delay(5000); // Quét mỗi 5 giây
                 }
             });
         }
