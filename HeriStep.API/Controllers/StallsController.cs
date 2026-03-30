@@ -84,7 +84,6 @@ namespace HeriStep.API.Controllers
 
                 if (req.ImageFile != null && req.ImageFile.Length > 0)
                 {
-                    // Giới hạn 5MB
                     if (req.ImageFile.Length > 5 * 1024 * 1024)
                         return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
 
@@ -110,7 +109,7 @@ namespace HeriStep.API.Controllers
 
                 if (req.TtsScript != null)
                 {
-                    var oldContents = _context.StallContents.Where(c => c.StallId == id);
+                    var oldContents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
                     _context.StallContents.RemoveRange(oldContents);
 
                     _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
@@ -144,7 +143,7 @@ namespace HeriStep.API.Controllers
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound();
 
-            var contents = _context.StallContents.Where(c => c.StallId == id);
+            var contents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
             _context.StallContents.RemoveRange(contents);
 
             _context.Stalls.Remove(stall);
@@ -220,7 +219,6 @@ namespace HeriStep.API.Controllers
                 string imageUrl = "";
                 if (ImageFile != null && ImageFile.Length > 0)
                 {
-                    // Giới hạn 5MB
                     if (ImageFile.Length > 5 * 1024 * 1024)
                         return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
 
@@ -250,6 +248,32 @@ namespace HeriStep.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
+        }
+
+        // 💡 ĐÃ FIX: Chống lỗi Open DataReader bằng ToListAsync() trước khi xóa
+        [HttpDelete("delete-product/{productId}")]
+        public async Task<IActionResult> DeleteProduct(int productId)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(productId);
+                if (product == null) return NotFound("Không tìm thấy món ăn này!");
+
+                var translations = await _context.ProductTranslations.Where(t => t.ProductId == productId).ToListAsync();
+                if (translations.Any())
+                {
+                    _context.ProductTranslations.RemoveRange(translations);
+                }
+
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Đã xóa món ăn thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
@@ -290,7 +314,7 @@ namespace HeriStep.API.Controllers
         {
             var top = await _context.Stalls
                 .Where(s => s.IsOpen)
-                .OrderByDescending(s => s.RadiusMeter) // Default to something mockable
+                .OrderByDescending(s => s.RadiusMeter)
                 .Take(5)
                 .Select(s => new {
                     Id = s.Id,
@@ -304,48 +328,37 @@ namespace HeriStep.API.Controllers
         }
 
         [HttpGet("nearby")]
-        public async Task<IActionResult> GetNearbyStalls() // for app map
+        public async Task<IActionResult> GetNearbyStalls()
         {
             return await GetAllStallsForMap();
         }
 
-        // =======================================================
-        // 💡 ĐÃ FIX: BỔ SUNG API GIA HẠN GÓI CƯỚC VỪA BỊ MẤT
-        // =======================================================
         [HttpPost("extend-subscription/{id}")]
         public async Task<IActionResult> ExtendSubscription(int id)
         {
             var stall = await _context.Stalls.FindAsync(id);
             if (stall == null) return NotFound("Không tìm thấy sạp.");
 
-            // Tìm gói cước (Subscription) hiện tại của sạp này
             var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
 
             if (sub == null)
             {
-                // Nếu sạp chưa từng có gói cước, tạo mới 30 ngày
                 sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
                 _context.Subscriptions.Add(sub);
             }
             else
             {
-                // Nếu gói cước đã hết hạn -> Bắt đầu tính 30 ngày từ hôm nay
-                // Nếu gói cước vẫn còn hạn -> Cộng dồn thêm 30 ngày
-if (!sub.ExpiryDate.HasValue || sub.ExpiryDate.Value < DateTime.Now) 
-{
-    // Nếu sạp chưa từng có ngày hết hạn, hoặc đã hết hạn trong quá khứ 
-    // -> Bắt đầu tính 30 ngày từ khoảnh khắc ngay bây giờ
-    sub.ExpiryDate = DateTime.Now.AddDays(30);
-} 
-else 
-{
-    // Nếu gói cước vẫn còn hạn -> Lấy giá trị thực sự (.Value) rồi mới cộng dồn thêm 30 ngày
-    sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30); 
-}
+                if (!sub.ExpiryDate.HasValue || sub.ExpiryDate.Value < DateTime.Now)
+                {
+                    sub.ExpiryDate = DateTime.Now.AddDays(30);
+                }
+                else
+                {
+                    sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30);
+                }
                 sub.IsActive = true;
             }
 
-            // Mở cửa lại cho sạp sau khi gia hạn
             stall.IsOpen = true;
 
             await _context.SaveChangesAsync();

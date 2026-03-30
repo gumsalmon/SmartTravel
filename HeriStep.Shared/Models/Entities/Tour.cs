@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HeriStep.Shared.Models
 {
@@ -22,10 +23,10 @@ namespace HeriStep.Shared.Models
         [NotMapped]
         public int StallCount { get; set; }
 
-        // 2. 💡 QUAN TRỌNG: Danh sách chi tiết các quán trong lộ trình
-        // Dùng để hiển thị ở trang Details.cshtml
-        [NotMapped]
-        public List<Stall> Stalls { get; set; } = new();
+        // 2. 💡 ĐÃ SỬA: Xóa [NotMapped] và đổi thành virtual ICollection
+        // Để EF Core biết đây là Navigation Property (Mối quan hệ 1 Tour - Nhiều Sạp)
+        // và cho phép lệnh .Include(t => t.Stalls) hoạt động!
+        public virtual ICollection<Stall> Stalls { get; set; } = new List<Stall>();
 
         // 3. Phân loại loại lộ trình dựa trên số lượng quán
         [NotMapped]

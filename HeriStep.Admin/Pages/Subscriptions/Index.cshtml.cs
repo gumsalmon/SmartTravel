@@ -33,13 +33,13 @@ namespace HeriStep.Admin.Pages.Subscriptions
             {
                 var allSubs = await _http.GetFromJsonAsync<List<Subscription>>("api/Subscriptions") ?? new();
 
-                // 1. TÌM KIẾM: Lọc theo DeviceId HOẶC ActivationCode
+                // 1. TÌM KIẾM: Lọc theo DeviceId HOẶC ActivationCode an toàn với Nullable
                 if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
                     var term = SearchTerm.ToLower();
                     allSubs = allSubs.Where(s =>
-                        (!string.IsNullOrEmpty(s.DeviceId) && s.DeviceId.ToLower().Contains(term)) ||
-                        (!string.IsNullOrEmpty(s.ActivationCode) && s.ActivationCode.ToLower().Contains(term))
+                        (s.DeviceId != null && s.DeviceId.ToLower().Contains(term)) ||
+                        (s.ActivationCode != null && s.ActivationCode.ToLower().Contains(term))
                     ).ToList();
                 }
 
@@ -64,7 +64,7 @@ namespace HeriStep.Admin.Pages.Subscriptions
                 }
 
                 // 4. Sắp xếp dữ liệu
-                var sortedList = allSubs.OrderByDescending(s => s.IsActive)
+                var sortedList = allSubs.OrderByDescending(s => s.IsActive == true)
                                         .ThenByDescending(s => s.StartDate)
                                         .ToList();
 

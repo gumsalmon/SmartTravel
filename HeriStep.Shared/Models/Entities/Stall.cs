@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization; // 💡 THÊM DÒNG NÀY
 
 namespace HeriStep.Shared.Models
 {
-    // Class này đại diện cho bảng 'Stalls' dưới SQL
     [Table("Stalls")]
     public class Stall
     {
@@ -18,7 +19,7 @@ namespace HeriStep.Shared.Models
         [Column("TourID")]
         public int? TourID { get; set; }
 
-        [Column("name_default")] // Ánh xạ với cột name_default trong SQL
+        [Column("name_default")]
         public string Name { get; set; } = string.Empty;
 
         [Column("latitude")]
@@ -42,25 +43,27 @@ namespace HeriStep.Shared.Models
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
 
-        // ==========================================================
-        // KHU VỰC ĐÃ PHONG ẤN BẰNG [NotMapped] (CHỈ XÀI TRÊN WEB/APP)
-        // ==========================================================
-
-        [NotMapped] // 💡 ĐÃ FIX: Database không có cột này
+        // ... Các thuộc tính [NotMapped] của bạn ...
+        [NotMapped]
         public string? Category { get; set; }
 
-        [NotMapped] // 💡 ĐÃ FIX: Hủy cái [Column("subscription_level")] đi, vì DB không có
+        [NotMapped]
         public int Level { get; set; }
 
-        [NotMapped] // Chỉ dùng hiển thị UI, DB không có cột này
+        [NotMapped]
         public string? OwnerName { get; set; }
 
         [NotMapped]
         public double? Radius { get; set; }
 
-        [NotMapped] // Cái này nằm bên bảng StallContents, không nằm ở đây!
+        [NotMapped]
         public string? TtsScript { get; set; }
+
         [NotMapped]
         public bool IsExpired { get; set; }
+
+        // 💡 NGĂN VÒNG LẶP JSON
+        [JsonIgnore]
+        public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     }
 }

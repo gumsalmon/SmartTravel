@@ -17,19 +17,17 @@ namespace HeriStep.Admin.Pages.Tours
         [BindProperty]
         public Tour Tour { get; set; } = new();
 
-        // 💡 ĐÃ THÊM: Biến chứa danh sách các quán có sẵn để hiện ở Modal
         public List<Stall> AvailableStalls { get; set; } = new();
 
-        // 💡 ĐÃ THÊM: Biến lưu cái ID quán mà bạn vừa chọn trong Modal để gửi đi
         [BindProperty]
         public int SelectedStallId { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
-            // 1. Lấy thông tin Lộ trình
+            // 1. Lấy thông tin Lộ trình (💡 ĐÃ SỬA THÊM DOMAIN API VÀO ĐÂY)
             try
             {
-                var data = await _http.GetFromJsonAsync<Tour>($"api/Tours/{id}");
+                var data = await _http.GetFromJsonAsync<Tour>($"http://127.0.0.1:5297/api/Tours/{id}");
 
                 if (data == null)
                 {
@@ -41,18 +39,17 @@ namespace HeriStep.Admin.Pages.Tours
             }
             catch (Exception)
             {
-                TempData["Error"] = "❌ Lỗi kết nối đến máy chủ API. Vui lòng thử lại sau.";
+                TempData["Error"] = "❌ Lỗi kết nối đến máy chủ API khi lấy chi tiết lộ trình.";
                 return RedirectToPage("./Index");
             }
 
-            // 2. 💡 Gọi API lấy danh sách Sạp tự do đổ vào Modal
+            // 2. Gọi API lấy danh sách Sạp tự do đổ vào Modal (💡 ĐÃ SỬA VÀO ĐÂY NỮA)
             try
             {
-                AvailableStalls = await _http.GetFromJsonAsync<List<Stall>>("api/Tours/available-stalls") ?? new();
+                AvailableStalls = await _http.GetFromJsonAsync<List<Stall>>("http://127.0.0.1:5297/api/Tours/available-stalls") ?? new();
             }
             catch
             {
-                // Nếu API bị lỗi thì để danh sách rỗng, không làm sập trang
                 AvailableStalls = new List<Stall>();
             }
 
@@ -66,7 +63,7 @@ namespace HeriStep.Admin.Pages.Tours
 
             try
             {
-                var response = await _http.PutAsync($"api/Tours/{tourId}/AddStall/{SelectedStallId}", null);
+                var response = await _http.PutAsync($"http://127.0.0.1:5297/api/Tours/{tourId}/AddStall/{SelectedStallId}", null);
                 if (response.IsSuccessStatusCode)
                     TempData["Success"] = "✅ Đã thêm sạp vào lộ trình thành công!";
                 else
@@ -82,7 +79,7 @@ namespace HeriStep.Admin.Pages.Tours
         {
             try
             {
-                var response = await _http.PutAsync($"api/Tours/{tourId}/MoveStall/{stallId}?direction={direction}", null);
+                var response = await _http.PutAsync($"http://127.0.0.1:5297/api/Tours/{tourId}/MoveStall/{stallId}?direction={direction}", null);
                 if (response.IsSuccessStatusCode) TempData["Success"] = "↕️ Đã cập nhật thứ tự thành công!";
                 else TempData["Error"] = "❌ Không thể thay đổi thứ tự. Dữ liệu có thể đang lỗi.";
             }
@@ -96,7 +93,7 @@ namespace HeriStep.Admin.Pages.Tours
         {
             try
             {
-                var response = await _http.PutAsync($"api/Tours/{tourId}/RemoveStall/{stallId}", null);
+                var response = await _http.PutAsync($"http://127.0.0.1:5297/api/Tours/{tourId}/RemoveStall/{stallId}", null);
                 if (response.IsSuccessStatusCode) TempData["Success"] = "✅ Đã gỡ quán khỏi lộ trình thành công!";
                 else TempData["Error"] = "❌ Không thể gỡ quán này. Có thể quán đã bị gỡ từ trước hoặc không tồn tại.";
             }

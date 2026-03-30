@@ -14,7 +14,6 @@
         </div>
     }
 
-    <!-- 💡 HIỂN THỊ CẢNH BÁO LỖI (Dùng cho vụ chọn ngày ngược) -->
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
@@ -24,18 +23,15 @@
     }
 
     <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-        <!-- 💡 HEADER GỘP BỘ LỌC ĐỒNG BỘ VỚI TRANG SẠP -->
         <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
             <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription</h4>
 
             <div class="d-flex gap-2 flex-wrap justify-content-end">
                 <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-                    <!-- Ô tìm Mã thiết bị / Mã kích hoạt -->
                     <div class="input-group input-group-sm" style="width: 250px;">
                         <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm Device ID, Mã kích hoạt...">
                     </div>
 
-                    <!-- Lọc Từ ngày -> Đến ngày -->
                     <div class="input-group input-group-sm" style="width: 130px;">
                         <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
                     </div>
@@ -80,9 +76,11 @@
                             <td class="ps-4 fw-bold text-dark">@sub.DeviceId</td>
                             <td><code class="text-primary fw-bold">@sub.ActivationCode</code></td>
                             <td>@sub.StartDate?.ToString("dd/MM/yyyy")</td>
-                            <td class="@(sub.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
+
+                            <td class="@(sub.ExpiryDate.HasValue && sub.ExpiryDate.Value < DateTime.Now ? "text-danger fw-bold" : "")">
                                 @sub.ExpiryDate?.ToString("dd/MM/yyyy")
                             </td>
+
                             <td class="text-center">
                                 <span class="badge @(sub.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill px-3">
                                     @(sub.IsActive == true ? "Đang chạy" : "Hết hạn")
@@ -94,7 +92,6 @@
             </table>
         </div>
 
-        <!-- 💡 BỘ PHÂN TRANG (Kẹp URL Parameters) -->
         <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
             <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
 
@@ -129,7 +126,6 @@
     </div>
 </div>
 
-<!-- Modal Add -->
 <div class="modal fade" id="addSubModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow-lg">

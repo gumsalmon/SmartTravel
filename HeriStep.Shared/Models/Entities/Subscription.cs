@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization; // 💡 THÊM DÒNG NÀY
 
 namespace HeriStep.Shared.Models
 {
@@ -12,25 +13,29 @@ namespace HeriStep.Shared.Models
         [Column("id")]
         public int Id { get; set; }
 
-        // 💡 BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ MÓC VÀO BẢNG SẠP (STALLS)
         [Required]
         [Column("stall_id")]
         public int StallId { get; set; }
 
         [Required]
-        [Column("device_id")] // Khớp với SQL: device_id
+        [Column("device_id")]
         public string DeviceId { get; set; } = string.Empty;
 
-        [Column("activation_code")] // Khớp với SQL: activation_code
+        [Column("activation_code")]
         public string? ActivationCode { get; set; }
 
         [Column("start_date")]
-        public DateTime? StartDate { get; set; } // Thêm ? để sửa lỗi Operator '?'
+        public DateTime? StartDate { get; set; }
 
         [Column("expiry_date")]
-        public DateTime? ExpiryDate { get; set; } // Thêm ? ở đây nữa
+        public DateTime? ExpiryDate { get; set; }
 
         [Column("is_active")]
         public bool? IsActive { get; set; } = true;
+
+        // 💡 BƯỚC QUAN TRỌNG: Ngăn chặn vòng lặp JSON bằng [JsonIgnore]
+        // EF Core vẫn hiểu mối quan hệ (Include vẫn hoạt động), nhưng khi trả JSON về thì sẽ ẩn thông tin này đi.
+        [JsonIgnore]
+        public virtual Stall? Stall { get; set; }
     }
 }

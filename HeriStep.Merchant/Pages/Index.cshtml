@@ -14,7 +14,7 @@
     }
 
     <div class="text-center mb-5">
-        <h2 class="fw-bold text-dark">Xin chào, <span class="text-primary">@User.Identity?.Name</span>! 👋</h2>
+        <h2 class="fw-bold text-dark">Xin chào, <span class="text-primary" id="lblGreetingName">Chủ sạp</span>! 👋</h2>
         <p class="text-muted fs-5">Hôm nay bạn muốn quản lý sạp hàng nào?</p>
 
         <div class="d-flex justify-content-center gap-2 mt-3">
@@ -161,7 +161,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // --- KỊCH BẢN THANH TOÁN ---
+    // Phục hồi lại tên đăng nhập bị mất trên giao diện
+    document.addEventListener("DOMContentLoaded", () => {
+        const uname = localStorage.getItem('username');
+        if (uname) {
+            document.getElementById('lblGreetingName').innerText = uname;
+        }
+    });
+
     let currentPaymentStallId = 0;
 
     function showPaymentModal(stallId, stallName) {
@@ -172,7 +179,6 @@
         myModal.show();
     }
 
-    // 💡 ĐÃ FIX: Bổ sung Token vào Headers để gọi API
     async function executePayment() {
         const btn = document.querySelector('button[onclick="executePayment()"]');
         btn.disabled = true;
@@ -209,7 +215,7 @@
         }
     }
 
-    // --- KỊCH BẢN ĐỔI MẬT KHẨU ---
+    // 💡 ĐÃ FIX: Truyền bằng UserId thay vì Username rỗng
     async function executeChangePassword() {
         const oldPass = document.getElementById('oldPass').value;
         const newPass = document.getElementById('newPass').value;
@@ -222,9 +228,14 @@
             return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp!", "error");
         }
 
-        const userId = "@(Model.MyStalls?.FirstOrDefault()?.OwnerId ?? 0)";
-        if (userId === "0") {
-            return Swal.fire("Lỗi", "Không tìm thấy ID người dùng. Thử đăng nhập lại nhé!", "error");
+        // Lấy UserId từ localStorage (lưu khi đăng nhập) hoặc lấy từ danh sách sạp
+        let userId = localStorage.getItem('userId');
+        if (!userId) {
+            userId = "@(Model.MyStalls?.FirstOrDefault()?.OwnerId ?? 0)";
+        }
+
+        if (!userId || userId === "0") {
+            return Swal.fire("Lỗi", "Không xác định được danh tính. Thử đăng nhập lại nhé!", "error");
         }
 
         const btn = document.querySelector('button[onclick="executeChangePassword()"]');
@@ -232,7 +243,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang đổi...';
 
         try {
-            const response = await fetch('http://127.0.0.1:5297/api/Stalls/change-password', {
+            const response = await fetch('http://127.0.0.1:5297/api/Auth/change-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
