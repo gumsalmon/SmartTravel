@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using HeriStep.Shared.Models;
 using HeriStep.Client.Services;
 using System;
+using System.Threading;
 
 namespace HeriStep.Client.Views;
 
@@ -21,6 +22,24 @@ public partial class MapPage : ContentPage
     private double _lastUserLat = 10.7595;
     private double _lastUserLon = 106.7025;
     private CancellationTokenSource? _locationLoopCts;
+    private List<Stall> _allStalls = new();
+    private List<int> _nearbyStallIds = new();
+
+    // ========== DEMO MODE SETTINGS ==========
+    private bool _isDemoMode = false;
+    private int _demoPathIndex = 0;
+    private readonly List<Location> _demoPath = new()
+    {
+        new Location(10.7588, 106.7008), 
+        new Location(10.7592, 106.7015),
+        new Location(10.7595, 106.7025), 
+        new Location(10.7598, 106.7032), 
+        new Location(10.7602, 106.7038), 
+        new Location(10.7610, 106.7042), 
+        new Location(10.7602, 106.7038), 
+        new Location(10.7598, 106.7032),
+        new Location(10.7595, 106.7025)
+    };
 
     public MapPage()
     {
@@ -29,26 +48,20 @@ public partial class MapPage : ContentPage
         var map = new Mapsui.Map();
         map.Layers.Add(LocalProxyMapLayer.Create());
 
-        // Layer user location (dưới layer sạp)
         _userLocationLayer = new WritableLayer { Name = "UserLocationLayer", Style = null };
         map.Layers.Add(_userLocationLayer);
 
         mapView.Map = map;
 
-        // Tắt widget log
         var logW = mapView.Map?.Widgets.FirstOrDefault(w => w.GetType().Name == "LoggingWidget");
         if (logW != null) logW.Enabled = false;
 
-        // Center Vĩnh Khánh
         var (cx, cy) = SphericalMercator.FromLonLat(106.7025, 10.7595);
         mapView.Map?.Navigator?.CenterOn(new MPoint(cx, cy));
         mapView.Map?.Navigator?.ZoomTo(2.5);
 
-        // Click handler - dùng lambda inline để tránh lỗi EventArgs type
         mapView.Info += (sender, e) => HandleMapInfo(e);
     }
-
-    // ══════════════ LIFECYCLE ══════════════
 
     protected override async void OnAppearing()
     {
@@ -56,6 +69,14 @@ public partial class MapPage : ContentPage
         ClosePopup();
         await LoadStallsAsync();
         StartUserLocationLoop();
+
+        // 💡 FORCED INIT: Silent speak to force Android TTS engine to wake up early.
+        _ = Task.Run(async () => {
+            try { 
+                await TextToSpeech.Default.GetLocalesAsync(); 
+                await TextToSpeech.Default.SpeakAsync("", new SpeechOptions { Volume = 0 });
+            } catch { }
+        });
     }
 
     protected override void OnDisappearing()
@@ -63,8 +84,6 @@ public partial class MapPage : ContentPage
         base.OnDisappearing();
         _locationLoopCts?.Cancel();
     }
-
-    // ══════════════ MAP CLICK ══════════════
 
     private void HandleMapInfo(dynamic e)
     {
@@ -78,35 +97,7 @@ public partial class MapPage : ContentPage
             var stall = mapInfo.Feature["PointData"] as Stall;
             if (stall != null)
             {
-                _currentSelectedShop = stall;
-                popupName.Text = stall.Name;
-                lblOwner.Text = $"👤 {(string.IsNullOrEmpty(stall.OwnerName) ? "Chưa có chủ" : stall.OwnerName)}";
-
-                if (!stall.IsOpen)
-                {
-                    lblStatusTag.Text = "⛔ Đã đóng";
-                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
-                }
-                else if (stall.OwnerId == null)
-                {
-                    lblStatusTag.Text = "🟢 Trống";
-                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
-                }
-                else
-                {
-                    lblStatusTag.Text = "🔴 Mở";
-                    lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
-                }
-
-                if (!string.IsNullOrEmpty(stall.ImageUrl))
-                {
-                    popupImage.Source = stall.ImageUrl.StartsWith("http")
-                        ? stall.ImageUrl
-                        : $"http://10.0.2.2:5297{stall.ImageUrl}";
-                }
-
-                overlay.IsVisible = true;
-                shopPopup.IsVisible = true;
+                ShowStallPopup(stall); // 💡 Use refactored helper
                 e.Handled = true;
             }
         }
@@ -116,7 +107,50 @@ public partial class MapPage : ContentPage
         }
     }
 
-    // ══════════════ GPS USER LOCATION ══════════════
+    // 💡 NEW HELPER: Shows the info popup for a selected stall
+    private void ShowStallPopup(Stall stall)
+    {
+        if (stall == null) return;
+        
+        _currentSelectedShop = stall;
+        popupName.Text = stall.Name;
+        lblOwner.Text = $"👤 {(string.IsNullOrEmpty(stall.OwnerName) ? "Chưa có chủ" : stall.OwnerName)}";
+
+        if (!stall.IsOpen)
+        {
+            lblStatusTag.Text = "⛔ Đã đóng";
+            lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
+        }
+        else if (stall.OwnerId == null)
+        {
+            lblStatusTag.Text = "🟢 Trống";
+            lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+        }
+        else
+        {
+            lblStatusTag.Text = "🔴 Mở";
+            lblStatusTag.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
+        }
+
+        if (!string.IsNullOrEmpty(stall.ImageUrl))
+        {
+            popupImage.Source = stall.ImageUrl.StartsWith("http")
+                ? stall.ImageUrl
+                : $"{HeriStep.Client.Services.AppConstants.BaseApiUrl}{stall.ImageUrl}";
+        }
+        else
+        {
+            // 💡 BEAUTIFUL FALLBACK: If image is empty, pick one from local resources
+            string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", 
+                                    "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg", 
+                                    "ca_phe_trung.jpg", "com_tam.jpg" };
+            int index = Math.Abs(stall.Id) % localFoods.Length;
+            popupImage.Source = localFoods[index];
+        }
+
+        overlay.IsVisible = true;
+        shopPopup.IsVisible = true;
+    }
 
     private void StartUserLocationLoop()
     {
@@ -130,24 +164,148 @@ public partial class MapPage : ContentPage
             {
                 try
                 {
-                    var loc = await Geolocation.Default.GetLastKnownLocationAsync();
-                    if (loc != null)
+                    if (_isDemoMode)
                     {
-                        _lastUserLat = loc.Latitude;
-                        _lastUserLon = loc.Longitude;
+                        var nextPoint = _demoPath[_demoPathIndex];
+                        _lastUserLat = nextPoint.Latitude;
+                        _lastUserLon = nextPoint.Longitude;
+                        _demoPathIndex = (_demoPathIndex + 1) % _demoPath.Count;
+                    }
+                    else
+                    {
+                        var loc = await Geolocation.Default.GetLastKnownLocationAsync();
+                        if (loc != null)
+                        {
+                            _lastUserLat = loc.Latitude;
+                            _lastUserLon = loc.Longitude;
+                        }
                     }
                 }
-                catch { /* Emulator không có GPS thật → giữ toạ độ mặc định */ }
+                catch { }
 
-                // Giả lập bearing (thực tế lấy từ Compass/Accelerometer)
                 _userBearingDeg = (_userBearingDeg + 3) % 360;
                 UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+                CheckNearbyStalls(_lastUserLat, _lastUserLon);
 
-                try { await Task.Delay(2000, token); }
+                int delay = _isDemoMode ? 1000 : 2000;
+                try { await Task.Delay(delay, token); }
                 catch (TaskCanceledException) { break; }
             }
         }, token);
     }
+
+    private void CheckNearbyStalls(double userLat, double userLon)
+    {
+        var radius = Preferences.Default.Get("voice_radius", 50.0);
+        var userLoc = new Location(userLat, userLon);
+
+        var currentNearby = _allStalls.Where(s => {
+            var stallLoc = new Location(s.Latitude, s.Longitude);
+            return Location.CalculateDistance(userLoc, stallLoc, DistanceUnits.Kilometers) * 1000 <= radius;
+        }).ToList();
+
+        var newIds = currentNearby.Select(s => s.Id).OrderBy(id => id).ToList();
+        
+        if (!newIds.SequenceEqual(_nearbyStallIds))
+        {
+            _nearbyStallIds = newIds;
+            MainThread.BeginInvokeOnMainThread(() => UpdateNearbyStallsPanel(currentNearby));
+        }
+    }
+
+    private void UpdateNearbyStallsPanel(List<Stall> stalls)
+    {
+        nearbyStallsList.Clear();
+        if (stalls.Count == 0)
+        {
+            nearbyScroll.IsVisible = false;
+            return;
+        }
+
+        foreach (var stall in stalls)
+        {
+            var btn = new Border
+            {
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 },
+                BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#EE1A1A2E"),
+                Padding = new Thickness(12, 6),
+                StrokeThickness = 1,
+                Stroke = Microsoft.Maui.Graphics.Color.FromArgb("#4285F4"),
+                Content = new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children = {
+                        new Label { Text = "🔊", VerticalOptions = LayoutOptions.Center },
+                        new Label { Text = stall.Name, TextColor = Colors.White, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }
+                    }
+                }
+            };
+
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (s, e) => {
+                ShowStallPopup(stall); // 💡 Show popup immediately
+                PlayStallAudio(stall); // 💡 Then play audio
+            };
+            btn.GestureRecognizers.Add(tap);
+
+            nearbyStallsList.Add(btn);
+        }
+
+        nearbyScroll.IsVisible = true;
+    }
+
+    private async void PlayStallAudio(Stall stall)
+    {
+        try
+        {
+            var lang = Preferences.Default.Get("user_language", "vi");
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var url = $"{HeriStep.Client.Services.AppConstants.BaseApiUrl}/api/Stalls/{stall.Id}/tts/{lang}";
+            
+            var response = await client.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<TtsResponse>();
+                if (data != null && !string.IsNullOrEmpty(data.Text))
+                {
+                    var settings = new SpeechOptions 
+                    { 
+                        Pitch = 1.0f, 
+                        Volume = 1.0f,
+                        Locale = (await TextToSpeech.Default.GetLocalesAsync()).FirstOrDefault(l => l.Language.StartsWith(lang))
+                    };
+                    await TextToSpeech.Default.SpeakAsync(data.Text, settings);
+                }
+            }
+            else
+            {
+                string fallback = lang switch {
+                    "en" => $"Introduction about {stall.Name}",
+                    "ja" => $"{stall.Name}についての紹介",
+                    "ko" => $"{stall.Name}에 대한 소개",
+                    "zh" => $"关于 {stall.Name} 的介绍",
+                    "fr" => $"Introduction sur {stall.Name}",
+                    "es" => $"Introducción sobre {stall.Name}",
+                    "de" => $"Einführung über {stall.Name}",
+                    "th" => $"ข้อมูลแนะนำเกี่ยวกับ {stall.Name}",
+                    _ => $"Giới thiệu về sạp {stall.Name}"
+                };
+
+                var settings = new SpeechOptions 
+                { 
+                    Locale = (await TextToSpeech.Default.GetLocalesAsync()).FirstOrDefault(l => l.Language.StartsWith(lang))
+                };
+                await TextToSpeech.Default.SpeakAsync(fallback, settings);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Audio Error] {ex.Message}");
+            await DisplayAlert("Lỗi", $"Không thể phát giới thiệu: {ex.Message}", "OK");
+        }
+    }
+
+    public class TtsResponse { public string Text { get; set; } = ""; }
 
     private void UpdateUserLocationOnMap(double lat, double lon, double bearingDeg)
     {
@@ -157,9 +315,8 @@ public partial class MapPage : ContentPage
 
         _userLocationLayer.Clear();
 
-        // ── Vòng xanh nhạt (vùng chính xác GPS, bán kính ~30m) ──
-        double accuracyRadius = 40; // meter
-        double mPerPixel = 1.0; // at this zoom
+        double accuracyRadius = 40; 
+        double mPerPixel = 1.0; 
         double resolution = mapView.Map?.Navigator?.Viewport.Resolution ?? 1;
         double radiusPx = accuracyRadius / Math.Max(resolution, 0.1);
 
@@ -172,17 +329,16 @@ public partial class MapPage : ContentPage
             Outline = new Mapsui.Styles.Pen(new Mapsui.Styles.Color(66, 133, 244, 60), 1)
         });
 
-        // ── Hình nón hướng nhìn (FAN SHAPE bằng chuỗi chấm nhỏ) ──
         double bearingRad = bearingDeg * Math.PI / 180.0;
-        double coneAngle = 35 * Math.PI / 180; // ±35° cho nón
-        int numDots = 12; // số chấm tạo thành fan
-        double maxRadius = 60000; // Đơn vị Mercator (~50m ở zoom này)
+        double coneAngle = 35 * Math.PI / 180; 
+        int numDots = 12; 
+        double maxRadius = 60000; 
 
         for (int ring = 1; ring <= 3; ring++)
         {
             double ringR = maxRadius * ring / 3.0;
-            double dotScale = 0.06 + (0.08 * (3 - ring) / 2.0); // Gần lớn, xa nhỏ
-            int alpha = 70 - (ring * 15); // Gần đậm, xa nhạt
+            double dotScale = 0.06 + (0.08 * (3 - ring) / 2.0); 
+            int alpha = 70 - (ring * 15); 
 
             for (int i = 0; i <= numDots; i++)
             {
@@ -201,7 +357,6 @@ public partial class MapPage : ContentPage
             }
         }
 
-        // ── Chấm xanh trung tâm (vẽ SAU để nằm TRÊN hình nón) ──
         var dotFeature = new PointFeature(new MPoint(x, y));
         dotFeature.Styles.Add(new SymbolStyle
         {
@@ -217,15 +372,13 @@ public partial class MapPage : ContentPage
         MainThread.BeginInvokeOnMainThread(() => mapView.RefreshGraphics());
     }
 
-    // ══════════════ LOAD STALLS ══════════════
-
     private async Task LoadStallsAsync()
     {
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var url = "http://10.0.2.2:5297/api/Stalls";
+            var url = $"{HeriStep.Client.Services.AppConstants.BaseApiUrl}/api/Stalls";
             var poiList = await client.GetFromJsonAsync<List<HeriStep.Shared.Models.DTOs.Responses.PointOfInterest>>(url, options);
 
             if (poiList != null && poiList.Count > 0)
@@ -243,6 +396,7 @@ public partial class MapPage : ContentPage
                     OwnerName = p.OwnerName
                 }).ToList();
 
+                _allStalls = stalls;
                 var old = mapView.Map?.Layers.FirstOrDefault(l => l.Name == "QuanOcLayer");
                 if (old != null) mapView.Map?.Layers.Remove(old);
 
@@ -321,9 +475,15 @@ public partial class MapPage : ContentPage
         });
     }
 
-    // ══════════════ UI HANDLERS ══════════════
-
     private void ClosePopup_Clicked(object sender, EventArgs e) => ClosePopup();
+
+    private void OnPlayAudioClicked(object sender, EventArgs e)
+    {
+        if (_currentSelectedShop != null && _currentSelectedShop.Id != 0)
+        {
+            PlayStallAudio(_currentSelectedShop);
+        }
+    }
 
     private void ClosePopup()
     {
@@ -355,13 +515,31 @@ public partial class MapPage : ContentPage
         legendPanel.IsVisible = !legendPanel.IsVisible;
     }
 
-    /// <summary>
-    /// NÚT "VỀ VỊ TRÍ HIỆN TẠI" - Center map lên chấm xanh
-    /// </summary>
     private void MyLocation_Clicked(object sender, EventArgs e)
+    {
+        _isDemoMode = false;
+        btnDemoMode.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#EE1A1A2E");
+        CenterMapOnUser();
+    }
+
+    private void CenterMapOnUser()
     {
         var (mx, my) = SphericalMercator.FromLonLat(_lastUserLon, _lastUserLat);
         mapView.Map?.Navigator?.CenterOn(new MPoint(mx, my));
         mapView.Map?.Navigator?.ZoomTo(2.5);
+    }
+
+    private void DemoMode_Clicked(object sender, EventArgs e)
+    {
+        _isDemoMode = !_isDemoMode;
+        if (_isDemoMode)
+        {
+            _demoPathIndex = 0;
+            btnDemoMode.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#4285F4");
+        }
+        else
+        {
+            btnDemoMode.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#EE1A1A2E");
+        }
     }
 }

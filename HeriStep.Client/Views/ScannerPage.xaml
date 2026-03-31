@@ -12,9 +12,9 @@
         <VerticalStackLayout>
             <!-- Header -->
             <Grid ColumnDefinitions="Auto, *, Auto" Padding="20,50,20,10">
-                <Button Text="☰" FontSize="20" TextColor="White" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Button Text="☰" FontSize="20" TextColor="White" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0" Clicked="OnMenuClicked"/>
                 <Label Text="Quét Mã" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
-                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="White" BorderWidth="2" BackgroundColor="Transparent">
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="White" BackgroundColor="Transparent">
                     <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
                 </Frame>
             </Grid>
@@ -40,13 +40,19 @@
                 <BoxView HorizontalOptions="End" VerticalOptions="End" WidthRequest="4" HeightRequest="40" Color="#009688"/>
             </Grid>
 
-            <Button Text="Nhập mã thủ công" CornerRadius="25" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="White" FontAttributes="Bold" HeightRequest="50" WidthRequest="200" HorizontalOptions="Center"/>
+            <Button Text="Nhập mã thủ công" CornerRadius="25" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="White" FontAttributes="Bold" HeightRequest="50" WidthRequest="200" HorizontalOptions="Center" Clicked="OnManualCodeClicked"/>
 
             <HorizontalStackLayout Spacing="25" HorizontalOptions="Center" Margin="0,30,0,0">
                 <Frame CornerRadius="25" HeightRequest="50" WidthRequest="50" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" Padding="0" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnFlashTapped" />
+                    </Frame.GestureRecognizers>
                     <Label Text="🔦" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                 </Frame>
                 <Frame CornerRadius="25" HeightRequest="50" WidthRequest="50" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" Padding="0" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnGalleryTapped" />
+                    </Frame.GestureRecognizers>
                     <Label Text="🖼" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                 </Frame>
             </HorizontalStackLayout>

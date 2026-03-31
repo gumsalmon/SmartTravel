@@ -31,7 +31,7 @@
                 </Grid>
 
                 <VerticalStackLayout VerticalOptions="End" Padding="20" Spacing="5">
-                    <Label Text="Signature" FontSize="36" FontAttributes="Bold" TextColor="#F3DCA9" FontStyle="Italic" Margin="0,0,0,-10"/>
+                    <Label Text="Signature" FontSize="36" FontAttributes="Italic" TextColor="#F3DCA9" Margin="0,0,0,-10"/>
                     <Label Text="GRILLED SEAFOOD WORK" FontSize="12" FontAttributes="Bold" TextColor="#F3DCA9" CharacterSpacing="1"/>
 
                     <Frame CornerRadius="8" BackgroundColor="#E65100" Padding="8,4" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Start" Margin="0,15,0,0">

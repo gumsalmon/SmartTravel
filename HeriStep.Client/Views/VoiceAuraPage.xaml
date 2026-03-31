@@ -10,7 +10,7 @@
             
             <!-- Header -->
             <Grid ColumnDefinitions="Auto, *, Auto">
-                <Button Text="←" FontSize="20" TextColor="#045950" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Button Text="←" FontSize="20" TextColor="#045950" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0" Clicked="OnBackClicked"/>
                 <Label Text="Cài Đặt Voice Aura" FontSize="18" FontAttributes="Bold" TextColor="#045950" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
                 <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="Transparent">
                     <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
@@ -41,29 +41,86 @@
                         <Label Text="🌐" FontSize="18" VerticalOptions="Center"/>
                         <Label Text="Ngôn Ngữ" FontSize="16" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="15" RowSpacing="15">
-                        <Frame CornerRadius="12" BackgroundColor="#00695C" Padding="15,12" HasShadow="False" BorderColor="Transparent" Grid.Row="0" Grid.Column="0">
-                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                <Label Text="🇻🇳" FontSize="16" VerticalOptions="Center"/>
-                                <Label Text="VN" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="15">
+                        <Frame x:Name="frameVN" CornerRadius="12" BackgroundColor="#00695C" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="0" Grid.Column="0">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="vi"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇻🇳" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="VN" FontSize="12" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Frame>
-                        <Frame CornerRadius="12" BackgroundColor="#F0FDFC" Padding="15,12" HasShadow="False" BorderColor="Transparent" Grid.Row="0" Grid.Column="1">
-                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                <Label Text="🇺🇸" FontSize="16" VerticalOptions="Center"/>
-                                <Label Text="EN" FontSize="14" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                        <Frame x:Name="frameEN" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="0" Grid.Column="1">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="en"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇺🇸" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="EN" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Frame>
-                        <Frame CornerRadius="12" BackgroundColor="#F0FDFC" Padding="15,12" HasShadow="False" BorderColor="Transparent" Grid.Row="1" Grid.Column="0">
-                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                <Label Text="🇯🇵" FontSize="16" VerticalOptions="Center"/>
-                                <Label Text="JP" FontSize="14" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                        <Frame x:Name="frameCN" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="0" Grid.Column="2">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="zh"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇨🇳" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="CN" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Frame>
-                        <Frame CornerRadius="12" BackgroundColor="#F0FDFC" Padding="15,12" HasShadow="False" BorderColor="Transparent" Grid.Row="1" Grid.Column="1">
-                            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                <Label Text="🇰🇷" FontSize="16" VerticalOptions="Center"/>
-                                <Label Text="KR" FontSize="14" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                        <Frame x:Name="frameJP" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="1" Grid.Column="0">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="ja"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇯🇵" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="JP" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                        <Frame x:Name="frameKR" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="1" Grid.Column="1">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="ko"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇰🇷" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="KR" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                        <Frame x:Name="frameFR" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="1" Grid.Column="2">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="fr"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇫🇷" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="FR" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                        <Frame x:Name="frameES" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="2" Grid.Column="0">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="es"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇪🇸" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="ES" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                        <Frame x:Name="frameDE" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="2" Grid.Column="1">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="de"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇩🇪" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="DE" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Frame>
+                        <Frame x:Name="frameTH" CornerRadius="12" BackgroundColor="#F0FDFC" Padding="8,10" HasShadow="False" BorderColor="Transparent" Grid.Row="2" Grid.Column="2">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnLanguageTapped" CommandParameter="th"/>
+                            </Frame.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🇹🇭" FontSize="14" VerticalOptions="Center"/>
+                                <Label Text="TH" FontSize="12" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                         </Frame>
                     </Grid>
@@ -78,13 +135,19 @@
                         <Label Text="Giới Tính Giọng Nói" FontSize="16" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="15">
-                        <Frame CornerRadius="16" BackgroundColor="#E0F2F1" Padding="20" HasShadow="False" BorderColor="#00695C" Grid.Column="0">
+                        <Frame x:Name="frameMale" CornerRadius="16" BackgroundColor="#E0F2F1" Padding="20" HasShadow="False" BorderColor="#00695C" Grid.Column="0">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnGenderTapped" CommandParameter="Male"/>
+                            </Frame.GestureRecognizers>
                             <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                                 <Label Text="♂" FontSize="20" FontAttributes="Bold" TextColor="#00695C" HorizontalOptions="Center"/>
                                 <Label Text="Nam" FontSize="14" FontAttributes="Bold" TextColor="#004D40" HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </Frame>
-                        <Frame CornerRadius="16" BackgroundColor="#F0FDFC" Padding="20" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
+                        <Frame x:Name="frameFemale" CornerRadius="16" BackgroundColor="#F0FDFC" Padding="20" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnGenderTapped" CommandParameter="Female"/>
+                            </Frame.GestureRecognizers>
                             <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                                 <Label Text="♀" FontSize="20" FontAttributes="Bold" TextColor="#00695C" HorizontalOptions="Center"/>
                                 <Label Text="Nữ" FontSize="14" FontAttributes="Bold" TextColor="#004D40" HorizontalOptions="Center"/>
@@ -103,10 +166,10 @@
                             <Label Text="Tốc Độ Phát" FontSize="16" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                         </HorizontalStackLayout>
                         <Frame CornerRadius="12" BackgroundColor="#80CBC4" Padding="12,4" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
-                            <Label Text="1.2x" FontSize="12" FontAttributes="Bold" TextColor="#004D40"/>
+                            <Label x:Name="lblSpeedValue" Text="1.2x" FontSize="12" FontAttributes="Bold" TextColor="#004D40"/>
                         </Frame>
                     </Grid>
-                    <Slider Value="1.2" Maximum="2" Minimum="0.5" ThumbColor="#00695C" MinimumTrackColor="#80CBC4" MaximumTrackColor="#E0F2F1"/>
+                    <Slider x:Name="speedSlider" Value="1.2" Maximum="2" Minimum="0.5" ThumbColor="#00695C" MinimumTrackColor="#80CBC4" MaximumTrackColor="#E0F2F1"/>
                     <Grid ColumnDefinitions="1*,1*,1*">
                         <Label Text="CHẬM" FontSize="10" TextColor="#888" Grid.Column="0" HorizontalTextAlignment="Start"/>
                         <Label Text="BÌNH THƯỜNG" FontSize="10" TextColor="#888" Grid.Column="1" HorizontalTextAlignment="Center"/>
@@ -124,19 +187,19 @@
                             <Label Text="Bán Kính Thông Báo" FontSize="16" FontAttributes="Bold" TextColor="#004D40" VerticalOptions="Center"/>
                         </HorizontalStackLayout>
                         <HorizontalStackLayout Spacing="4" Grid.Column="1" VerticalOptions="Center">
-                            <Label Text="50" FontSize="24" FontAttributes="Bold" TextColor="#00695C"/>
+                            <Label x:Name="lblRadiusValue" Text="50" FontSize="24" FontAttributes="Bold" TextColor="#00695C"/>
                             <Label Text="m" FontSize="14" FontAttributes="Bold" TextColor="#00695C" VerticalOptions="Center"/>
                         </HorizontalStackLayout>
                     </Grid>
                     <Label Text="Khoảng cách Aura sẽ tự động kích hoạt khi bạn đến gần điểm tham quan." FontSize="13" TextColor="#085B66" LineHeight="1.3"/>
-                    <Slider Value="50" Maximum="100" Minimum="10" ThumbColor="#00695C" MinimumTrackColor="#80CBC4" MaximumTrackColor="#E0F2F1"/>
+                    <Slider x:Name="radiusSlider" Value="50" Maximum="100" Minimum="10" ThumbColor="#00695C" MinimumTrackColor="#80CBC4" MaximumTrackColor="#E0F2F1"/>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Action Buttons -->
             <VerticalStackLayout Spacing="15" Margin="0,10,0,10">
-                <Button Text="▶  Nghe Thử Âm Thanh" CornerRadius="25" BackgroundColor="#BF360C" TextColor="White" FontAttributes="Bold" HeightRequest="56"/>
-                <Button Text="Lưu Thay Đổi" CornerRadius="25" BackgroundColor="#004D40" TextColor="White" FontAttributes="Bold" HeightRequest="56"/>
+                <Button Text="▶  Nghe Thử Âm Thanh" CornerRadius="25" BackgroundColor="#BF360C" TextColor="White" FontAttributes="Bold" HeightRequest="56" Clicked="OnPreviewClicked"/>
+                <Button Text="Lưu Thay Đổi" CornerRadius="25" BackgroundColor="#004D40" TextColor="White" FontAttributes="Bold" HeightRequest="56" Clicked="OnSaveClicked"/>
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>

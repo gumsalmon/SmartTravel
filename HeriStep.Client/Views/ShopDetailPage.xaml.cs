@@ -22,6 +22,15 @@ namespace HeriStep.Client.Views
                 {
                     heroImage.Source = stall.ImageUrl;
                 }
+                else
+                {
+                    // 💡 BEAUTIFUL FALLBACK FOR SHOP DETAIL
+                    string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", 
+                                            "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg", 
+                                            "ca_phe_trung.jpg", "com_tam.jpg" };
+                    int index = Math.Abs(stall.Id) % localFoods.Length;
+                    heroImage.Source = localFoods[index];
+                }
             }
         }
 

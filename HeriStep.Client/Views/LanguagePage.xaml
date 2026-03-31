@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.LanguagePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D0D1A">
+
+    <Grid RowDefinitions="Auto, *, Auto" Padding="30,60,30,40">
+        
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10" HorizontalOptions="Center">
+            <Label Text="Welcome to HeriStep" 
+                   FontSize="28" 
+                   FontAttributes="Bold" 
+                   TextColor="White" 
+                   HorizontalTextAlignment="Center"/>
+            <Label Text="Please select your nationality to continue" 
+                   FontSize="16" 
+                   TextColor="#AAAACC" 
+                   HorizontalTextAlignment="Center"/>
+        </VerticalStackLayout>
+
+        <!-- Language List -->
+        <ScrollView Grid.Row="1" Margin="0,40,0,20" VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Spacing="15" x:Name="languageList">
+                <!-- Items will be added in code or statically -->
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="vi"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇻🇳" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="Vietnamese" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="Tiếng Việt" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="en"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇺🇸" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="English (US)" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="English" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="en-GB"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇬🇧" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="English (UK)" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="English" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="fr"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇫🇷" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="French" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="Français" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="de"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇩🇪" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="German" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="Deutsch" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="ja"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇯🇵" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="Japanese" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="日本語" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="ko"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇰🇷" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="Korean" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="한국어" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="20,15">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageSelected" CommandParameter="zh"/>
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                        <Label Text="🇨🇳" FontSize="32" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="Chinese" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="20,0" Grid.Column="1" VerticalOptions="Center"/>
+                        <Label Text="中文" FontSize="14" TextColor="#4285F4" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Footer Info -->
+        <Label Grid.Row="2" 
+               Text="You can change this anytime in Profile settings" 
+               FontSize="12" 
+               TextColor="#666688" 
+               HorizontalTextAlignment="Center"/>
+    </Grid>
+</ContentPage>

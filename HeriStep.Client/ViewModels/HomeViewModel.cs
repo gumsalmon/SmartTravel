@@ -60,6 +60,7 @@ namespace HeriStep.Client.ViewModels
         {
             _httpClient = httpClient;
             _locationService = locationService;
+            _httpClient.BaseAddress = new Uri(HeriStep.Client.Services.AppConstants.BaseApiUrl);
             string? savedToken = Microsoft.Maui.Storage.Preferences.Default.Get("jwt_token", string.Empty);
             if (!string.IsNullOrEmpty(savedToken))
             {
@@ -79,7 +80,7 @@ namespace HeriStep.Client.ViewModels
             // Đăng ký callback khi Radar phát hiện Khách vào gần Sạp
             _geofenceService.StallEntered += async (stall) =>
             {
-                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("lang_code", "vi");
+                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("user_language", "vi");
                 string message = lang == "vi"
                     ? $"Chào mừng bạn đến {stall.Name}! Hãy ghé thăm để trải nghiệm ẩm thực Vĩnh Khánh."
                     : $"Welcome to {stall.Name}! Come and experience the best food street.";
@@ -118,8 +119,8 @@ namespace HeriStep.Client.ViewModels
             IsBusy = true;
             try
             {
-                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("lang_code", "vi");
-                var url = $"api/Stalls?lang={lang}";
+                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("user_language", "vi");
+                var url = $"/api/Stalls?lang={lang}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
 
@@ -130,16 +131,25 @@ namespace HeriStep.Client.ViewModels
                         Points.Clear(); TopRatedPoints.Clear(); _allPoints.Clear();
                         foreach (var p in data)
                         {
-                            // 💡 ĐÃ FIX: Thay bằng IP đuôi .15 của sếp và xử lý chuẩn đường dẫn ảnh
-                            if (!string.IsNullOrEmpty(p.ImageUrl) && !p.ImageUrl.StartsWith("http"))
+                            if (!string.IsNullOrEmpty(p.ImageUrl))
                             {
-                                p.ImageUrl = $"http://192.168.1.15:5297/{p.ImageUrl.TrimStart('/')}";
+                                if (!p.ImageUrl.StartsWith("http"))
+                                    p.ImageUrl = $"{HeriStep.Client.Services.AppConstants.BaseApiUrl}/{p.ImageUrl.TrimStart('/')}";
+                            }
+                            else
+                            {
+                                // 💡 BEAUTIFUL FALLBACK: If image is empty, pick one from local resources
+                                string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", 
+                                                        "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg", 
+                                                        "ca_phe_trung.jpg", "com_tam.jpg" };
+                                int index = Math.Abs(p.Id) % localFoods.Length;
+                                p.ImageUrl = localFoods[index];
                             }
 
                             Points.Add(p);
                             _allPoints.Add(p);
 
-                            // Tạm thời lấy 5 quán đầu làm Top Rating cho giao diện đẹp
+                            // Tạm thời lấy 5 quán đầu làm Top Rating
                             if (TopRatedPoints.Count < 5) TopRatedPoints.Add(p);
                         }
                     });
@@ -149,13 +159,22 @@ namespace HeriStep.Client.ViewModels
             
             // Load Top Tours song song
             try {
-                var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("http://10.0.2.2:5297/api/Tours/top-hot");
+                var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("/api/Tours/top-hot");
                 if (toursData != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         TopTours.Clear();
-                        foreach (var t in toursData) TopTours.Add(t);
+                        foreach (var t in toursData) 
+                        {
+                            if (string.IsNullOrEmpty(t.ImageUrl))
+                            {
+                                // 💡 BEAUTIFUL FALLBACK FOR TOURS
+                                string[] tourImages = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", "goi_cuon.jpg" };
+                                t.ImageUrl = tourImages[Math.Abs(t.Id) % tourImages.Length];
+                            }
+                            TopTours.Add(t);
+                        }
                     });
                 }
             }

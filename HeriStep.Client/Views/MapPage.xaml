@@ -33,6 +33,14 @@
             </Grid>
         </Border>
 
+        <!-- ═══ NEARBY PROMOTIONS PANEL (Hiện khi ở gần) ═══ -->
+        <ScrollView x:Name="nearbyScroll" Orientation="Horizontal" HorizontalOptions="Fill" VerticalOptions="Start"
+                    Margin="12,120,12,0" HeightRequest="48" IsVisible="False" VerticalScrollBarVisibility="Never">
+            <HorizontalStackLayout x:Name="nearbyStallsList" Spacing="10" Padding="4,0">
+                <!-- Các nút bấm sạp sẽ được thêm bằng code-behind -->
+            </HorizontalStackLayout>
+        </ScrollView>
+
         <!-- ═══ LEGEND PANEL (ẩn mặc định) ═══ -->
         <Border x:Name="legendPanel" IsVisible="False"
                 HorizontalOptions="End" VerticalOptions="Start" Margin="0,100,12,0"
@@ -64,6 +72,16 @@
                 CornerRadius="24" WidthRequest="48" HeightRequest="48"
                 HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"
                 Clicked="MyLocation_Clicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
+            </Button.Shadow>
+        </Button>
+
+        <Button x:Name="btnDemoMode" Text="🏃" FontSize="20"
+                BackgroundColor="#EE1A1A2E" BorderColor="#4285F4" BorderWidth="2"
+                CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,145"
+                Clicked="DemoMode_Clicked">
             <Button.Shadow>
                 <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
             </Button.Shadow>
@@ -114,15 +132,24 @@
                     </Grid>
                     <Label x:Name="lblOwner" Text="" FontSize="12" TextColor="#AAAACC"/>
 
-                    <Button x:Name="btnViewDetail" Text="📋 Xem Chi Tiết Quán"
-                            BackgroundColor="#4285F4" TextColor="White"
-                            FontAttributes="Bold" FontSize="14" CornerRadius="12"
-                            HeightRequest="42" Margin="0,6,0,0"
-                            Clicked="btnViewDetail_Clicked">
-                        <Button.Shadow>
-                            <Shadow Brush="#4285F4" Offset="0,3" Radius="8" Opacity="0.4"/>
-                        </Button.Shadow>
-                    </Button>
+                    <HorizontalStackLayout Spacing="10" Margin="0,6,0,0">
+                        <Button x:Name="btnPlayAudio" Text="🔊 Nghe Giới Thiệu"
+                                BackgroundColor="#EE1A1A2E" TextColor="#4285F4"
+                                BorderColor="#4285F4" BorderWidth="1"
+                                FontAttributes="Bold" FontSize="14" CornerRadius="12"
+                                HeightRequest="42" HorizontalOptions="FillAndExpand"
+                                Clicked="OnPlayAudioClicked"/>
+
+                        <Button x:Name="btnViewDetail" Text="📋 Chi Tiết"
+                                BackgroundColor="#4285F4" TextColor="White"
+                                FontAttributes="Bold" FontSize="14" CornerRadius="12"
+                                HeightRequest="42" HorizontalOptions="FillAndExpand"
+                                Clicked="btnViewDetail_Clicked">
+                            <Button.Shadow>
+                                <Shadow Brush="#4285F4" Offset="0,3" Radius="8" Opacity="0.4"/>
+                            </Button.Shadow>
+                        </Button>
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Grid>
         </Border>

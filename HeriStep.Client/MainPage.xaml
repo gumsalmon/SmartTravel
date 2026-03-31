@@ -10,9 +10,12 @@
             
             <!-- Header -->
             <Grid ColumnDefinitions="Auto, *, Auto">
-                <Button Text="☰" FontSize="20" TextColor="#043940" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Button Text="☰" FontSize="20" TextColor="#043940" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0" Clicked="OnMenuClicked"/>
                 <Label Text="PHỐ VĨNH KHÁNH" FontSize="16" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
                 <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="Transparent">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAvatarTapped"/>
+                    </Frame.GestureRecognizers>
                     <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
                 </Frame>
             </Grid>
@@ -63,6 +66,9 @@
 
                 <!-- Quét M/QR -->
                 <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="BtnScan_Clicked" />
+                    </Frame.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#FAEDE6" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
                             <Label Text="📱" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
@@ -73,6 +79,9 @@
 
                 <!-- Voice Aura -->
                 <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="2">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="BtnVoiceAura_Clicked" />
+                    </Frame.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#F0F5FD" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
                             <Label Text="🗣" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
@@ -90,6 +99,9 @@
                         <Label Text="Top rating từ cộng đồng thực&#10;thần" FontSize="13" TextColor="#085B66" LineHeight="1.2"/>
                     </VerticalStackLayout>
                     <HorizontalStackLayout Grid.Column="1" VerticalOptions="End" Spacing="4">
+                        <HorizontalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="BtnMap_Clicked"/>
+                        </HorizontalStackLayout.GestureRecognizers>
                         <Label Text="Xem tất&#10;cả" FontSize="12" FontAttributes="Bold" TextColor="#045950" HorizontalTextAlignment="End" LineHeight="1.1"/>
                         <Label Text="→" FontSize="14" FontAttributes="Bold" TextColor="#045950" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
@@ -124,6 +136,9 @@
                         <!-- Shop Item 2 -->
                         <VerticalStackLayout Spacing="10" WidthRequest="260">
                             <Frame CornerRadius="25" Padding="0" IsClippedToBounds="True" HeightRequest="320" BorderColor="Transparent" HasShadow="False">
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="BtnShop2_Clicked"/>
+                                </Frame.GestureRecognizers>
                                 <Grid>
                                     <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?w=600" Aspect="AspectFill"/>
                                     <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
@@ -156,7 +171,7 @@
                     <Label Text="Duy trì ứng dụng ở chế độ nền&#10;để tự động nhận thông báo&#10;giọng nói về các khuyến mãi 15-&#10;30% khi bạn đi ngang qua quán." 
                            FontSize="14" TextColor="#E6FAFA" LineHeight="1.4" Margin="0,10,0,10"/>
                     
-                    <Button Text="Kích hoạt ngay ılı" CornerRadius="20" BackgroundColor="#A0F0E5" TextColor="#043940" FontAttributes="Bold" HorizontalOptions="Start" Padding="20,0" HeightRequest="45"/>
+                    <Button Text="Kích hoạt ngay ılı" CornerRadius="20" BackgroundColor="#A0F0E5" TextColor="#043940" FontAttributes="Bold" HorizontalOptions="Start" Padding="20,0" HeightRequest="45" Clicked="BtnActivateAura_Clicked"/>
                 </VerticalStackLayout>
             </Frame>
 
@@ -166,6 +181,9 @@
 
                 <!-- Pass 1 -->
                 <Frame CornerRadius="25" Padding="25" BackgroundColor="#DDFBFC" BorderColor="Transparent" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="Pass1_Tapped" />
+                    </Frame.GestureRecognizers>
                     <VerticalStackLayout Spacing="30">
                         <VerticalStackLayout Spacing="5">
                             <Label Text="Bestseller" FontSize="12" FontAttributes="Bold" TextColor="#D35400"/>
@@ -183,6 +201,9 @@
 
                 <!-- Pass 2 -->
                 <Frame CornerRadius="25" Padding="25" BackgroundColor="#AEECEB" BorderColor="Transparent" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="Pass2_Tapped" />
+                    </Frame.GestureRecognizers>
                     <VerticalStackLayout Spacing="30">
                         <VerticalStackLayout Spacing="5">
                             <Label Text="Phổ biến nhất" FontSize="12" FontAttributes="Bold" TextColor="#045950"/>
@@ -200,6 +221,9 @@
 
                 <!-- Pass 3 -->
                 <Frame CornerRadius="25" Padding="25" BackgroundColor="#043940" BorderColor="Transparent" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="Pass3_Tapped" />
+                    </Frame.GestureRecognizers>
                     <VerticalStackLayout Spacing="30">
                         <VerticalStackLayout Spacing="5">
                             <Label Text="Elite Choice" FontSize="12" FontAttributes="Bold" TextColor="#A0F0E5"/>
