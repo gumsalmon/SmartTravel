@@ -90,7 +90,7 @@
                         <Label Text="Top rating từ cộng đồng thực&#10;thần" FontSize="13" TextColor="#085B66" LineHeight="1.2"/>
                     </VerticalStackLayout>
                     <HorizontalStackLayout Grid.Column="1" VerticalOptions="End" Spacing="4">
-                        <Label Text="Xem tất&#10;cả" FontSize="12" FontAttributes="Bold" TextColor="#045950" HorizontalTextAlignment="Right" LineHeight="1.1"/>
+                        <Label Text="Xem tất&#10;cả" FontSize="12" FontAttributes="Bold" TextColor="#045950" HorizontalTextAlignment="End" LineHeight="1.1"/>
                         <Label Text="→" FontSize="14" FontAttributes="Bold" TextColor="#045950" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
                 </Grid>
