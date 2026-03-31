@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.ProfilePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#E6FAFA"> <!-- Light Cyan Background -->
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,50,20,30" Spacing="25">
+            
+            <!-- Header -->
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Button Text="☰" FontSize="20" TextColor="#043940" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Label Text="Vinh Khanh Guide" FontSize="18" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="Transparent">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
+                </Frame>
+            </Grid>
+
+            <!-- Profile Info -->
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="4" Margin="0,10,0,0">
+                <Frame CornerRadius="50" HeightRequest="100" WidthRequest="100" Padding="0" IsClippedToBounds="True" BorderColor="#043940" BorderWidth="3" HorizontalOptions="Center">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=300" Aspect="AspectFill"/>
+                </Frame>
+                <Label Text="Hồ Sơ" FontSize="26" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" Margin="0,10,0,0"/>
+                <Label Text="@alex_travels • Food Explorer" FontSize="14" TextColor="#085B66" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- QR Code Card -->
+            <Frame CornerRadius="24" BackgroundColor="White" Padding="30" BorderColor="Transparent" HasShadow="False">
+                <VerticalStackLayout Spacing="15" HorizontalOptions="Center">
+                    <Image Source="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=TC-VVIP-2023" HeightRequest="120" WidthRequest="120" HorizontalOptions="Center"/>
+                    <Label Text="7-Day Gold Pass" FontSize="18" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                    <Label Text="EXPIRES: OCT 24, 2026" FontSize="12" TextColor="#888" FontAttributes="Bold" CharacterSpacing="1" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Voice Aura Settings -->
+            <Frame CornerRadius="24" BackgroundColor="#B2F2EC" Padding="20" BorderColor="Transparent" HasShadow="False">
+                <VerticalStackLayout Spacing="15">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="ılı" FontSize="20" FontAttributes="Bold" TextColor="#043940" Grid.Column="0"/>
+                        <Frame CornerRadius="12" BackgroundColor="#045950" Padding="10,4" HasShadow="False" Grid.Column="1">
+                            <Label Text="ACTIVE" FontSize="10" FontAttributes="Bold" TextColor="White"/>
+                        </Frame>
+                    </Grid>
+                    
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Voice Aura Settings" FontSize="16" FontAttributes="Bold" TextColor="#043940"/>
+                        <Label Text="Customize your sensory narration style" FontSize="14" TextColor="#085B66"/>
+                    </VerticalStackLayout>
+
+                    <Button Text="Configure" CornerRadius="16" BackgroundColor="#045950" TextColor="White" FontAttributes="Bold" HeightRequest="48" Margin="0,10,0,0"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Short Items Row -->
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="15">
+                <!-- Saved Spots -->
+                <Frame CornerRadius="20" BackgroundColor="White" Padding="15" BorderColor="Transparent" HasShadow="False" Grid.Column="0">
+                    <HorizontalStackLayout Spacing="12">
+                        <Frame CornerRadius="15" HeightRequest="40" WidthRequest="40" BackgroundColor="#E6FAFA" Padding="0" HasShadow="False" BorderColor="Transparent">
+                            <Label Text="🔖" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label Text="Saved&#10;Spots" FontSize="14" FontAttributes="Bold" TextColor="#043940" LineHeight="1.1"/>
+                            <Label Text="12 places" FontSize="12" TextColor="#085B66" Margin="0,2,0,0"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Frame>
+                
+                <!-- Support -->
+                <Frame CornerRadius="20" BackgroundColor="White" Padding="15" BorderColor="Transparent" HasShadow="False" Grid.Column="1">
+                    <HorizontalStackLayout Spacing="12">
+                        <Frame CornerRadius="15" HeightRequest="40" WidthRequest="40" BackgroundColor="#E6FAFA" Padding="0" HasShadow="False" BorderColor="Transparent">
+                            <Label Text="🎧" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label Text="Support" FontSize="14" FontAttributes="Bold" TextColor="#043940"/>
+                            <Label Text="24/7 Help" FontSize="12" TextColor="#085B66" Margin="0,2,0,0"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Frame>
+            </Grid>
+
+            <!-- Recent History -->
+            <VerticalStackLayout Spacing="15" Margin="0,10,0,0">
+                <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
+                    <Label Text="Recent History" FontSize="20" FontAttributes="Bold" TextColor="#043940" Grid.Column="0" VerticalOptions="End"/>
+                    <Label Text="View All" FontSize="14" FontAttributes="Bold" TextColor="#045950" Grid.Column="1" VerticalOptions="End"/>
+                </Grid>
+
+                <Frame CornerRadius="20" BackgroundColor="White" Padding="15" BorderColor="Transparent" HasShadow="False">
+                    <Grid ColumnDefinitions="60, *, Auto" ColumnSpacing="15">
+                        <Image Source="https://images.unsplash.com/photo-1544025162-8e658402afb0?w=200" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" Grid.Column="0">
+                            <Image.Clip>
+                                <EllipseGeometry Center="30,30" RadiusX="30" RadiusY="30"/>
+                            </Image.Clip>
+                        </Image>
+                        
+                        <VerticalStackLayout VerticalOptions="Center" Grid.Column="1" Spacing="4">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Oc Dao Vinh Khanh" FontSize="15" FontAttributes="Bold" TextColor="#043940" Grid.Column="0"/>
+                                <Label Text="2h ago" FontSize="10" TextColor="#888" Grid.Column="1" VerticalOptions="Center"/>
+                            </Grid>
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="★ 4.8" FontSize="12" TextColor="#D35400" FontAttributes="Bold"/>
+                                <Label Text="•" FontSize="12" TextColor="#CCC"/>
+                                <Label Text="Seafood &amp; Snails" FontSize="12" TextColor="#085B66"/>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                        
+                        <Label Text="›" FontSize="24" TextColor="#CCC" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Frame>
+
+                <Frame CornerRadius="20" BackgroundColor="White" Padding="15" BorderColor="Transparent" HasShadow="False">
+                    <Grid ColumnDefinitions="60, *, Auto" ColumnSpacing="15">
+                        <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?w=200" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" Grid.Column="0">
+                            <Image.Clip>
+                                <EllipseGeometry Center="30,30" RadiusX="30" RadiusY="30"/>
+                            </Image.Clip>
+                        </Image>
+                        
+                        <VerticalStackLayout VerticalOptions="Center" Grid.Column="1" Spacing="4">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Mrs. Sau's Rolls" FontSize="15" FontAttributes="Bold" TextColor="#043940" Grid.Column="0"/>
+                                <Label Text="Yesterday" FontSize="10" TextColor="#888" Grid.Column="1" VerticalOptions="Center"/>
+                            </Grid>
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="★ 4.5" FontSize="12" TextColor="#D35400" FontAttributes="Bold"/>
+                                <Label Text="•" FontSize="12" TextColor="#CCC"/>
+                                <Label Text="Traditional Appetizers" FontSize="12" TextColor="#085B66"/>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                        
+                        <Label Text="›" FontSize="24" TextColor="#CCC" Grid.Column="2" VerticalOptions="Center"/>
+                    </Grid>
+                </Frame>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

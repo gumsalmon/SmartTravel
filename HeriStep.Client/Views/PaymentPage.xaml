@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.PaymentPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#E5F8FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,40,20,30" Spacing="25">
+            
+            <!-- Header -->
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" BackgroundColor="#E0F2F1" Padding="0" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                    <Label Text="←" FontSize="20" TextColor="#00695C" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackButtonClicked"/>
+                    </Frame.GestureRecognizers>
+                </Frame>
+                <Label Text="Thanh Toán" FontSize="18" FontAttributes="Bold" TextColor="#004D40" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+            </Grid>
+
+            <!-- TÓM TẮT ĐƠN HÀNG -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="TÓM TẮT ĐƠN HÀNG" FontSize="12" FontAttributes="Bold" TextColor="#5A969E" CharacterSpacing="1.5"/>
+                <Frame CornerRadius="24" BackgroundColor="White" Padding="20" BorderColor="Transparent" HasShadow="False">
+                    <Grid ColumnDefinitions="80, *, Auto" ColumnSpacing="15">
+                        <Frame CornerRadius="12" HeightRequest="80" WidthRequest="80" Padding="0" IsClippedToBounds="True" BorderColor="Transparent" Grid.Column="0" VerticalOptions="Start">
+                            <Image Source="https://images.unsplash.com/photo-1579294247291-18e4e73b43ae?q=80&amp;w=200" Aspect="AspectFill"/>
+                        </Frame>
+                        <VerticalStackLayout Spacing="5" Grid.Column="1">
+                            <Label Text="3-Day&#10;Silver Pass" FontSize="18" FontAttributes="Bold" TextColor="#004D40" LineHeight="1.1"/>
+                            <Label Text="Truy cập không giới hạn các điểm tham quan cao cấp, ưu tiên đặt chỗ tại các nhà hàng và hướng dẫn viên AI 24/7." FontSize="11" TextColor="#5A969E" LineHeight="1.4" Margin="0,5,0,5"/>
+                            <Frame CornerRadius="12" BackgroundColor="#80CBC4" Padding="12,4" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Start">
+                                <Label Text="✔ SILVER TIER" FontSize="9" FontAttributes="Bold" TextColor="#004D40"/>
+                            </Frame>
+                        </VerticalStackLayout>
+                        <Label Text="$12.00" FontSize="16" FontAttributes="Bold" TextColor="#004D40" Grid.Column="2" VerticalOptions="Start"/>
+                    </Grid>
+                </Frame>
+            </VerticalStackLayout>
+
+            <!-- PHƯƠNG THỨC THANH TOÁN -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="PHƯƠNG THỨC THANH TOÁN" FontSize="12" FontAttributes="Bold" TextColor="#5A969E" CharacterSpacing="1.5"/>
+                
+                <!-- Apple Pay -->
+                <Frame CornerRadius="16" BackgroundColor="White" Padding="15,20" BorderColor="#004D40" HasShadow="False">
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45" BackgroundColor="#111" Padding="0" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="" FontSize="20" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="Apple Pay" FontSize="14" FontAttributes="Bold" TextColor="#004D40"/>
+                            <Label Text="Thanh toán một chạm" FontSize="11" TextColor="#5A969E"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="Transparent" BorderColor="#5A969E" HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+
+                <!-- Thẻ Tín Dụng -->
+                <Frame CornerRadius="16" BackgroundColor="#D0F8F6" Padding="15,20" BorderColor="Transparent" HasShadow="False">
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45" BackgroundColor="#80CBC4" Padding="0" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="💳" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="Thẻ Tín dụng / Ghi nợ" FontSize="14" FontAttributes="Bold" TextColor="#004D40"/>
+                            <Label Text="Visa, Mastercard, JCB" FontSize="11" TextColor="#5A969E"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="Transparent" BorderColor="#5A969E" HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+
+                <!-- MoMo -->
+                <Frame CornerRadius="16" BackgroundColor="#D0F8F6" Padding="15,20" BorderColor="Transparent" HasShadow="False">
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45" BackgroundColor="#C2185B" Padding="0" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="M" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="Ví MoMo" FontSize="14" FontAttributes="Bold" TextColor="#004D40"/>
+                            <Label Text="Nhanh chóng &amp; Tiện lợi" FontSize="11" TextColor="#5A969E"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="Transparent" BorderColor="#5A969E" HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+            </VerticalStackLayout>
+
+            <!-- Summation -->
+            <Frame CornerRadius="24" BackgroundColor="#B2EBF2" Padding="25" BorderColor="Transparent" HasShadow="False">
+                <VerticalStackLayout Spacing="15">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="Tạm tính" FontSize="14" TextColor="#5A969E" Grid.Column="0"/>
+                        <Label Text="$12.00" FontSize="14" TextColor="#5A969E" Grid.Column="1"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="Phí dịch vụ" FontSize="14" TextColor="#5A969E" Grid.Column="0"/>
+                        <Label Text="$0.00" FontSize="14" TextColor="#5A969E" Grid.Column="1"/>
+                    </Grid>
+                    <BoxView HeightRequest="1" Color="#80CBC4"/>
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="Tổng cộng" FontSize="16" FontAttributes="Bold" TextColor="#004D40" Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="$12.00" FontSize="24" FontAttributes="Bold" TextColor="#00838F" Grid.Column="1"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Checkout Button -->
+            <Button Text="🔒  Thanh Toán Ngay" CornerRadius="25" BackgroundColor="#00695C" TextColor="White" FontAttributes="Bold" HeightRequest="56"/>
+
+            <!-- Security Footer -->
+            <VerticalStackLayout Spacing="20" Margin="0,10,0,10" HorizontalOptions="Center">
+                <Grid ColumnDefinitions="*, *, *" ColumnSpacing="20">
+                    <VerticalStackLayout Spacing="5" Grid.Column="0" HorizontalOptions="Center">
+                        <Label Text="🛡" FontSize="20" TextColor="#888" HorizontalOptions="Center"/>
+                        <Label Text="SECURE CHECKOUT" FontSize="8" FontAttributes="Bold" TextColor="#888"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="5" Grid.Column="1" HorizontalOptions="Center">
+                        <Label Text="☑" FontSize="20" TextColor="#888" HorizontalOptions="Center"/>
+                        <Label Text="PCI COMPLIANT" FontSize="8" FontAttributes="Bold" TextColor="#888"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="5" Grid.Column="2" HorizontalOptions="Center">
+                        <Label Text="🔒" FontSize="20" TextColor="#888" HorizontalOptions="Center"/>
+                        <Label Text="256-BIT SSL" FontSize="8" FontAttributes="Bold" TextColor="#888"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Label Text="Thông tin thanh toán của bạn được mã hóa và bảo vệ&#10;theo tiêu chuẩn quốc tế." FontSize="10" TextColor="#5A969E" HorizontalTextAlignment="Center" LineHeight="1.5"/>
+                
+                <Label Text="© 2024 VINH KHANH GUIDE • LUXURY CONCIERGE&#10;SYSTEMS" FontSize="8" FontAttributes="Bold" TextColor="#5A969E" HorizontalTextAlignment="Center" CharacterSpacing="1" Margin="0,20,0,0"/>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

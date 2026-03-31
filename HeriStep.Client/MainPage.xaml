@@ -3,62 +3,220 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="HeriStep.Client.MainPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#0D0D1A">
+             BackgroundColor="#E6FAFA"> <!-- Light Cyan Background matching the design -->
 
-    <Grid RowDefinitions="Auto, *">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,50,20,30" Spacing="25">
+            
+            <!-- Header -->
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Button Text="☰" FontSize="20" TextColor="#043940" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Label Text="PHỐ VĨNH KHÁNH" FontSize="16" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="Transparent">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
+                </Frame>
+            </Grid>
 
-        <!-- ═══ HEADER ═══ -->
-        <Border Grid.Row="0" BackgroundColor="#0D0D1A" StrokeThickness="0" Padding="16,50,16,14">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="🏪 Danh Sách Cửa Hàng" FontSize="22" FontAttributes="Bold" TextColor="White"/>
-                <Label x:Name="lblCount" Text="Đang tải..." FontSize="13" TextColor="#888AAA"/>
+            <!-- Hero Banner -->
+            <Frame CornerRadius="30" Padding="0" IsClippedToBounds="True" BackgroundColor="#043940" HasShadow="False" HeightRequest="400">
+                <Grid>
+                    <!-- Background image focusing on the right part, using a placeholder for the man -->
+                    <Image Source="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?q=80&amp;w=800" Aspect="AspectFill" Opacity="0.5" HorizontalOptions="End" WidthRequest="300" />
+                    <!-- Dark overlay gradient to make text readable on the left -->
+                    <BoxView>
+                        <BoxView.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#043940" Offset="0.1"/>
+                                <GradientStop Color="#77043940" Offset="0.6"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </BoxView.Background>
+                    </BoxView>
+
+                    <!-- Text content -->
+                    <VerticalStackLayout Padding="25,50" Spacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="12" BackgroundColor="#A0F0E5" Padding="12,6" HasShadow="False" HorizontalOptions="Start" BorderColor="Transparent">
+                            <Label Text="QUẬN 4 - SAIGON" FontSize="10" FontAttributes="Bold" TextColor="#045950"/>
+                        </Frame>
+
+                        <Label Text="Khám Phá&#10;Tâm Hồn&#10;Quận 4" FontSize="36" FontAttributes="Bold" TextColor="White" LineHeight="1.1"/>
+                        <Label Text="Thiên đường ẩm thực đường&#10;phố sầm uất nhất Sài Gòn, nơi&#10;những câu chuyện được kể qua&#10;hương vị." 
+                               FontSize="14" TextColor="#E6FAFA" LineHeight="1.3" Margin="0,10,0,0"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Frame>
+
+            <!-- Action Buttons Row -->
+            <Grid ColumnDefinitions="*, *, *" ColumnSpacing="15">
+                <!-- Bản Đồ -->
+                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="BtnMap_Clicked"/>
+                    </Frame.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#E6FAFA" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
+                            <Label Text="🗺️" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <Label Text="Bản Đồ" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Quét M/QR -->
+                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#FAEDE6" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
+                            <Label Text="📱" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <Label Text="Quét M/QR" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Voice Aura -->
+                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="2">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#F0F5FD" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
+                            <Label Text="🗣" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <Label Text="Voice Aura" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <!-- Top Rating Shops Section -->
+            <VerticalStackLayout Spacing="15" Margin="0,10,0,0">
+                <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
+                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                        <Label Text="Quán Đỉnh Phải&#10;Thử" FontSize="24" FontAttributes="Bold" TextColor="#043940" LineHeight="1.1"/>
+                        <Label Text="Top rating từ cộng đồng thực&#10;thần" FontSize="13" TextColor="#085B66" LineHeight="1.2"/>
+                    </VerticalStackLayout>
+                    <HorizontalStackLayout Grid.Column="1" VerticalOptions="End" Spacing="4">
+                        <Label Text="Xem tất&#10;cả" FontSize="12" FontAttributes="Bold" TextColor="#045950" HorizontalTextAlignment="End" LineHeight="1.1"/>
+                        <Label Text="→" FontSize="14" FontAttributes="Bold" TextColor="#045950" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="-20,0">
+                    <HorizontalStackLayout Spacing="15" Padding="20,0">
+                        <!-- Shop Item 1 -->
+                        <VerticalStackLayout Spacing="10" WidthRequest="260">
+                            <Frame CornerRadius="25" Padding="0" IsClippedToBounds="True" HeightRequest="320" BorderColor="Transparent" HasShadow="False">
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="BtnShop_Clicked"/>
+                                </Frame.GestureRecognizers>
+                                <Grid>
+                                    <Image Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=600" Aspect="AspectFill"/>
+                                    <!-- Rating Pill -->
+                                    <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
+                                        <HorizontalStackLayout Spacing="4">
+                                            <Label Text="★" TextColor="#FFB000" FontSize="12" FontAttributes="Bold"/>
+                                            <Label Text="4.9" TextColor="#043940" FontSize="12" FontAttributes="Bold"/>
+                                        </HorizontalStackLayout>
+                                    </Frame>
+                                </Grid>
+                            </Frame>
+                            <Label Text="Ốc Oanh Vĩnh Khánh" FontSize="18" FontAttributes="Bold" TextColor="#043940"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Hải sản • Ốc các loại" FontSize="12" TextColor="#085B66" Grid.Column="0"/>
+                                <Label Text="$$ • Phổ biến" FontSize="12" TextColor="#085B66" FontAttributes="Bold" Grid.Column="1"/>
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <!-- Shop Item 2 -->
+                        <VerticalStackLayout Spacing="10" WidthRequest="260">
+                            <Frame CornerRadius="25" Padding="0" IsClippedToBounds="True" HeightRequest="320" BorderColor="Transparent" HasShadow="False">
+                                <Grid>
+                                    <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?w=600" Aspect="AspectFill"/>
+                                    <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
+                                        <HorizontalStackLayout Spacing="4">
+                                            <Label Text="★" TextColor="#FFB000" FontSize="12" FontAttributes="Bold"/>
+                                            <Label Text="4.8" TextColor="#043940" FontSize="12" FontAttributes="Bold"/>
+                                        </HorizontalStackLayout>
+                                    </Frame>
+                                </Grid>
+                            </Frame>
+                            <Label Text="Bà Kẹp Vĩnh Khánh" FontSize="18" FontAttributes="Bold" TextColor="#043940"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Ăn vặt • Đường phố" FontSize="12" TextColor="#085B66" Grid.Column="0"/>
+                                <Label Text="$ • Hot trend" FontSize="12" TextColor="#085B66" FontAttributes="Bold" Grid.Column="1"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </ScrollView>
             </VerticalStackLayout>
-        </Border>
 
-        <!-- ═══ LOADING ═══ -->
-        <ActivityIndicator x:Name="loader" Grid.Row="1" IsRunning="True" IsVisible="True"
-                           Color="#4285F4" VerticalOptions="Center"/>
+            <!-- Voice Aura Promo -->
+            <Frame CornerRadius="30" Padding="25" BackgroundColor="#0C6E66" BorderColor="Transparent" HasShadow="False">
+                <VerticalStackLayout Spacing="15">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="ılı" FontSize="16" FontAttributes="Bold" TextColor="#A0F0E5"/>
+                        <Label Text="TRẢI NGHIỆM MỚI" FontSize="12" FontAttributes="Bold" TextColor="#A0F0E5" CharacterSpacing="1"/>
+                    </HorizontalStackLayout>
 
-        <!-- ═══ DANH SÁCH SẠP ═══ -->
-        <CollectionView x:Name="stallList" Grid.Row="1" Margin="12,0">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Border Margin="0,0,0,10" BackgroundColor="#1AFFFFFF"
-                            StrokeThickness="1" Stroke="#22FFFFFF"
-                            StrokeShape="RoundRectangle 14" Padding="0">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnStallTapped" CommandParameter="{Binding .}"/>
-                        </Border.GestureRecognizers>
+                    <Label Text="Bật Voice Aura,&#10;Nhận Ưu Đãi&#10;Tức Thì" FontSize="28" FontAttributes="Bold" TextColor="White" LineHeight="1.1"/>
+                    <Label Text="Duy trì ứng dụng ở chế độ nền&#10;để tự động nhận thông báo&#10;giọng nói về các khuyến mãi 15-&#10;30% khi bạn đi ngang qua quán." 
+                           FontSize="14" TextColor="#E6FAFA" LineHeight="1.4" Margin="0,10,0,10"/>
+                    
+                    <Button Text="Kích hoạt ngay ılı" CornerRadius="20" BackgroundColor="#A0F0E5" TextColor="#043940" FontAttributes="Bold" HorizontalOptions="Start" Padding="20,0" HeightRequest="45"/>
+                </VerticalStackLayout>
+            </Frame>
 
-                        <Grid ColumnDefinitions="100, *" HeightRequest="90">
-                            <!-- Ảnh -->
-                            <Image Source="{Binding DisplayImageUrl}" Aspect="AspectFill"
-                                   Grid.Column="0"/>
+            <!-- Smart Pass Section -->
+            <VerticalStackLayout Spacing="15" Margin="0,10,0,0">
+                <Label Text="Thẻ Thông Hành Smart&#10;Pass" FontSize="22" FontAttributes="Bold" TextColor="#043940" LineHeight="1.1"/>
 
-                            <!-- Thông tin -->
-                            <VerticalStackLayout Grid.Column="1" Padding="12,10" Spacing="4"
-                                                 VerticalOptions="Center">
-                                <Label Text="{Binding Name}" FontSize="15" FontAttributes="Bold"
-                                       TextColor="White" LineBreakMode="TailTruncation"/>
-                                <Label Text="{Binding DisplayOwner}" FontSize="12" TextColor="#AAAACC"/>
-                                <HorizontalStackLayout Spacing="8">
-                                    <Label Text="{Binding DisplayStatus}" FontSize="11"
-                                           FontAttributes="Bold"/>
-                                    <Label Text="📍 Vĩnh Khánh, Q4" FontSize="11" TextColor="#666688"/>
-                                </HorizontalStackLayout>
-                            </VerticalStackLayout>
+                <!-- Pass 1 -->
+                <Frame CornerRadius="25" Padding="25" BackgroundColor="#DDFBFC" BorderColor="Transparent" HasShadow="False">
+                    <VerticalStackLayout Spacing="30">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Bestseller" FontSize="12" FontAttributes="Bold" TextColor="#D35400"/>
+                            <Label Text="Foodie Day 1" FontSize="20" FontAttributes="Bold" TextColor="#043940"/>
+                            <Label Text="Ưu đãi 15% tất cả quán liên kết" FontSize="13" TextColor="#085B66"/>
+                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
+                            <Label Text="199.000đ" FontSize="18" FontAttributes="Bold" TextColor="#043940" Grid.Column="0" VerticalOptions="Center"/>
+                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#045950" Padding="0" HasShadow="False" Grid.Column="1">
+                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Frame>
                         </Grid>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                    </VerticalStackLayout>
+                </Frame>
 
-        <!-- ═══ EMPTY STATE ═══ -->
-        <VerticalStackLayout x:Name="emptyState" Grid.Row="1" IsVisible="False"
-                             VerticalOptions="Center" HorizontalOptions="Center" Spacing="10">
-            <Label Text="🏚️" FontSize="50" HorizontalOptions="Center"/>
-            <Label Text="Chưa có cửa hàng nào" FontSize="16" TextColor="#888AAA" HorizontalOptions="Center"/>
-            <Label Text="Vui lòng tạo dữ liệu từ Admin" FontSize="13" TextColor="#666688" HorizontalOptions="Center"/>
+                <!-- Pass 2 -->
+                <Frame CornerRadius="25" Padding="25" BackgroundColor="#AEECEB" BorderColor="Transparent" HasShadow="False">
+                    <VerticalStackLayout Spacing="30">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Phổ biến nhất" FontSize="12" FontAttributes="Bold" TextColor="#045950"/>
+                            <Label Text="Explorer Pass 3" FontSize="20" FontAttributes="Bold" TextColor="#043940"/>
+                            <Label Text="Ưu đãi 20% + Voucher đồ uống" FontSize="13" TextColor="#085B66"/>
+                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
+                            <Label Text="499.000đ" FontSize="18" FontAttributes="Bold" TextColor="#043940" Grid.Column="0" VerticalOptions="Center"/>
+                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#045950" Padding="0" HasShadow="False" Grid.Column="1">
+                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Frame>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Pass 3 -->
+                <Frame CornerRadius="25" Padding="25" BackgroundColor="#043940" BorderColor="Transparent" HasShadow="False">
+                    <VerticalStackLayout Spacing="30">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Elite Choice" FontSize="12" FontAttributes="Bold" TextColor="#A0F0E5"/>
+                            <Label Text="Infinity Week" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+                            <Label Text="Ưu đãi 25% + Set thực đơn VIP" FontSize="13" TextColor="#A0F0E5"/>
+                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
+                            <Label Text="999.000đ" FontSize="18" FontAttributes="Bold" TextColor="White" Grid.Column="0" VerticalOptions="Center"/>
+                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#A0F0E5" Padding="0" HasShadow="False" Grid.Column="1">
+                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" TranslationY="-1"/>
+                            </Frame>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+            
         </VerticalStackLayout>
-    </Grid>
+    </ScrollView>
+
 </ContentPage>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.ScannerPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="Black"> <!-- Black backing for camera mock -->
+
+    <Grid>
+        <!-- Mock Camera Image -->
+        <Image Source="https://images.unsplash.com/photo-1549488344-c10ba9da152d?q=80&amp;w=800" Aspect="AspectFill" Opacity="0.5"/>
+
+        <VerticalStackLayout>
+            <!-- Header -->
+            <Grid ColumnDefinitions="Auto, *, Auto" Padding="20,50,20,10">
+                <Button Text="☰" FontSize="20" TextColor="White" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0"/>
+                <Label Text="Quét Mã" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="White" BorderWidth="2" BackgroundColor="Transparent">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
+                </Frame>
+            </Grid>
+
+            <Label Text="Quét mã QR tại quán để xem Menu&#10;hoặc kích hoạt Pass" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineHeight="1.4" Margin="30,20,30,0"/>
+            
+            <!-- Viewfinder brackets -->
+            <Grid HeightRequest="250" WidthRequest="250" HorizontalOptions="Center" VerticalOptions="Center" Margin="0,50,0,50">
+                <!-- Top Left -->
+                <BoxView HorizontalOptions="Start" VerticalOptions="Start" WidthRequest="40" HeightRequest="4" Color="#009688"/>
+                <BoxView HorizontalOptions="Start" VerticalOptions="Start" WidthRequest="4" HeightRequest="40" Color="#009688"/>
+                
+                <!-- Top Right -->
+                <BoxView HorizontalOptions="End" VerticalOptions="Start" WidthRequest="40" HeightRequest="4" Color="#009688"/>
+                <BoxView HorizontalOptions="End" VerticalOptions="Start" WidthRequest="4" HeightRequest="40" Color="#009688"/>
+
+                <!-- Bottom Left -->
+                <BoxView HorizontalOptions="Start" VerticalOptions="End" WidthRequest="40" HeightRequest="4" Color="#009688"/>
+                <BoxView HorizontalOptions="Start" VerticalOptions="End" WidthRequest="4" HeightRequest="40" Color="#009688"/>
+
+                <!-- Bottom Right -->
+                <BoxView HorizontalOptions="End" VerticalOptions="End" WidthRequest="40" HeightRequest="4" Color="#009688"/>
+                <BoxView HorizontalOptions="End" VerticalOptions="End" WidthRequest="4" HeightRequest="40" Color="#009688"/>
+            </Grid>
+
+            <Button Text="Nhập mã thủ công" CornerRadius="25" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="White" FontAttributes="Bold" HeightRequest="50" WidthRequest="200" HorizontalOptions="Center"/>
+
+            <HorizontalStackLayout Spacing="25" HorizontalOptions="Center" Margin="0,30,0,0">
+                <Frame CornerRadius="25" HeightRequest="50" WidthRequest="50" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" Padding="0" HasShadow="False">
+                    <Label Text="🔦" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Frame>
+                <Frame CornerRadius="25" HeightRequest="50" WidthRequest="50" BackgroundColor="#80000000" BorderColor="#4DFFFFFF" Padding="0" HasShadow="False">
+                    <Label Text="🖼" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Frame>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>
