@@ -1,6 +1,6 @@
 -- ==========================================
--- SCRIPT TẠO DATABASE VINHKHANHTOUR (FINAL VERSION)
--- Tính năng: Đa ngôn ngữ, Quản lý sạp, Bán vé khách du lịch (1 tuần), Thống kê, Quản lý gói cước
+-- SCRIPT TẠO DATABASE VINHKHANHTOUR (SYNC-READY ENTERPRISE VERSION)
+-- Kiến trúc: Hỗ trợ Offline-First, Delta Sync, Soft Delete, UUID Collision Prevention
 -- ==========================================
 
 USE master;
@@ -20,14 +20,16 @@ USE VinhKhanhTourDB;
 GO
 
 -- ==========================================
--- PHẦN 1: TẠO CÁC BẢNG ĐỘC LẬP (KHÔNG CÓ KHÓA NGOẠI)
+-- PHẦN 1: TẠO CÁC BẢNG ĐỘC LẬP
 -- ==========================================
 
 -- 1. Bảng Ngôn ngữ
 CREATE TABLE Languages (
     lang_code NVARCHAR(10) PRIMARY KEY,
     lang_name NVARCHAR(50) NOT NULL,
-    flag_icon_url NVARCHAR(255)
+    flag_icon_url NVARCHAR(255),
+    is_deleted BIT DEFAULT 0, -- 💡 Hỗ trợ Soft Delete
+    updated_at DATETIME DEFAULT GETDATE() -- 💡 Phục vụ Delta Sync
 );
 
 -- 2. Bảng Lộ trình Tour
@@ -37,7 +39,9 @@ CREATE TABLE Tours (
     description NVARCHAR(MAX),
     image_url NVARCHAR(500),
     is_active BIT DEFAULT 1,
-    is_top_hot BIT DEFAULT 0
+    is_top_hot BIT DEFAULT 0,
+    is_deleted BIT DEFAULT 0,
+    updated_at DATETIME DEFAULT GETDATE()
 );
 
 -- 3. Bảng Tài khoản (Admin & Chủ sạp)
@@ -46,7 +50,9 @@ CREATE TABLE Users (
     username NVARCHAR(50) NOT NULL UNIQUE,
     password_hash NVARCHAR(255) NOT NULL,
     full_name NVARCHAR(100),
-    role NVARCHAR(20) DEFAULT 'StallOwner'
+    role NVARCHAR(20) DEFAULT 'StallOwner',
+    is_deleted BIT DEFAULT 0,
+    updated_at DATETIME DEFAULT GETDATE()
 );
 
 -- 4. Bảng Gói Vé Du Khách (Ticket Packages)
@@ -54,17 +60,17 @@ CREATE TABLE TicketPackages (
     id INT IDENTITY(1,1) PRIMARY KEY,
     package_name NVARCHAR(100) NOT NULL,
     price DECIMAL(18, 2) NOT NULL,
-    duration_hours INT NOT NULL, -- Thời hạn tính bằng giờ (VD: 168h = 1 tuần)
+    duration_hours INT NOT NULL, 
     is_active BIT DEFAULT 1,
+    is_deleted BIT DEFAULT 0,
     updated_at DATETIME DEFAULT GETDATE()
 );
 
 -- ==========================================
--- PHẦN 2: TẠO CÁC BẢNG CÓ LIÊN KẾT KHÓA NGOẠI (CẤP 1)
+-- PHẦN 2: TẠO CÁC BẢNG LIÊN KẾT CẤP 1
 -- ==========================================
 
--- 5. Bảng Sạp Hàng (Liên kết Users và Tours)
--- (💡 Chuyển lên trước để bảng Subscriptions có thể móc khóa ngoại vào)
+-- 5. Bảng Sạp Hàng
 CREATE TABLE Stalls (
     id INT IDENTITY(1,1) PRIMARY KEY,
     owner_id INT NULL,
@@ -76,6 +82,7 @@ CREATE TABLE Stalls (
     is_open BIT DEFAULT 1,
     image_thumb NVARCHAR(500),
     sort_order INT DEFAULT 0 NOT NULL,
+    is_deleted BIT DEFAULT 0, -- 💡 Cờ Xóa mềm
     updated_at DATETIME DEFAULT GETDATE(),
 
     CONSTRAINT CHK_Stall_Coords CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
@@ -83,21 +90,21 @@ CREATE TABLE Stalls (
     CONSTRAINT FK_Stalls_Tours FOREIGN KEY (TourID) REFERENCES Tours(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
--- 6. Bảng Gói Cước Thiết Bị Chủ Sạp (Subscriptions)
--- (💡 ĐÃ BỔ SUNG: stall_id và Khóa ngoại nối thẳng vào Stalls)
+-- 6. Bảng Gói Cước Thiết Bị Chủ Sạp
 CREATE TABLE Subscriptions (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    stall_id INT NOT NULL, -- 💡 Nút thắt là đây
+    stall_id INT NOT NULL,
     device_id NVARCHAR(255) NOT NULL,
     activation_code NVARCHAR(100) UNIQUE,
     start_date DATETIME DEFAULT GETDATE(),
     expiry_date DATETIME, 
     is_active BIT DEFAULT 1,
+    updated_at DATETIME DEFAULT GETDATE(),
 
     CONSTRAINT FK_Subscriptions_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE
 );
 
--- 7. Bảng Lịch Sử Mua Vé Của Khách (Liên kết TicketPackages)
+-- 7. Bảng Lịch Sử Mua Vé Của Khách (Vé mua khi Online)
 CREATE TABLE TouristTickets (
     id INT IDENTITY(1,1) PRIMARY KEY,
     ticket_code NVARCHAR(50) UNIQUE NOT NULL, 
@@ -112,16 +119,18 @@ CREATE TABLE TouristTickets (
 );
 
 -- ==========================================
--- PHẦN 3: TẠO CÁC BẢNG LIÊN KẾT CẤP 2 (CHI TIẾT SẠP)
+-- PHẦN 3: TẠO CÁC BẢNG LIÊN KẾT CẤP 2
 -- ==========================================
 
--- 8. Bảng Nội dung thuyết minh TTS (Liên kết Stalls và Languages)
+-- 8. Bảng Nội dung thuyết minh TTS 
 CREATE TABLE StallContents (
     id INT IDENTITY(1,1) PRIMARY KEY,
     stall_id INT NOT NULL,
     lang_code NVARCHAR(10) NOT NULL,
     tts_script NVARCHAR(1000),
     is_active BIT DEFAULT 1,
+    is_deleted BIT DEFAULT 0,
+    updated_at DATETIME DEFAULT GETDATE(),
 
     CONSTRAINT FK_StallContent_Stall FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT FK_StallContent_Lang FOREIGN KEY (lang_code) REFERENCES Languages(lang_code) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -135,16 +144,20 @@ CREATE TABLE Products (
     base_price DECIMAL(18, 2) DEFAULT 0,
     image_url NVARCHAR(500),
     is_signature BIT DEFAULT 0,
+    is_deleted BIT DEFAULT 0,
+    updated_at DATETIME DEFAULT GETDATE(),
 
     CONSTRAINT FK_Product_Stall FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- 10. Bảng Thống Kê Lượt Khách Ghé Sạp
+-- 10. Bảng Thống Kê Lượt Khách Ghé Sạp (DỮ LIỆU ĐẨY TỪ MOBILE OFFLINE)
+-- 💡 Thay đổi cực kỳ quan trọng: Dùng UNIQUEIDENTIFIER (UUID) làm Khóa chính
 CREATE TABLE StallVisits (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(), -- 💡 Tránh đụng độ ID khi Push từ SQLite lên
     stall_id INT NOT NULL,
     device_id NVARCHAR(255),
     visited_at DATETIME DEFAULT GETDATE(),
+    created_at_server DATETIME DEFAULT GETDATE(), -- Thời gian Server nhận được Data
     
     CONSTRAINT FK_StallVisits_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -156,6 +169,8 @@ CREATE TABLE ProductTranslations (
     lang_code NVARCHAR(10) NOT NULL,
     product_name NVARCHAR(255) NOT NULL,
     product_desc NVARCHAR(500),
+    is_deleted BIT DEFAULT 0,
+    updated_at DATETIME DEFAULT GETDATE(),
 
     CONSTRAINT FK_ProdTrans_Prod FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT FK_ProdTrans_Lang FOREIGN KEY (lang_code) REFERENCES Languages(lang_code) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -163,23 +178,52 @@ CREATE TABLE ProductTranslations (
 );
 
 -- ==========================================
--- PHẦN 4: TRIGGER CẬP NHẬT THỜI GIAN
+-- PHẦN 4: AUTOMATIC TRIGGERS (TỰ ĐỘNG CẬP NHẬT THỜI GIAN)
+-- Cực kỳ quan trọng để API Sync nhận diện được dòng nào vừa bị thay đổi / xóa mềm
 -- ==========================================
 GO
 
--- Trigger cho bảng Stalls
-CREATE TRIGGER TRG_UpdateStallTime
-ON Stalls
-AFTER UPDATE
-AS
+-- 1. Trigger cho bảng Tours
+CREATE TRIGGER TRG_UpdateTourTime ON Tours AFTER UPDATE AS
 BEGIN
     SET NOCOUNT ON;
     IF NOT UPDATE(updated_at)
-    BEGIN
-        UPDATE s
-        SET updated_at = GETDATE()
-        FROM Stalls s
-        INNER JOIN inserted i ON s.id = i.id;
-    END
+        UPDATE t SET updated_at = GETDATE() FROM Tours t INNER JOIN inserted i ON t.id = i.id;
+END;
+GO
+
+-- 2. Trigger cho bảng Stalls
+CREATE TRIGGER TRG_UpdateStallTime ON Stalls AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(updated_at)
+        UPDATE s SET updated_at = GETDATE() FROM Stalls s INNER JOIN inserted i ON s.id = i.id;
+END;
+GO
+
+-- 3. Trigger cho bảng Products
+CREATE TRIGGER TRG_UpdateProductTime ON Products AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(updated_at)
+        UPDATE p SET updated_at = GETDATE() FROM Products p INNER JOIN inserted i ON p.id = i.id;
+END;
+GO
+
+-- 4. Trigger cho bảng StallContents
+CREATE TRIGGER TRG_UpdateContentTime ON StallContents AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(updated_at)
+        UPDATE c SET updated_at = GETDATE() FROM StallContents c INNER JOIN inserted i ON c.id = i.id;
+END;
+GO
+
+-- 5. Trigger cho bảng ProductTranslations
+CREATE TRIGGER TRG_UpdateTranslationTime ON ProductTranslations AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(updated_at)
+        UPDATE pt SET updated_at = GETDATE() FROM ProductTranslations pt INNER JOIN inserted i ON pt.id = i.id;
 END;
 GO
