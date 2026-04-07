@@ -174,26 +174,44 @@ namespace HeriStep.API.Controllers
                 }
 
                 // 5. Tạo Package & Lịch sử mua vé
-                var packages = await _context.TicketPackages.ToListAsync();
-                if (!packages.Any())
+                // 1. KHỞI TẠO 3 GÓI VÉ (Nếu DB chưa có)
+                // 1. KHỞI TẠO 3 GÓI VÉ (ĐỒNG BỘ 100% VỚI SCRIPT SQL ENTERPRISE)
+                if (!await _context.TicketPackages.AnyAsync())
                 {
-                    // Tạo danh sách 3 gói vé
-                    packages = new List<TicketPackage>
-    {
-        new TicketPackage { PackageName = "Vé Trải Nghiệm (3 Ngày)", Price = 50000, DurationHours = 72, IsActive = true },
-        new TicketPackage { PackageName = "Vé Khám Phá (5 Ngày)", Price = 75000, DurationHours = 120, IsActive = true },
-        new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh (7 Ngày)", Price = 100000, DurationHours = 168, IsActive = true }
-    };
-                    _context.TicketPackages.AddRange(packages);
+                    _context.TicketPackages.AddRange(
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Khám Phá Nhanh (2 Giờ)",
+                            Price = 50000.00m,
+                            DurationHours = 2,
+                            IsActive = true
+                        },
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Trải Nghiệm Tiêu Chuẩn (24 Giờ)",
+                            Price = 150000.00m,
+                            DurationHours = 24,
+                            IsActive = true
+                        },
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Bản Địa Không Giới Hạn (1 Tuần)",
+                            Price = 300000.00m,
+                            DurationHours = 168,
+                            IsActive = true
+                        }
+                    );
                     await _context.SaveChangesAsync();
                 }
 
+                // Lấy danh sách các gói vé ra để Random
+                var packages = await _context.TicketPackages.ToListAsync();
+
+                // 2. SINH DỮ LIỆU MOCK VÉ KHÁCH HÀNG MUA NGẪU NHIÊN
                 for (int i = 0; i < req.VisitCount; i++)
                 {
                     var randomDate = now.AddDays(-rand.Next(0, 90));
-
-                    // Lấy ngẫu nhiên 1 gói vé trong danh sách để tạo Mock Data
-                    var randomPackage = packages[rand.Next(packages.Count)];
+                    var randomPackage = packages[rand.Next(packages.Count)]; // Chọn ngẫu nhiên 1 trong 3 gói
 
                     _context.TouristTickets.Add(new TouristTicket
                     {
@@ -202,7 +220,7 @@ namespace HeriStep.API.Controllers
                         PackageId = randomPackage.Id,
                         AmountPaid = randomPackage.Price,
                         CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(randomPackage.DurationHours)
+                        ExpiryDate = randomDate.AddHours(randomPackage.DurationHours) // Tính ngày hết hạn chuẩn xác
                     });
 
                     if (createdStalls.Any())
