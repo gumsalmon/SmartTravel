@@ -28,8 +28,8 @@ namespace HeriStep.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
-            var query = from s in _context.Stalls
-                        join u in _context.Users on s.OwnerId equals u.Id into userGroup
+            var query = from s in _context.Stalls.AsNoTracking()
+                        join u in _context.Users.AsNoTracking() on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
                         select new PointOfInterest
                         {
@@ -55,6 +55,7 @@ namespace HeriStep.API.Controllers
             if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
 
             var ttsContent = await _context.StallContents
+                .AsNoTracking()
                 .Where(c => c.StallId == id && c.LangCode == "vi")
                 .FirstOrDefaultAsync();
 
@@ -107,7 +108,7 @@ namespace HeriStep.API.Controllers
                 stall.RadiusMeter = req.RadiusMeter;
                 stall.UpdatedAt = DateTime.Now;
 
-                if (req.TtsScript != null)
+                if (!string.IsNullOrWhiteSpace(req.TtsScript))
                 {
                     var oldContents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
                     _context.StallContents.RemoveRange(oldContents);
@@ -141,7 +142,7 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> DeleteStall(int id)
         {
             var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound();
+            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
 
             var contents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
             _context.StallContents.RemoveRange(contents);
@@ -154,7 +155,7 @@ namespace HeriStep.API.Controllers
         [HttpGet("admin-map")]
         public async Task<IActionResult> GetAllStallsForMap()
         {
-            var stalls = await _context.Stalls
+            var stalls = await _context.Stalls.AsNoTracking()
                 .Select(s => new
                 {
                     id = s.Id,
@@ -190,13 +191,14 @@ namespace HeriStep.API.Controllers
         {
             _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 });
             await _context.SaveChangesAsync();
-            return Ok();
+            return Ok(new { message = "Tạo điểm sạp mới thành công!" });
         }
 
         [HttpGet("available-owners")]
         public async Task<IActionResult> GetAvailableOwners()
         {
-            var owners = await _context.Users
+            var owners = await _context.Users.AsNoTracking()
+                .Where(u => u.Role == "StallOwner" || u.Role == "Merchant") // Lọc bớt Admin ra
                 .Select(u => new { id = u.Id, fullName = u.FullName ?? "Chưa cập nhật tên", username = u.Username })
                 .ToListAsync();
             return Ok(owners);
@@ -205,9 +207,11 @@ namespace HeriStep.API.Controllers
         [HttpGet("{id}/tts/{langCode}")]
         public async Task<IActionResult> GetStallTts(int id, string langCode)
         {
-            var content = await _context.StallContents
+            var content = await _context.StallContents.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode);
+
             if (content == null) return NotFound(new { message = "Không tìm thấy TTS" });
+
             return Ok(new { text = content.TtsScript });
         }
 
@@ -247,18 +251,17 @@ namespace HeriStep.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+                return StatusCode(500, new { message = "Lỗi khi thêm món ăn", detail = ex.Message });
             }
         }
 
-        // 💡 ĐÃ FIX: Chống lỗi Open DataReader bằng ToListAsync() trước khi xóa
         [HttpDelete("delete-product/{productId}")]
         public async Task<IActionResult> DeleteProduct(int productId)
         {
             try
             {
                 var product = await _context.Products.FindAsync(productId);
-                if (product == null) return NotFound("Không tìm thấy món ăn này!");
+                if (product == null) return NotFound(new { message = "Không tìm thấy món ăn này!" });
 
                 var translations = await _context.ProductTranslations.Where(t => t.ProductId == productId).ToListAsync();
                 if (translations.Any())
@@ -273,7 +276,7 @@ namespace HeriStep.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return StatusCode(500, new { message = "Lỗi server khi xóa món ăn", detail = ex.Message });
             }
         }
 
@@ -282,18 +285,21 @@ namespace HeriStep.API.Controllers
         {
             try
             {
-                var products = await _context.Products.Where(p => p.StallId == stallId).Select(p => new
-                {
-                    Id = p.Id,
-                    BasePrice = p.BasePrice,
-                    ImageUrl = p.ImageUrl,
-                    Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
-                }).ToListAsync();
+                var products = await _context.Products.AsNoTracking()
+                    .Where(p => p.StallId == stallId)
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        BasePrice = p.BasePrice,
+                        ImageUrl = p.ImageUrl,
+                        Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
+                    }).ToListAsync();
+
                 return Ok(products);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
             }
         }
 
@@ -305,14 +311,14 @@ namespace HeriStep.API.Controllers
 
             if (finalOwnerId == 0) return Unauthorized(new { message = "Không xác định được chủ sạp. Vui lòng đăng nhập lại!" });
 
-            var stalls = await _context.Stalls.Where(s => s.OwnerId == finalOwnerId).ToListAsync();
+            var stalls = await _context.Stalls.AsNoTracking().Where(s => s.OwnerId == finalOwnerId).ToListAsync();
             return Ok(stalls);
         }
 
         [HttpGet("top5")]
         public async Task<IActionResult> GetTop5Stalls()
         {
-            var top = await _context.Stalls
+            var top = await _context.Stalls.AsNoTracking()
                 .Where(s => s.IsOpen)
                 .OrderByDescending(s => s.RadiusMeter)
                 .Take(5)
@@ -337,13 +343,14 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> ExtendSubscription(int id)
         {
             var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound("Không tìm thấy sạp.");
+            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp." });
 
             var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
 
             if (sub == null)
             {
-                sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
+                // Đã fix: Truyền cứng một DeviceId tạm hoặc lấy từ req nếu có để tránh lỗi Not Null dưới DB
+                sub = new Subscription { StallId = id, DeviceId = $"WEB-{Guid.NewGuid().ToString().Substring(0, 8)}", ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
                 _context.Subscriptions.Add(sub);
             }
             else
@@ -365,6 +372,7 @@ namespace HeriStep.API.Controllers
             return Ok(new { message = "Gia hạn thành công" });
         }
 
+        // Các class DTO dùng để parse Body/Form
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
