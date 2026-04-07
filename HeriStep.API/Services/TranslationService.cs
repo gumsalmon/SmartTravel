@@ -1,4 +1,8 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace HeriStep.API.Services
 {
@@ -25,16 +29,24 @@ namespace HeriStep.API.Services
 
                 var response = await _httpClient.GetStringAsync(url);
 
-                // Bóc tách chuỗi JSON loằng ngoằng của Google để lấy đúng câu đã dịch
+                // Bóc tách JSON
                 using var doc = JsonDocument.Parse(response);
-                var translatedText = doc.RootElement[0][0][0].GetString();
+                var jsonArray = doc.RootElement[0];
 
-                return translatedText ?? text;
+                // 💡 FIX 1: Nối tất cả các câu lại với nhau (Google sẽ chia nhỏ đoạn văn thành nhiều mảng)
+                StringBuilder fullTranslation = new StringBuilder();
+                foreach (var item in jsonArray.EnumerateArray())
+                {
+                    fullTranslation.Append(item[0].GetString());
+                }
+
+                return fullTranslation.ToString();
             }
             catch
             {
-                // Nếu rớt mạng hoặc Google chặn, trả về câu gốc để không làm sập Server
-                return text;
+                // 💡 FIX 2: BẮT BUỘC trả về chuỗi rỗng ("") để TranslationWorker biết là dịch lỗi.
+                // Tuyệt đối không trả về 'text' ở đây, tránh tình trạng lưu tiếng Việt vào cột tiếng Hàn.
+                return "";
             }
         }
     }
