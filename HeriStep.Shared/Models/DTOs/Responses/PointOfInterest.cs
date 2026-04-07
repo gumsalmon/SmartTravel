@@ -1,10 +1,14 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace HeriStep.Shared.Models.DTOs.Responses
 {
+    /// <summary>
+    /// Model đại diện cho thông tin Sạp hàng trên bản đồ.
+    /// Mapping trực tiếp với bảng [Stalls] trong Database Enterprise.
+    /// </summary>
     [Table("Stalls")]
     public class PointOfInterest
     {
@@ -56,15 +60,20 @@ namespace HeriStep.Shared.Models.DTOs.Responses
         [JsonPropertyName("isOpen")]
         public bool IsOpen { get; set; } = true;
 
+        // 💡 TECH LEAD FIX: Cột quan trọng để khớp với SQL Enterprise
+        [Column("is_deleted")]
+        [JsonPropertyName("isDeleted")]
+        public bool IsDeleted { get; set; } = false;
+
         [Column("updated_at")]
-        // 💡 Vì DB đã có Trigger TRG_UpdateStallTime nên để Computed là quá chuẩn
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         [JsonPropertyName("updatedAt")]
         public DateTime? UpdatedAt { get; set; }
 
-        // =====================================
-        // CÁC THUỘC TÍNH ẢO (Không có trong SQL)
-        // =====================================
+
+        // ============================================================
+        // CÁC THUỘC TÍNH ẢO (KHÔNG LƯU DB - DÙNG ĐỂ HIỂN THỊ TRÊN APP/WEB)
+        // ============================================================
 
         [NotMapped]
         [JsonPropertyName("ttsScript")]
@@ -73,5 +82,12 @@ namespace HeriStep.Shared.Models.DTOs.Responses
         [NotMapped]
         [JsonPropertyName("ownerName")]
         public string? OwnerName { get; set; }
+
+        /// <summary>
+        /// Tính toán xem sạp còn hạn hay đã hết hạn thanh toán (Dùng cho Admin Web)
+        /// </summary>
+        [NotMapped]
+        [JsonPropertyName("isExpired")]
+        public bool IsExpired { get; set; } = false;
     }
 }
