@@ -58,13 +58,10 @@ namespace HeriStep.Client.Views
             await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall));
         }
 
-        private void OnChangeLanguageTapped(object sender, EventArgs e)
+        private async void OnChangeLanguageTapped(object sender, EventArgs e)
         {
-            // Show LanguagePage (glassmorphism redesign) — user can pick a new language
-            if (Application.Current?.Windows.Count > 0)
-            {
-                Application.Current.Windows[0].Page = new LanguagePage();
-            }
+            // Push instead of replacing root — preserves AppShell + ViewModel + TTS state
+            await Navigation.PushAsync(new LanguagePage(isChangeMode: true));
         }
     }
 }

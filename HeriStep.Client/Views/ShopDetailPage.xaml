@@ -31,6 +31,27 @@
                     <Label Text="📍" FontSize="14" TextColor="#FDF5E6" VerticalOptions="Center"/>
                     <Label x:Name="lblShopAddress" Text="534 Vinh Khanh, Ward 10" FontSize="14" TextColor="#B0A090" VerticalOptions="Center"/>
                 </HorizontalStackLayout>
+
+                <!-- TTS: Nghe Giới Thiệu from DB -->
+                <HorizontalStackLayout Spacing="10" Margin="0,8,0,0" VerticalOptions="Center">
+                    <Button x:Name="btnPlayIntro"
+                            Text="🔊  Nghe Giới Thiệu"
+                            CornerRadius="18"
+                            BackgroundColor="Transparent"
+                            BorderColor="#FF8C00"
+                            BorderWidth="1.5"
+                            TextColor="#FF8C00"
+                            FontAttributes="Bold"
+                            FontSize="13"
+                            HeightRequest="40"
+                            HorizontalOptions="FillAndExpand"
+                            Clicked="OnPlayIntroClicked"/>
+                </HorizontalStackLayout>
+                <Label x:Name="lblTtsStatus"
+                       Text=""
+                       FontSize="11" TextColor="#6B5B4E"
+                       HorizontalTextAlignment="Start"
+                       Margin="0,2,0,0"/>
             </VerticalStackLayout>
 
             <VerticalStackLayout Padding="20,10,20,40" Spacing="25">

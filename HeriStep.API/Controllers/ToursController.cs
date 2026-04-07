@@ -31,7 +31,6 @@ namespace HeriStep.API.Controllers
                     TourName = t.TourName,
                     Description = string.IsNullOrEmpty(t.Description) ? "Lộ trình ăn vặt quận 4 độc đáo" : t.Description,
                     Rating = 4.8,
-                    // 💡 ĐÃ FIX LOGIC: Chỉ đếm những sạp đang mở cửa (IsOpen == true)
                     StallsCount = _context.Stalls.Count(s => s.TourID == t.Id && s.IsOpen == true),
                     Price = 50000,
                     ImageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=600&auto=format&fit=crop"
@@ -40,6 +39,10 @@ namespace HeriStep.API.Controllers
 
             return Ok(topTours);
         }
+
+        // Alias for legacy client calls using /api/Tours/top-hot
+        [HttpGet("top-hot")]
+        public Task<IActionResult> GetTopHotTours() => GetTop10Tours();
 
         [HttpGet]
         public async Task<IActionResult> GetTours()

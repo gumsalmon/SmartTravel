@@ -128,16 +128,16 @@ namespace HeriStep.Client.ViewModels
                 string lang = L.CurrentLanguage;
                 var url = $"/api/Stalls?lang={lang}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                Console.WriteLine($"[LOG] Fetching stalls from: {AppConstants.BaseApiUrl}{url}");
                 var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
 
                 if (data != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        Points.Clear(); TopRatedPoints.Clear(); _allPoints.Clear();
+                        Points.Clear(); _allPoints.Clear();
                         foreach (var p in data)
                         {
-                            // Construct full image URL or fallback to local resource
                             if (!string.IsNullOrEmpty(p.ImageUrl))
                             {
                                 if (!p.ImageUrl.StartsWith("http"))
@@ -145,28 +145,57 @@ namespace HeriStep.Client.ViewModels
                             }
                             else
                             {
-                                string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", 
-                                                        "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg", 
+                                string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg",
+                                                        "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg",
                                                         "ca_phe_trung.jpg", "com_tam.jpg" };
-                                int index = Math.Abs(p.Id) % localFoods.Length;
-                                p.ImageUrl = localFoods[index];
+                                p.ImageUrl = localFoods[Math.Abs(p.Id) % localFoods.Length];
                             }
-
                             Points.Add(p);
                             _allPoints.Add(p);
-
-                            // Top 5 stalls for the "Top Rating" section
-                            if (TopRatedPoints.Count < 5) TopRatedPoints.Add(p);
                         }
+                        Console.WriteLine($"[LOG] Loaded {Points.Count} stalls OK.");
                     });
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] LoadPointsAsync stalls failed: {ex.Message}");
+            }
 
-            // Load tours in parallel
+            // --- Load Top 5 Stalls from dedicated endpoint (real rating order) ---
             try
             {
-                var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("/api/Tours/top-hot");
+                Console.WriteLine("[LOG] Fetching Top5 stalls from /api/Stalls/top5...");
+                var top5Options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var top5Data = await _httpClient.GetFromJsonAsync<List<Stall>>("/api/Stalls/top5", top5Options);
+                if (top5Data != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        TopRatedPoints.Clear();
+                        foreach (var p in top5Data)
+                        {
+                            if (!string.IsNullOrEmpty(p.ImageUrl) && !p.ImageUrl.StartsWith("http"))
+                                p.ImageUrl = $"{AppConstants.BaseApiUrl}/{p.ImageUrl.TrimStart('/')}";
+                            if (string.IsNullOrEmpty(p.ImageUrl))
+                                p.ImageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=600";
+                            TopRatedPoints.Add(p);
+                        }
+                        Console.WriteLine($"[LOG] Loaded {TopRatedPoints.Count} top-rated stalls OK.");
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] LoadPointsAsync top5 failed: {ex.Message}");
+            }
+
+            // --- Load Top Tours ---
+            try
+            {
+                Console.WriteLine("[LOG] Fetching top tours from /api/Tours/top10...");
+                var toursOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("/api/Tours/top10", toursOptions);
                 if (toursData != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
@@ -175,16 +204,19 @@ namespace HeriStep.Client.ViewModels
                         foreach (var t in toursData)
                         {
                             if (string.IsNullOrEmpty(t.ImageUrl))
-                            {
-                                string[] tourImages = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", "goi_cuon.jpg" };
-                                t.ImageUrl = tourImages[Math.Abs(t.Id) % tourImages.Length];
-                            }
+                                t.ImageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=600";
+                            else if (!t.ImageUrl.StartsWith("http"))
+                                t.ImageUrl = $"{AppConstants.BaseApiUrl}/{t.ImageUrl.TrimStart('/')}";
                             TopTours.Add(t);
                         }
+                        Console.WriteLine($"[LOG] Loaded {TopTours.Count} tours OK.");
                     });
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error TopTours: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] LoadPointsAsync tours failed: {ex.Message}");
+            }
             finally { IsBusy = false; }
         }
 

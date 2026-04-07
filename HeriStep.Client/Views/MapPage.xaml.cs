@@ -80,7 +80,7 @@ public partial class MapPage : ContentPage
             z.MarginY = 120f; // Offset above bottom tabs safely
         }
 
-        CenterOnVinhKhanh();
+        // ✅ FIX: CenterOnVinhKhanh() moved to OnAppearing — viewport must be ready first
         mapView.Info += (sender, e) => HandleMapInfo(e);
     }
 
@@ -95,6 +95,19 @@ public partial class MapPage : ContentPage
     {
         base.OnAppearing();
         ClosePopup();
+
+        // ✅ FIX: Center map AFTER appearing so viewport is guaranteed to be initialized.
+        // Short delay lets the Mapsui surface finish layout before ZoomTo() is called.
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(250); // wait for render
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try { CenterOnVinhKhanh(); }
+                catch (Exception ex) { Console.WriteLine($"[ERROR] CenterOnVinhKhanh failed: {ex.Message}"); }
+            });
+        });
+
         await LoadStallsAsync();
         StartUserLocationLoop();
 
