@@ -1,13 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System; // 💡 THÊM DÒNG NÀY ĐỂ DÙNG DATETIME
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HeriStep.Shared.Models // Nhớ kiểm tra đúng namespace của bạn
+namespace HeriStep.Shared.Models
 {
     [Table("Users")]
     public class User
     {
         [Key]
-        [Column("id")] // 💡 Thêm cái này để khớp hoàn toàn với SQL
+        [Column("id")]
         public int Id { get; set; }
 
         [Column("username")]
@@ -21,5 +22,12 @@ namespace HeriStep.Shared.Models // Nhớ kiểm tra đúng namespace của bạ
 
         [Column("role")]
         public string Role { get; set; } = "StallOwner";
+
+        // 💡 TECH LEAD ĐÃ THÊM:
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; } = false;
+
+        [Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
     }
 }
