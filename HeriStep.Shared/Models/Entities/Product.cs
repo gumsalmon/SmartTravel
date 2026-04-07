@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HeriStep.Shared.Models
@@ -21,6 +21,12 @@ namespace HeriStep.Shared.Models
 
         [Column("is_signature")]
         public bool IsSignature { get; set; } = false;
+
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; } = false;
+
+        [Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
 
         // 💡 QUAN TRỌNG: Biến ảo để hứng tên món ăn từ bảng ProductTranslations (Không lưu vào DB)
         [NotMapped]
