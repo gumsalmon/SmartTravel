@@ -174,25 +174,35 @@ namespace HeriStep.API.Controllers
                 }
 
                 // 5. Tạo Package & Lịch sử mua vé
-                var package = await _context.TicketPackages.FirstOrDefaultAsync();
-                if (package == null)
+                var packages = await _context.TicketPackages.ToListAsync();
+                if (!packages.Any())
                 {
-                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
-                    _context.TicketPackages.Add(package);
+                    // Tạo danh sách 3 gói vé
+                    packages = new List<TicketPackage>
+    {
+        new TicketPackage { PackageName = "Vé Trải Nghiệm (3 Ngày)", Price = 50000, DurationHours = 72, IsActive = true },
+        new TicketPackage { PackageName = "Vé Khám Phá (5 Ngày)", Price = 75000, DurationHours = 120, IsActive = true },
+        new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh (7 Ngày)", Price = 100000, DurationHours = 168, IsActive = true }
+    };
+                    _context.TicketPackages.AddRange(packages);
                     await _context.SaveChangesAsync();
                 }
 
                 for (int i = 0; i < req.VisitCount; i++)
                 {
                     var randomDate = now.AddDays(-rand.Next(0, 90));
+
+                    // Lấy ngẫu nhiên 1 gói vé trong danh sách để tạo Mock Data
+                    var randomPackage = packages[rand.Next(packages.Count)];
+
                     _context.TouristTickets.Add(new TouristTicket
                     {
                         TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
                         DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                        PackageId = package.Id,
-                        AmountPaid = package.Price,
+                        PackageId = randomPackage.Id,
+                        AmountPaid = randomPackage.Price,
                         CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(package.DurationHours)
+                        ExpiryDate = randomDate.AddHours(randomPackage.DurationHours)
                     });
 
                     if (createdStalls.Any())

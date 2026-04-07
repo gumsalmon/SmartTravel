@@ -81,6 +81,7 @@ namespace HeriStep.API.Data
             modelBuilder.Entity<Subscription>(entity =>
             {
                 entity.ToTable("Subscriptions");
+                entity.Property(s => s.StallId).HasColumnName("stall_id");
                 entity.Property(s => s.DeviceId).HasColumnName("device_id");
                 entity.Property(s => s.ActivationCode).HasColumnName("activation_code");
                 entity.Property(s => s.StartDate).HasColumnName("start_date");
@@ -101,6 +102,7 @@ namespace HeriStep.API.Data
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.ToTable("Products");
+                entity.Property(p => p.StallId).HasColumnName("stall_id");
                 entity.Property(p => p.BasePrice).HasColumnType("decimal(18,2)").HasColumnName("base_price");
                 entity.Property(p => p.ImageUrl).HasColumnName("image_url");
                 entity.Property(p => p.IsSignature).HasColumnName("is_signature");
@@ -154,8 +156,17 @@ namespace HeriStep.API.Data
             });
 
             // 12. Seeding Data thay cho MockDataController
+            // 12. Seeding Data
             modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"), FullName = "System Admin", Role = "Admin" }
+                new User
+                {
+                    Id = 1,
+                    Username = "admin",
+                    // 💡 Dán cứng chuỗi băm của "123456" vào đây (BCrypt băm sẵn)
+                    PasswordHash = "$2a$11$n/A1qU55YyC7o2s1K0kC1O/0wA1oHh5X2w3E1z8e7H7A9R2lX4m",
+                    FullName = "System Admin",
+                    Role = "Admin"
+                }
             );
         }
     }
