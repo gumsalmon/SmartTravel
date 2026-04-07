@@ -38,8 +38,31 @@ public partial class HomePage : ContentPage
     // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
     private async void OnMapButtonClicked(object sender, EventArgs e)
     {
-        // 💡 ĐÃ FIX: Chỉ cần gọi new MapPage() thôi, không cần xách data theo nữa
-        // Vì thằng MapPage bây giờ đã quá xịn, nó tự biết gọi API lấy data rồi!
         await Navigation.PushAsync(new MapPage());
+    }
+
+    private async void OnShopSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is HeriStep.Shared.Models.Stall selectedStall)
+        {
+            // Reset selection
+            var cv = (CollectionView)sender;
+            cv.SelectedItem = null;
+
+            await Navigation.PushAsync(new ShopDetailPage(selectedStall));
+        }
+    }
+
+    private async void OnTourSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is HeriStep.Shared.Models.Tour selectedTour)
+        {
+            var cv = (CollectionView)sender;
+            cv.SelectedItem = null;
+
+            await DisplayAlert("Tour Khám Phá", $"Bạn đã chọn: {selectedTour.TourName}. Lịch trình chi tiết đang được phát triển.", "OK");
+            // Optionally, could go to MapPage to show all stalls on that tour.
+            await Navigation.PushAsync(new MapPage());
+        }
     }
 }

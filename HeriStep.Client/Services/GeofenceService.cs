@@ -3,64 +3,91 @@ using HeriStep.Shared.Models;
 namespace HeriStep.Client.Services
 {
     /// <summary>
-    /// GeofenceService - Dịch vụ Radar Không Gian
-    /// Dùng thuật toán Haversine tính khoảng cách Kinh/Vĩ độ thực tế giữa 2 điểm trên Trái Đất
-    /// Khi khách giẫm vào vùng bán kính của Sạp, tự động bắn sự kiện → TTS phát thanh
+    /// Geofencing engine that detects when the user enters/exits stall proximity zones.
+    /// Uses the Haversine formula (via MAUI's Location.CalculateDistance) for distance calculation.
+    /// 
+    /// How it works:
+    /// 1. A background loop calls CheckProximity() with current GPS coordinates.
+    /// 2. For each stall, it calculates the distance to the user.
+    /// 3. If the user is within the effective radius AND hasn't been announced yet,
+    ///    the StallEntered event fires.
+    /// 4. When the user moves away, the stall is removed from the "entered" set,
+    ///    allowing re-entry announcements on the next visit.
     /// </summary>
     public class GeofenceService
     {
-        private const double EarthRadiusKm = 6371.0;
-        private readonly HashSet<int> _announcedStalls = new(); // Chống spam loa liên tục
+        /// <summary>Fires when the user enters a stall's geofence for the first time.</summary>
+        public event Action<Stall>? StallEntered;
 
-        public event Action<Stall>? StallEntered; // Sự kiện bắn ra khi khách vào gần Sạp
+        /// <summary>Fires when the user exits a stall's geofence.</summary>
+        public event Action<Stall>? StallExited;
+
+        // Track which stalls the user is currently inside
+        private readonly HashSet<int> _currentlyInside = new();
 
         /// <summary>
-        /// Kiểm tra vị trí hiện tại với toàn bộ danh sách Sạp
-        /// Gọi hàm này mỗi 5 giây từ background loop
+        /// Gets the configured alert radius from user preferences (VoiceAura settings).
+        /// Falls back to 50 meters if not set.
         /// </summary>
+        private double GlobalRadius => Preferences.Default.Get("voice_radius", 50.0);
+
+        /// <summary>
+        /// Checks the user's proximity to all stalls and fires enter/exit events.
+        /// Should be called periodically from a background loop (every 1-5 seconds).
+        /// </summary>
+        /// <param name="userLat">User's current latitude.</param>
+        /// <param name="userLon">User's current longitude.</param>
+        /// <param name="stalls">List of stalls with GPS coordinates.</param>
         public void CheckProximity(double userLat, double userLon, IEnumerable<Stall> stalls)
         {
+            var userLoc = new Microsoft.Maui.Devices.Sensors.Location(userLat, userLon);
+            var currentNearby = new HashSet<int>();
+
             foreach (var stall in stalls)
             {
                 if (stall.Latitude == 0 && stall.Longitude == 0) continue;
 
-                double distanceMeters = HaversineDistanceMeters(userLat, userLon, stall.Latitude, stall.Longitude);
+                var stallLoc = new Microsoft.Maui.Devices.Sensors.Location(stall.Latitude, stall.Longitude);
+                double distMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(userLoc, stallLoc, DistanceUnits.Kilometers) * 1000;
 
-                double radiusM = stall.RadiusMeter > 0 ? stall.RadiusMeter : 50.0;
+                // Use per-stall radius if set (from API), otherwise global user preference
+                double effectiveRadius = stall.RadiusMeter > 0
+                    ? Math.Min(stall.RadiusMeter, GlobalRadius)
+                    : GlobalRadius;
 
-                if (distanceMeters <= radiusM)
+                if (distMeters <= effectiveRadius)
                 {
-                    // Chưa thông báo lần nào → bắn sự kiện
-                    if (_announcedStalls.Add(stall.Id))
+                    currentNearby.Add(stall.Id);
+
+                    // First entry → fire StallEntered
+                    if (!_currentlyInside.Contains(stall.Id))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[GEOFENCE] Vào vùng Sạp '{stall.Name}' - Khoảng cách: {distanceMeters:F1}m");
+                        _currentlyInside.Add(stall.Id);
                         StallEntered?.Invoke(stall);
                     }
                 }
-                else
+            }
+
+            // Check for exits: stalls that were inside but no longer nearby
+            var exited = _currentlyInside.Except(currentNearby).ToList();
+            foreach (var stallId in exited)
+            {
+                _currentlyInside.Remove(stallId);
+                var exitedStall = stalls.FirstOrDefault(s => s.Id == stallId);
+                if (exitedStall != null)
                 {
-                    // Ra khỏi vùng → xóa khỏi danh sách đã thông báo để lần sau vào lại được thông báo tiếp
-                    _announcedStalls.Remove(stall.Id);
+                    StallExited?.Invoke(exitedStall);
                 }
             }
         }
 
         /// <summary>
-        /// Thuật toán Haversine: Tính khoảng cách (mét) giữa 2 tọa độ GPS trên hình cầu Trái Đất
+        /// Resets all tracked geofences. Useful when switching demo mode
+        /// or when the user wants to re-hear all announcements.
         /// </summary>
-        private static double HaversineDistanceMeters(double lat1, double lon1, double lat2, double lon2)
+        public void Reset()
         {
-            double dLat = ToRad(lat2 - lat1);
-            double dLon = ToRad(lon2 - lon1);
-
-            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                       Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) *
-                       Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            return EarthRadiusKm * c * 1000; // Đổi km → mét
+            _currentlyInside.Clear();
         }
-
-        private static double ToRad(double deg) => deg * Math.PI / 180;
     }
 }

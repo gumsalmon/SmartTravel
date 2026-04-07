@@ -5,9 +5,15 @@ using HeriStep.Client.Services;
 
 namespace HeriStep.Client.ViewModels
 {
+    /// <summary>
+    /// ViewModel for the Home/Explore page. Loads stall data from the API,
+    /// manages the background GPS geofencing loop, and provides filtered
+    /// navigation to sub-pages.
+    /// </summary>
     public class HomeViewModel : BindableObject
     {
         private readonly HttpClient _httpClient;
+        private readonly GeofenceService _geofenceService;
         private bool _isBusy;
         private List<Stall> _allPoints = new();
 
@@ -17,39 +23,14 @@ namespace HeriStep.Client.ViewModels
             set { if (_isBusy != value) { _isBusy = value; OnPropertyChanged(); } }
         }
 
-        // List 1: Dành cho khu vực "Tất cả"
+        /// <summary>All stalls for the main list.</summary>
         public ObservableCollection<Stall> Points { get; set; } = new();
 
-        // List 2: Dành cho khu vực "Top Quán" (Chờ API bạn của bạn)
+        /// <summary>Top-rated stalls section.</summary>
         public ObservableCollection<Stall> TopRatedPoints { get; set; } = new();
 
-        // List 3: Dành cho Top 10 Tours
+        /// <summary>Top hot tours.</summary>
         public ObservableCollection<Tour> TopTours { get; set; } = new();
-
-        private bool _isManualLocation;
-        public bool IsManualLocation
-        {
-            get => _isManualLocation;
-            set { if (_isManualLocation != value) { _isManualLocation = value; OnPropertyChanged(); } }
-        }
-
-        private string _selectedManualLocation = "Vị trí hiện tại (Auto)";
-        public string SelectedManualLocation
-        {
-            get => _selectedManualLocation;
-            set 
-            { 
-                if (_selectedManualLocation != value) 
-                { 
-                    _selectedManualLocation = value; 
-                    OnPropertyChanged();
-                    IsManualLocation = value != "Vị trí hiện tại (Auto)";
-                    // Tự động gọi filter hoặc tính toán lại Haversine
-                    // LoadPointsAsync().ConfigureAwait(false);
-                } 
-            }
-        }
-
 
         public Command LoadDataCommand { get; set; }
         public Command<string> FilterCommand { get; set; }
@@ -60,36 +41,59 @@ namespace HeriStep.Client.ViewModels
         {
             _httpClient = httpClient;
             _locationService = locationService;
-            _httpClient.BaseAddress = new Uri(HeriStep.Client.Services.AppConstants.BaseApiUrl);
-            string? savedToken = Microsoft.Maui.Storage.Preferences.Default.Get("jwt_token", string.Empty);
+            _httpClient.BaseAddress ??= new Uri(AppConstants.BaseApiUrl);
+            _geofenceService = new GeofenceService();
+
+            // Apply JWT token if available
+            string? savedToken = Preferences.Default.Get("jwt_token", string.Empty);
             if (!string.IsNullOrEmpty(savedToken))
             {
-                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", savedToken);
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", savedToken);
             }
 
             LoadDataCommand = new Command(async () => await LoadPointsAsync());
             FilterCommand = new Command<string>(FilterAndNavigate);
-            
+
             StartBackgroundGpsLoop();
         }
 
-        private readonly GeofenceService _geofenceService = new();
-
+        /// <summary>
+        /// Starts a background loop that monitors the user's GPS position
+        /// and triggers TTS announcements via the GeofenceService when
+        /// entering a stall's proximity zone.
+        /// </summary>
         private void StartBackgroundGpsLoop()
         {
-            // Đăng ký callback khi Radar phát hiện Khách vào gần Sạp
             _geofenceService.StallEntered += async (stall) =>
             {
-                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("user_language", "vi");
-                string message = lang == "vi"
-                    ? $"Chào mừng bạn đến {stall.Name}! Hãy ghé thăm để trải nghiệm ẩm thực Vĩnh Khánh."
-                    : $"Welcome to {stall.Name}! Come and experience the best food street.";
+                string lang = L.CurrentLanguage;
+                string message = lang switch
+                {
+                    "en" => $"Welcome to {stall.Name}! Come enjoy the best street food here.",
+                    "ja" => $"{stall.Name}へようこそ！",
+                    "ko" => $"{stall.Name}에 오신 것을 환영합니다!",
+                    "zh" => $"欢迎来到{stall.Name}！",
+                    "fr" => $"Bienvenue à {stall.Name} !",
+                    "es" => $"¡Bienvenido a {stall.Name}!",
+                    "de" => $"Willkommen bei {stall.Name}!",
+                    "th" => $"ยินดีต้อนรับสู่ {stall.Name}!",
+                    _ => $"Chào mừng bạn đến {stall.Name}! Hãy ghé thăm để trải nghiệm ẩm thực Vĩnh Khánh."
+                };
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TTS] Đang phát thanh: {message}");
-                    // Phát loa TTS bằng AI giọng nói bản địa của thiết bị
-                    await TextToSpeech.Default.SpeakAsync(message);
+                    System.Diagnostics.Debug.WriteLine($"[TTS] Playing: {message}");
+                    try
+                    {
+                        var locales = await TextToSpeech.Default.GetLocalesAsync();
+                        var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(lang));
+                        await TextToSpeech.Default.SpeakAsync(message, new SpeechOptions { Locale = locale });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TTS Error] {ex.Message}");
+                    }
                 });
             };
 
@@ -97,29 +101,31 @@ namespace HeriStep.Client.ViewModels
             {
                 while (true)
                 {
-                    if (!IsManualLocation && _allPoints.Any())
+                    if (_allPoints.Any())
                     {
                         var loc = await _locationService.GetLocationAsync();
                         if (loc != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[GPS Radar] Lat: {loc.Latitude:F6}, Lon: {loc.Longitude:F6}");
-                            // Bắn thuật toán Haversine kiểm tra khoảng cách đến từng Sạp
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[GPS Radar] Lat: {loc.Latitude:F6}, Lon: {loc.Longitude:F6}");
                             _geofenceService.CheckProximity(loc.Latitude, loc.Longitude, _allPoints);
                         }
                     }
-                    await Task.Delay(5000); // Quét mỗi 5 giây
+                    await Task.Delay(5000); // Scan every 5 seconds
                 }
             });
         }
 
-
+        /// <summary>
+        /// Loads all stalls and tours from the API, applying the current language.
+        /// </summary>
         public async Task LoadPointsAsync()
         {
             if (IsBusy) return;
             IsBusy = true;
             try
             {
-                string lang = Microsoft.Maui.Storage.Preferences.Default.Get("user_language", "vi");
+                string lang = L.CurrentLanguage;
                 var url = $"/api/Stalls?lang={lang}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var data = await _httpClient.GetFromJsonAsync<List<Stall>>(url, options);
@@ -131,14 +137,14 @@ namespace HeriStep.Client.ViewModels
                         Points.Clear(); TopRatedPoints.Clear(); _allPoints.Clear();
                         foreach (var p in data)
                         {
+                            // Construct full image URL or fallback to local resource
                             if (!string.IsNullOrEmpty(p.ImageUrl))
                             {
                                 if (!p.ImageUrl.StartsWith("http"))
-                                    p.ImageUrl = $"{HeriStep.Client.Services.AppConstants.BaseApiUrl}/{p.ImageUrl.TrimStart('/')}";
+                                    p.ImageUrl = $"{AppConstants.BaseApiUrl}/{p.ImageUrl.TrimStart('/')}";
                             }
                             else
                             {
-                                // 💡 BEAUTIFUL FALLBACK: If image is empty, pick one from local resources
                                 string[] localFoods = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", 
                                                         "goi_cuon.jpg", "hu_tieu.jpg", "banh_xeo.jpg", "che_ba_mau.jpg", 
                                                         "ca_phe_trung.jpg", "com_tam.jpg" };
@@ -149,27 +155,27 @@ namespace HeriStep.Client.ViewModels
                             Points.Add(p);
                             _allPoints.Add(p);
 
-                            // Tạm thời lấy 5 quán đầu làm Top Rating
+                            // Top 5 stalls for the "Top Rating" section
                             if (TopRatedPoints.Count < 5) TopRatedPoints.Add(p);
                         }
                     });
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}"); }
-            
-            // Load Top Tours song song
-            try {
+
+            // Load tours in parallel
+            try
+            {
                 var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("/api/Tours/top-hot");
                 if (toursData != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         TopTours.Clear();
-                        foreach (var t in toursData) 
+                        foreach (var t in toursData)
                         {
                             if (string.IsNullOrEmpty(t.ImageUrl))
                             {
-                                // 💡 BEAUTIFUL FALLBACK FOR TOURS
                                 string[] tourImages = { "pho_bo.jpg", "banh_mi.jpg", "oc_len.jpg", "bun_bo_hue.jpg", "goi_cuon.jpg" };
                                 t.ImageUrl = tourImages[Math.Abs(t.Id) % tourImages.Length];
                             }
@@ -179,46 +185,41 @@ namespace HeriStep.Client.ViewModels
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error TopTours: {ex.Message}"); }
-
             finally { IsBusy = false; }
         }
 
-        // ==========================================
-        // LỌC VÀ CHUYỂN TRANG MỚI (TƯ DUY GRABFOOD)
-        // ==========================================
+        // ═══════════════════════════════════════════
+        // FILTERING & NAVIGATION
+        // ═══════════════════════════════════════════
+
         private async void FilterAndNavigate(string keyword)
         {
             if (_allPoints == null || _allPoints.Count == 0) return;
 
-            // 1. Nếu chọn Tất cả -> Gửi toàn bộ list qua trang mới
-            if (string.IsNullOrWhiteSpace(keyword) || keyword == "Tất cả")
+            if (string.IsNullOrWhiteSpace(keyword) || keyword == "Tất cả" || keyword == "All")
             {
                 await NavigateToPage(keyword, _allPoints);
                 return;
             }
 
-            // 2. Nếu chọn món -> Lọc các quán có chữ đó trong tên
-            var filtered = _allPoints.Where(p => p.Name != null && p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+            var filtered = _allPoints
+                .Where(p => p.Name != null && p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            // 3. FALLBACK: ĐỂ BẠN TEST KHÔNG BỊ TRỐNG MÀN HÌNH
-            // Nếu lọc chữ "Sò" mà không có quán nào, tự động lấy danh sách gốc để hiện tạm!
-            if (filtered.Count == 0)
-            {
-                filtered = _allPoints;
-            }
+            // Fallback: show all if filter returns empty (prevents blank screen)
+            if (filtered.Count == 0) filtered = _allPoints;
 
             await NavigateToPage(keyword, filtered);
         }
 
         private async Task NavigateToPage(string keyword, List<Stall> dataToPass)
         {
-            // Cách gọi chuyển trang "bất bại" trong .NET MAUI từ ViewModel
             if (Application.Current?.Windows.Count > 0 && Application.Current.Windows[0].Page != null)
             {
-                // Dùng MainThread để đảm bảo không bị crash khi chuyển UI
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await Application.Current.Windows[0].Page.Navigation.PushAsync(new Views.FilterResultPage(keyword, dataToPass));
+                    await Application.Current.Windows[0].Page.Navigation
+                        .PushAsync(new Views.FilterResultPage(keyword, dataToPass));
                 });
             }
         }

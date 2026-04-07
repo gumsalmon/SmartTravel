@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Maui.Storage;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using HeriStep.Client.Services;
 
 namespace HeriStep.Client.Views
 {
@@ -23,14 +24,37 @@ namespace HeriStep.Client.Views
         {
             base.OnAppearing();
             LoadSettings();
+            ApplyLocalization();
 
-            // 💡 FORCED INIT: Silent speak to force Android TTS engine to wake up early.
-            _ = Task.Run(async () => {
-                try { 
-                    await TextToSpeech.Default.GetLocalesAsync(); 
+            // Force TTS engine to initialize early
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TextToSpeech.Default.GetLocalesAsync();
                     await TextToSpeech.Default.SpeakAsync("", new SpeechOptions { Volume = 0 });
-                } catch { }
+                }
+                catch { }
             });
+        }
+
+        private void ApplyLocalization()
+        {
+            lblPageTitle.Text = L.Get("aura_header");
+            lblSubtitle.Text = L.Get("aura_subtitle");
+            lblHeroTitle.Text = L.Get("aura_hero_title");
+            lblLanguageSection.Text = L.Get("aura_language");
+            lblGenderSection.Text = L.Get("aura_gender");
+            lblMale.Text = L.Get("aura_male");
+            lblFemale.Text = L.Get("aura_female");
+            lblSpeedSection.Text = L.Get("aura_speed");
+            lblSpeedSlow.Text = L.Get("aura_speed_slow");
+            lblSpeedNormal.Text = L.Get("aura_speed_normal");
+            lblSpeedFast.Text = L.Get("aura_speed_fast");
+            lblRadiusSection.Text = L.Get("aura_radius");
+            lblRadiusDesc.Text = L.Get("aura_radius_desc");
+            btnPreview.Text = L.Get("aura_preview");
+            btnSave.Text = L.Get("aura_save");
         }
 
         private void LoadSettings()
@@ -88,7 +112,7 @@ namespace HeriStep.Client.Views
             };
             if (activeFrame != null)
             {
-                activeFrame.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#00695C");
+                activeFrame.BackgroundColor = Color.FromArgb("#00695C");
                 var hsl = activeFrame.Content as HorizontalStackLayout;
                 if (hsl != null && hsl.Children.Count > 1 && hsl.Children[1] is Label lbl)
                 {
@@ -103,8 +127,8 @@ namespace HeriStep.Client.Views
             var activeFrame = _selectedGender == "Male" ? frameMale : frameFemale;
             if (activeFrame != null)
             {
-                activeFrame.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#E0F2F1");
-                activeFrame.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#00695C");
+                activeFrame.BackgroundColor = Color.FromArgb("#E0F2F1");
+                activeFrame.BorderColor = Color.FromArgb("#00695C");
             }
         }
 
@@ -113,12 +137,12 @@ namespace HeriStep.Client.Views
             foreach (var f in frames)
             {
                 if (f == null) continue;
-                f.BackgroundColor = Microsoft.Maui.Graphics.Color.FromArgb("#F0FDFC");
+                f.BackgroundColor = Color.FromArgb("#F0FDFC");
                 f.BorderColor = Colors.Transparent;
                 if (f.Content is HorizontalStackLayout hsl && hsl.Children.Count > 1 && hsl.Children[1] is Label lbl)
-                    lbl.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#004D40");
+                    lbl.TextColor = Color.FromArgb("#004D40");
                 if (f.Content is VerticalStackLayout vsl && vsl.Children.Count > 1 && vsl.Children[1] is Label vlbl)
-                    vlbl.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#004D40");
+                    vlbl.TextColor = Color.FromArgb("#004D40");
             }
         }
 
@@ -126,13 +150,12 @@ namespace HeriStep.Client.Views
         {
             try
             {
-                var speed = (float)speedSlider.Value;
                 var text = _selectedLang switch
                 {
                     "en" => "Welcome to Vĩnh Khánh Food Street!",
                     "zh" => "欢迎来到永庆美食街！",
                     "ja" => "ビンカンフードストリートへようこそ！",
-                    "ko" => "빈칸 음식 거리 에 오신 것을 환영합니다!",
+                    "ko" => "빈칸 음식 거리에 오신 것을 환영합니다!",
                     "fr" => "Bienvenue dans la rue de la nourriture de Vĩnh Khánh !",
                     "es" => "¡Bienvenido a la calle de la comida de Vĩnh Khánh!",
                     "de" => "Willkommen in der Vĩnh Khánh Food Street!",
@@ -143,27 +166,28 @@ namespace HeriStep.Client.Views
                 var locales = await TextToSpeech.Default.GetLocalesAsync();
                 var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(_selectedLang, StringComparison.OrdinalIgnoreCase));
 
-                await TextToSpeech.Default.SpeakAsync(text, new SpeechOptions 
-                { 
-                    Pitch = 1.0f, 
+                await TextToSpeech.Default.SpeakAsync(text, new SpeechOptions
+                {
+                    Pitch = 1.0f,
                     Volume = 1.0f,
                     Locale = locale
                 });
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Lỗi", "Không thể phát âm thanh: " + ex.Message, "OK");
+                await DisplayAlert(L.Get("aura_error_title"), $"{L.Get("aura_error_play")}: {ex.Message}", L.Get("ok"));
             }
         }
 
         private async void OnSaveClicked(object sender, EventArgs e)
         {
-            Preferences.Default.Set("user_language", _selectedLang);
+            // Save all voice settings and update global language
+            L.SetLanguage(_selectedLang);
             Preferences.Default.Set("voice_gender", _selectedGender);
             Preferences.Default.Set("voice_speed", speedSlider.Value);
             Preferences.Default.Set("voice_radius", radiusSlider.Value);
 
-            await DisplayAlert("Thành công", "Thiết lập đã được lưu lại.", "OK");
+            await DisplayAlert(L.Get("alert_success"), L.Get("aura_saved_ok"), L.Get("ok"));
         }
     }
 }

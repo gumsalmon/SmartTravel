@@ -5,17 +5,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:HeriStep.Client"
     xmlns:views="clr-namespace:HeriStep.Client.Views"
-    Title="HeriStep - Du Lịch Thông Minh"
-    TabBarBackgroundColor="#E6FAFA"
-    TabBarUnselectedColor="#5A969E"
-    TabBarTitleColor="#045950"
+    Title="HeriStep"
+    TabBarBackgroundColor="#1C1C1C"
+    TabBarUnselectedColor="#6B5B4E"
+    TabBarTitleColor="#FF8C00"
+    TabBarForegroundColor="#FF8C00"
     FlyoutBehavior="Disabled">
 
-
     <TabBar>
-        <Tab Title="Explore">
+        <!-- Tab 1: Explore — Hero + Voice Studio -->
+        <Tab x:Name="tabExplore" Title="Explore">
             <Tab.Icon>
-                <FontImageSource Glyph="🧭" Color="#045950" />
+                <FontImageSource Glyph="&#x1F9ED;" Color="#D35400" />
             </Tab.Icon>
             <ShellContent
                 Title="Explore"
@@ -23,29 +24,21 @@
                 Route="MainPage" />
         </Tab>
 
-        <Tab Title="Aura">
+        <!-- Tab 2: Map — Interactive map with search + geofencing -->
+        <Tab x:Name="tabMap" Title="Map">
             <Tab.Icon>
-                <FontImageSource Glyph="ılı" Color="#045950" />
+                <FontImageSource Glyph="&#x1F5FA;" Color="#D35400" />
             </Tab.Icon>
             <ShellContent
-                Title="Aura"
-                ContentTemplate="{DataTemplate views:VoiceAuraPage}"
-                Route="VoiceAuraPage" />
+                Title="Map"
+                ContentTemplate="{DataTemplate views:MapPage}"
+                Route="MapPage" />
         </Tab>
 
-        <Tab Title="Scanner">
+        <!-- Tab 3: Profile — Settings, language, history -->
+        <Tab x:Name="tabProfile" Title="Profile">
             <Tab.Icon>
-                <FontImageSource Glyph="🔳" Color="#045950" />
-            </Tab.Icon>
-            <ShellContent
-                Title="Scanner"
-                ContentTemplate="{DataTemplate views:ScannerPage}"
-                Route="ScannerPage" />
-        </Tab>
-
-        <Tab Title="Profile">
-            <Tab.Icon>
-                <FontImageSource Glyph="👤" Color="#045950" />
+                <FontImageSource Glyph="&#x1F464;" Color="#D35400" />
             </Tab.Icon>
             <ShellContent
                 Title="Profile"

@@ -1,4 +1,5 @@
 using System;
+using HeriStep.Client.Services;
 using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.Views
@@ -10,41 +11,60 @@ namespace HeriStep.Client.Views
             InitializeComponent();
         }
 
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+        }
+
         private async void OnHomeClicked(object sender, EventArgs e)
         {
             await Shell.Current.GoToAsync("//MainPage");
         }
 
-        private async void OnConfigureClicked(object sender, EventArgs e)
-        {
-            await Shell.Current.GoToAsync("//VoiceAuraPage");
-        }
-
         private async void OnSavedSpotsTapped(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync(nameof(MapPage));
+            await DisplayAlert("Thông báo", "Khu vực địa điểm đã lưu đang được cập nhật.", "OK");
         }
 
         private async void OnSupportTapped(object sender, EventArgs e)
         {
-            await DisplayAlert("Support", "Bạn có thể liên hệ hỗ trợ qua email: support@heristep.local", "Đóng");
+            await DisplayAlertAsync("Support", "Email: support@heristep.local\nHotline: 1800-HERISTEP", "OK");
         }
 
         private async void OnViewAllHistoryTapped(object sender, EventArgs e)
         {
-            await DisplayAlert("Lịch sử", "Lịch sử chi tiết sẽ được đồng bộ từ API trong phiên bản tiếp theo.", "OK");
+            await DisplayAlertAsync("Visit History", "Full history view coming soon.", "OK");
         }
 
         private async void OnHistoryItem1Tapped(object sender, EventArgs e)
         {
-            var stall = new Stall { Id = 11, Name = "Oc Dao Vinh Khanh", ImageUrl = "https://images.unsplash.com/photo-1544025162-8e658402afb0?w=600" };
+            var stall = new Stall
+            {
+                Id = 11,
+                Name = "Oc Dao Vinh Khanh",
+                ImageUrl = "https://images.unsplash.com/photo-1544025162-8e658402afb0?w=600"
+            };
             await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall));
         }
 
         private async void OnHistoryItem2Tapped(object sender, EventArgs e)
         {
-            var stall = new Stall { Id = 12, Name = "Mrs. Sau's Rolls", ImageUrl = "https://images.unsplash.com/photo-1574484284002-952d92456975?w=600" };
+            var stall = new Stall
+            {
+                Id = 12,
+                Name = "Mrs. Sau's Rolls",
+                ImageUrl = "https://images.unsplash.com/photo-1574484284002-952d92456975?w=600"
+            };
             await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall));
+        }
+
+        private void OnChangeLanguageTapped(object sender, EventArgs e)
+        {
+            // Show LanguagePage (glassmorphism redesign) — user can pick a new language
+            if (Application.Current?.Windows.Count > 0)
+            {
+                Application.Current.Windows[0].Page = new LanguagePage();
+            }
         }
     }
 }

@@ -4,7 +4,6 @@ using HeriStep.Client.ViewModels;
 using HeriStep.Client.Views;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
-using Mapsui.UI.Maui; // 💡 ĐÃ FIX: Thêm Using của Mapsui
 
 namespace HeriStep.Client;
 
@@ -22,34 +21,31 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // 1. Cấu hình HttpClient (Lưu ý: 10.0.2.2 chỉ dùng cho Android Emulator)
+        // ═══ HTTP CLIENT ═══
+        // Platform-aware base URL: 10.0.2.2 for Android emulator, localhost elsewhere
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://10.0.2.2:5297/")
+            BaseAddress = new Uri(AppConstants.BaseApiUrl + "/")
         });
 
-        // 2. Đăng ký Services
+        // ═══ SERVICES ═══
         builder.Services.AddSingleton<ShopService>();
+        builder.Services.AddSingleton<GeofenceService>();
 
-        // 💡 Đã dùng Alias gọn gàng hơn nhờ using ở trên
 #if DEBUG
         builder.Services.AddSingleton<ILocationService, MockLocationService>();
 #else
         builder.Services.AddSingleton<ILocationService, RealLocationService>();
 #endif
 
-        // 3. Đăng ký ViewModels (Đăng ký Singleton nếu muốn giữ trạng thái, Transient nếu muốn reset)
+        // ═══ VIEWMODELS ═══
         builder.Services.AddSingleton<HomeViewModel>();
-        // builder.Services.AddTransient<LoginViewModel>(); // Sếp nên thêm dòng này nếu có LoginViewModel
 
-        // 4. Đăng ký Views
-        builder.Services.AddTransient<LoginPage>();
-        builder.Services.AddTransient<HomePage>();
+        // ═══ PAGES ═══
         builder.Services.AddTransient<MainPage>();
-        builder.Services.AddTransient<VoiceAuraPage>();
-        builder.Services.AddTransient<ScannerPage>();
+        builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
-        builder.Services.AddTransient<PaymentPage>();
+        // Note: VoiceAuraPage removed — voice customization is now inline on MainPage
 
 #if DEBUG
         builder.Logging.AddDebug();

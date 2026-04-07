@@ -139,7 +139,7 @@
                 <Label Grid.Column="0" Text="🔥 Top 10 Tours Khám Phá" FontAttributes="Bold" FontSize="18" TextColor="#D32F2F" VerticalOptions="Center" />
             </Grid>
 
-            <CollectionView ItemsSource="{Binding TopTours}" HeightRequest="190">
+            <CollectionView ItemsSource="{Binding TopTours}" HeightRequest="190" SelectionMode="Single" SelectionChanged="OnTourSelected">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
                 </CollectionView.ItemsLayout>
@@ -149,7 +149,7 @@
                             <VerticalStackLayout>
                                 <Image Source="{Binding ImageUrl}" HeightRequest="120" Aspect="AspectFill" BackgroundColor="#E0E0E0" />
                                 <VerticalStackLayout Padding="10" Spacing="4">
-                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14" TextColor="Black" MaxLines="1" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding TourName}" FontAttributes="Bold" FontSize="14" TextColor="Black" MaxLines="1" LineBreakMode="TailTruncation" />
                                     <HorizontalStackLayout Spacing="8">
                                         <Label Text="{Binding StallCount, StringFormat='🏷️ {0} Sạp'}" FontSize="12" TextColor="Gray"/>
                                         <Label Text="{Binding Visits, StringFormat='👤 {0} Lượt'}" FontSize="12" TextColor="Gray"/>
@@ -165,7 +165,7 @@
                 <Label Grid.Column="0" Text="⭐ Top Quán 5 Sao" FontAttributes="Bold" FontSize="18" TextColor="#FFA000" VerticalOptions="Center" />
             </Grid>
 
-            <CollectionView ItemsSource="{Binding TopRatedPoints}" HeightRequest="220">
+            <CollectionView ItemsSource="{Binding TopRatedPoints}" HeightRequest="220" SelectionMode="Single" SelectionChanged="OnShopSelected">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
                 </CollectionView.ItemsLayout>
@@ -194,7 +194,7 @@
                 <Label Grid.Column="0" Text="Khám phá tất cả" FontAttributes="Bold" FontSize="18" TextColor="Black" VerticalOptions="Center" />
             </Grid>
 
-            <CollectionView ItemsSource="{Binding Points}" HeightRequest="220">
+            <CollectionView ItemsSource="{Binding Points}" HeightRequest="220" SelectionMode="Single" SelectionChanged="OnShopSelected">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
                 </CollectionView.ItemsLayout>

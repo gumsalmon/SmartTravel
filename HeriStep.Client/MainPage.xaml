@@ -3,243 +3,350 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="HeriStep.Client.MainPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#E6FAFA"> <!-- Light Cyan Background matching the design -->
+             BackgroundColor="#1C1C1C">
 
     <ScrollView>
-        <VerticalStackLayout Padding="20,50,20,30" Spacing="25">
-            
-            <!-- Header -->
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <Button Text="☰" FontSize="20" TextColor="#043940" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0" Clicked="OnMenuClicked"/>
-                <Label Text="PHỐ VĨNH KHÁNH" FontSize="16" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
-                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40" Padding="0" Grid.Column="2" IsClippedToBounds="True" BorderColor="Transparent">
-                    <Frame.GestureRecognizers>
+        <VerticalStackLayout Padding="0,0,0,120" Spacing="0">
+
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- HEADER BAR                                      -->
+            <!-- ══════════════════════════════════════════════ -->
+            <Grid ColumnDefinitions="Auto, *, Auto" Padding="20,52,20,18" BackgroundColor="#1C1C1C">
+                <Button Text="☰" FontSize="20" TextColor="#D35400" BackgroundColor="Transparent"
+                        Padding="0" Margin="0" Grid.Column="0" Clicked="OnMenuClicked"/>
+                <Label x:Name="lblMainHeader" Text="PHỐ VĨNH KHÁNH" FontSize="15" FontAttributes="Bold"
+                       TextColor="#FDF5E6" HorizontalOptions="Center" VerticalOptions="Center"
+                       Grid.Column="1" CharacterSpacing="1"/>
+                <Border StrokeShape="RoundRectangle 20" HeightRequest="40" WidthRequest="40"
+                        StrokeThickness="2" Stroke="#D35400" Grid.Column="2">
+                    <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnAvatarTapped"/>
-                    </Frame.GestureRecognizers>
-                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200" Aspect="AspectFill"/>
-                </Frame>
+                    </Border.GestureRecognizers>
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200"
+                           Aspect="AspectFill"/>
+                </Border>
             </Grid>
 
-            <!-- Hero Banner -->
-            <Frame CornerRadius="30" Padding="0" IsClippedToBounds="True" BackgroundColor="#043940" HasShadow="False" HeightRequest="400">
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- HERO BANNER                                     -->
+            <!-- ══════════════════════════════════════════════ -->
+            <Border StrokeShape="RoundRectangle 0" StrokeThickness="0" Margin="0,0,0,0" HeightRequest="360">
                 <Grid>
-                    <!-- Background image focusing on the right part, using a placeholder for the man -->
-                    <Image Source="https://images.unsplash.com/photo-1600486913747-55e5470d6f40?q=80&amp;w=800" Aspect="AspectFill" Opacity="0.5" HorizontalOptions="End" WidthRequest="300" />
-                    <!-- Dark overlay gradient to make text readable on the left -->
+                    <Image Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=800"
+                           Aspect="AspectFill" Opacity="0.55"/>
+                    <!-- Dark overlay -->
                     <BoxView>
                         <BoxView.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#043940" Offset="0.1"/>
-                                <GradientStop Color="#77043940" Offset="0.6"/>
-                                <GradientStop Color="Transparent" Offset="1"/>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#AA1C1C1C" Offset="0.0"/>
+                                <GradientStop Color="#551C1C1C" Offset="0.4"/>
+                                <GradientStop Color="#FF1C1C1C" Offset="1.0"/>
                             </LinearGradientBrush>
                         </BoxView.Background>
                     </BoxView>
-
+                    <!-- Left amber gradient -->
+                    <BoxView>
+                        <BoxView.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#881C1C1C" Offset="0.0"/>
+                                <GradientStop Color="Transparent" Offset="0.7"/>
+                            </LinearGradientBrush>
+                        </BoxView.Background>
+                    </BoxView>
                     <!-- Text content -->
-                    <VerticalStackLayout Padding="25,50" Spacing="15" VerticalOptions="Center">
-                        <Frame CornerRadius="12" BackgroundColor="#A0F0E5" Padding="12,6" HasShadow="False" HorizontalOptions="Start" BorderColor="Transparent">
-                            <Label Text="QUẬN 4 - SAIGON" FontSize="10" FontAttributes="Bold" TextColor="#045950"/>
-                        </Frame>
-
-                        <Label Text="Khám Phá&#10;Tâm Hồn&#10;Quận 4" FontSize="36" FontAttributes="Bold" TextColor="White" LineHeight="1.1"/>
-                        <Label Text="Thiên đường ẩm thực đường&#10;phố sầm uất nhất Sài Gòn, nơi&#10;những câu chuyện được kể qua&#10;hương vị." 
-                               FontSize="14" TextColor="#E6FAFA" LineHeight="1.3" Margin="0,10,0,0"/>
+                    <VerticalStackLayout Padding="28,40" Spacing="16" VerticalOptions="End" HorizontalOptions="Fill">
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="#40D35400"
+                                Padding="12,6" StrokeThickness="1" Stroke="#D35400"
+                                HorizontalOptions="Center">
+                            <Label x:Name="lblHeroTag" Text="QUẬN 4 · SAIGON" FontSize="10" FontAttributes="Bold"
+                                   TextColor="#D35400" CharacterSpacing="2"/>
+                        </Border>
+                        <Label x:Name="lblHeroTitle" Text="Khám Phá Tâm Hồn Quận 4"
+                               FontSize="42" FontAttributes="Bold" TextColor="#FDF5E6" LineHeight="1.1"
+                               HorizontalTextAlignment="Center" HorizontalOptions="Center" MaxLines="2" LineBreakMode="WordWrap"/>
+                        
+                        <!-- Search Bar -->
+                        <Border BackgroundColor="#EE242424" StrokeThickness="1" Stroke="#50D35400"
+                                StrokeShape="RoundRectangle 24" Padding="12,0" Margin="10,10,10,0" HeightRequest="48">
+                            <Grid ColumnDefinitions="Auto, *">
+                                <Label Text="🔍" FontSize="18" Grid.Column="0" VerticalOptions="Center" Margin="6,0,8,0"/>
+                                <Entry x:Name="heroSearchEntry"
+                                       Placeholder="Tìm quán ăn, địa điểm..."
+                                       PlaceholderColor="#6B5B4E"
+                                       TextColor="#FDF5E6"
+                                       BackgroundColor="Transparent"
+                                       Grid.Column="1"
+                                       VerticalOptions="Center"
+                                       Completed="OnHeroSearchCompleted"/>
+                            </Grid>
+                        </Border>
                     </VerticalStackLayout>
                 </Grid>
-            </Frame>
+            </Border>
 
-            <!-- Action Buttons Row -->
-            <Grid ColumnDefinitions="*, *, *" ColumnSpacing="15">
-                <!-- Bản Đồ -->
-                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="0">
-                    <Frame.GestureRecognizers>
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- QUICK ACTIONS                                   -->
+            <!-- ══════════════════════════════════════════════ -->
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="12" Padding="20,20,20,4">
+                <!-- Map action -->
+                <Border StrokeShape="RoundRectangle 20" BackgroundColor="#2A2A2A"
+                        Padding="16,18" StrokeThickness="0" Grid.Column="0">
+                    <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="BtnMap_Clicked"/>
-                    </Frame.GestureRecognizers>
+                    </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
-                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#E6FAFA" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
-                            <Label Text="🗺️" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Frame>
-                        <Label Text="Bản Đồ" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                        <Border StrokeShape="RoundRectangle 14" HeightRequest="48" WidthRequest="48"
+                                BackgroundColor="#3D1A00" Padding="0" StrokeThickness="0" HorizontalOptions="Center">
+                            <Label Text="🗺️" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label x:Name="lblQuickMap" Text="Bản Đồ" FontSize="13" FontAttributes="Bold"
+                               TextColor="#FDF5E6" HorizontalOptions="Center"/>
+                        <Label x:Name="lblQuickMapDesc" Text="Khám phá gần bạn" FontSize="10" TextColor="#6B5B4E"
+                               HorizontalOptions="Center"/>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
-                <!-- Quét M/QR -->
-                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="BtnScan_Clicked" />
-                    </Frame.GestureRecognizers>
+                <!-- Top Stalls action -->
+                <Border StrokeShape="RoundRectangle 20" BackgroundColor="#2A2A2A"
+                        Padding="16,18" StrokeThickness="0" Grid.Column="1">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="BtnShop_Clicked"/>
+                    </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
-                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#FAEDE6" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
-                            <Label Text="📱" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Frame>
-                        <Label Text="Quét M/QR" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
+                        <Border StrokeShape="RoundRectangle 14" HeightRequest="48" WidthRequest="48"
+                                BackgroundColor="#3D2600" Padding="0" StrokeThickness="0" HorizontalOptions="Center">
+                            <Label Text="🏪" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Label x:Name="lblQuickTop" Text="Top Quán" FontSize="13" FontAttributes="Bold"
+                               TextColor="#FDF5E6" HorizontalOptions="Center"/>
+                        <Label x:Name="lblQuickTopDesc" Text="Được yêu thích nhất" FontSize="10" TextColor="#6B5B4E"
+                               HorizontalOptions="Center"/>
                     </VerticalStackLayout>
-                </Frame>
-
-                <!-- Voice Aura -->
-                <Frame CornerRadius="25" BackgroundColor="White" Padding="10,20" HasShadow="False" BorderColor="Transparent" Grid.Column="2">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="BtnVoiceAura_Clicked" />
-                    </Frame.GestureRecognizers>
-                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
-                        <Frame CornerRadius="15" HeightRequest="45" WidthRequest="45" BackgroundColor="#F0F5FD" Padding="0" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Center">
-                            <Label Text="🗣" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
-                        </Frame>
-                        <Label Text="Voice Aura" FontSize="12" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center"/>
-                    </VerticalStackLayout>
-                </Frame>
+                </Border>
             </Grid>
 
-            <!-- Top Rating Shops Section -->
-            <VerticalStackLayout Spacing="15" Margin="0,10,0,0">
-                <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
-                    <VerticalStackLayout Grid.Column="0" Spacing="4">
-                        <Label Text="Quán Đỉnh Phải&#10;Thử" FontSize="24" FontAttributes="Bold" TextColor="#043940" LineHeight="1.1"/>
-                        <Label Text="Top rating từ cộng đồng thực&#10;thần" FontSize="13" TextColor="#085B66" LineHeight="1.2"/>
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- TOP STALLS SECTION                             -->
+            <!-- ══════════════════════════════════════════════ -->
+            <VerticalStackLayout Spacing="14" Padding="20,16,20,0">
+                <Grid ColumnDefinitions="*, Auto">
+                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                        <Label x:Name="lblTopSection" Text="Quán Đỉnh Phải Thử" FontSize="20"
+                               FontAttributes="Bold" TextColor="#FDF5E6"/>
+                        <Label x:Name="lblTopSectionDesc" Text="Top rating từ cộng đồng thực thần"
+                               FontSize="12" TextColor="#6B5B4E"/>
                     </VerticalStackLayout>
-                    <HorizontalStackLayout Grid.Column="1" VerticalOptions="End" Spacing="4">
+                    <HorizontalStackLayout Grid.Column="1" VerticalOptions="End" Spacing="3">
                         <HorizontalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer Tapped="BtnMap_Clicked"/>
                         </HorizontalStackLayout.GestureRecognizers>
-                        <Label Text="Xem tất&#10;cả" FontSize="12" FontAttributes="Bold" TextColor="#045950" HorizontalTextAlignment="End" LineHeight="1.1"/>
-                        <Label Text="→" FontSize="14" FontAttributes="Bold" TextColor="#045950" VerticalOptions="Center"/>
+                        <Label x:Name="lblViewAll" Text="Xem tất cả" FontSize="12" FontAttributes="Bold" TextColor="#D35400"/>
+                        <Label Text="→" FontSize="13" FontAttributes="Bold" TextColor="#D35400"
+                               VerticalOptions="Center"/>
                     </HorizontalStackLayout>
                 </Grid>
 
                 <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="-20,0">
-                    <HorizontalStackLayout Spacing="15" Padding="20,0">
-                        <!-- Shop Item 1 -->
-                        <VerticalStackLayout Spacing="10" WidthRequest="260">
-                            <Frame CornerRadius="25" Padding="0" IsClippedToBounds="True" HeightRequest="320" BorderColor="Transparent" HasShadow="False">
-                                <Frame.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="14" Padding="20,0">
+                        <!-- Card 1 -->
+                        <VerticalStackLayout Spacing="8" WidthRequest="220">
+                            <Border StrokeShape="RoundRectangle 18" Padding="0" StrokeThickness="0"
+                                    HeightRequest="270" BackgroundColor="#2A2A2A">
+                                <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="BtnShop_Clicked"/>
-                                </Frame.GestureRecognizers>
+                                </Border.GestureRecognizers>
                                 <Grid>
-                                    <Image Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=600" Aspect="AspectFill"/>
-                                    <!-- Rating Pill -->
-                                    <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
-                                        <HorizontalStackLayout Spacing="4">
-                                            <Label Text="★" TextColor="#FFB000" FontSize="12" FontAttributes="Bold"/>
-                                            <Label Text="4.9" TextColor="#043940" FontSize="12" FontAttributes="Bold"/>
-                                        </HorizontalStackLayout>
-                                    </Frame>
+                                    <Image Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=600"
+                                           Aspect="AspectFill"/>
+                                    <BoxView VerticalOptions="End" HeightRequest="90">
+                                        <BoxView.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="Transparent" Offset="0"/>
+                                                <GradientStop Color="#EE1C1C1C" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </BoxView.Background>
+                                    </BoxView>
+                                    <!-- Rating pill -->
+                                    <Border StrokeShape="RoundRectangle 10" BackgroundColor="#D35400"
+                                            Padding="8,3" StrokeThickness="0"
+                                            HorizontalOptions="End" VerticalOptions="Start" Margin="10">
+                                        <Label Text="★ 4.9" TextColor="White" FontSize="11" FontAttributes="Bold"/>
+                                    </Border>
                                 </Grid>
-                            </Frame>
-                            <Label Text="Ốc Oanh Vĩnh Khánh" FontSize="18" FontAttributes="Bold" TextColor="#043940"/>
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Hải sản • Ốc các loại" FontSize="12" TextColor="#085B66" Grid.Column="0"/>
-                                <Label Text="$$ • Phổ biến" FontSize="12" TextColor="#085B66" FontAttributes="Bold" Grid.Column="1"/>
-                            </Grid>
+                            </Border>
+                            <Label Text="Ốc Oanh Vĩnh Khánh" FontSize="14" FontAttributes="Bold"
+                                   TextColor="#FDF5E6" Margin="4,0"/>
+                            <Label x:Name="lblShop1Tags" Text="🐌 Hải sản · Ốc các loại" FontSize="11" TextColor="#6B5B4E"
+                                   Margin="4,0"/>
                         </VerticalStackLayout>
-
-                        <!-- Shop Item 2 -->
-                        <VerticalStackLayout Spacing="10" WidthRequest="260">
-                            <Frame CornerRadius="25" Padding="0" IsClippedToBounds="True" HeightRequest="320" BorderColor="Transparent" HasShadow="False">
-                                <Frame.GestureRecognizers>
+                        <!-- Card 2 -->
+                        <VerticalStackLayout Spacing="8" WidthRequest="220">
+                            <Border StrokeShape="RoundRectangle 18" Padding="0" StrokeThickness="0"
+                                    HeightRequest="270" BackgroundColor="#2A2A2A">
+                                <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="BtnShop2_Clicked"/>
-                                </Frame.GestureRecognizers>
+                                </Border.GestureRecognizers>
                                 <Grid>
-                                    <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?w=600" Aspect="AspectFill"/>
-                                    <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
-                                        <HorizontalStackLayout Spacing="4">
-                                            <Label Text="★" TextColor="#FFB000" FontSize="12" FontAttributes="Bold"/>
-                                            <Label Text="4.8" TextColor="#043940" FontSize="12" FontAttributes="Bold"/>
-                                        </HorizontalStackLayout>
-                                    </Frame>
+                                    <Image Source="https://images.unsplash.com/photo-1574484284002-952d92456975?w=600"
+                                           Aspect="AspectFill"/>
+                                    <BoxView VerticalOptions="End" HeightRequest="90">
+                                        <BoxView.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="Transparent" Offset="0"/>
+                                                <GradientStop Color="#EE1C1C1C" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </BoxView.Background>
+                                    </BoxView>
+                                    <Border StrokeShape="RoundRectangle 10" BackgroundColor="#D35400"
+                                            Padding="8,3" StrokeThickness="0"
+                                            HorizontalOptions="End" VerticalOptions="Start" Margin="10">
+                                        <Label Text="★ 4.8" TextColor="White" FontSize="11" FontAttributes="Bold"/>
+                                    </Border>
                                 </Grid>
-                            </Frame>
-                            <Label Text="Bà Kẹp Vĩnh Khánh" FontSize="18" FontAttributes="Bold" TextColor="#043940"/>
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Ăn vặt • Đường phố" FontSize="12" TextColor="#085B66" Grid.Column="0"/>
-                                <Label Text="$ • Hot trend" FontSize="12" TextColor="#085B66" FontAttributes="Bold" Grid.Column="1"/>
-                            </Grid>
+                            </Border>
+                            <Label Text="Bà Kẹp Vĩnh Khánh" FontSize="14" FontAttributes="Bold"
+                                   TextColor="#FDF5E6" Margin="4,0"/>
+                            <Label x:Name="lblShop2Tags" Text="🥢 Ăn vặt · Đường phố" FontSize="11" TextColor="#6B5B4E"
+                                   Margin="4,0"/>
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </ScrollView>
             </VerticalStackLayout>
 
-            <!-- Voice Aura Promo -->
-            <Frame CornerRadius="30" Padding="25" BackgroundColor="#0C6E66" BorderColor="Transparent" HasShadow="False">
-                <VerticalStackLayout Spacing="15">
-                    <HorizontalStackLayout Spacing="8">
-                        <Label Text="ılı" FontSize="16" FontAttributes="Bold" TextColor="#A0F0E5"/>
-                        <Label Text="TRẢI NGHIỆM MỚI" FontSize="12" FontAttributes="Bold" TextColor="#A0F0E5" CharacterSpacing="1"/>
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- 🎙️ VOICE CUSTOMIZATION STUDIO                  -->
+            <!-- ══════════════════════════════════════════════ -->
+            <Border StrokeShape="RoundRectangle 28" BackgroundColor="#242424"
+                    StrokeThickness="1" Stroke="#3D1A00"
+                    Padding="22,24" Margin="20,24,20,10">
+                <Border.Shadow>
+                    <Shadow Brush="#D35400" Offset="0,4" Radius="20" Opacity="0.12"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="20">
+
+                    <!-- Studio Header -->
+                    <HorizontalStackLayout Spacing="12">
+                        <Border StrokeShape="RoundRectangle 14" BackgroundColor="#3D1A00"
+                                HeightRequest="44" WidthRequest="44" Padding="0" StrokeThickness="0">
+                            <Label Text="🎙️" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout Spacing="1" VerticalOptions="Center">
+                            <Label x:Name="lblVoiceTag" Text="VOICE STUDIO" FontSize="9" FontAttributes="Bold"
+                                   TextColor="#D35400" CharacterSpacing="2"/>
+                            <Label x:Name="lblVoiceTitle" Text="Customization" FontSize="18" FontAttributes="Bold"
+                                   TextColor="#FDF5E6"/>
+                        </VerticalStackLayout>
                     </HorizontalStackLayout>
 
-                    <Label Text="Bật Voice Aura,&#10;Nhận Ưu Đãi&#10;Tức Thì" FontSize="28" FontAttributes="Bold" TextColor="White" LineHeight="1.1"/>
-                    <Label Text="Duy trì ứng dụng ở chế độ nền&#10;để tự động nhận thông báo&#10;giọng nói về các khuyến mãi 15-&#10;30% khi bạn đi ngang qua quán." 
-                           FontSize="14" TextColor="#E6FAFA" LineHeight="1.4" Margin="0,10,0,10"/>
-                    
-                    <Button Text="Kích hoạt ngay ılı" CornerRadius="20" BackgroundColor="#A0F0E5" TextColor="#043940" FontAttributes="Bold" HorizontalOptions="Start" Padding="20,0" HeightRequest="45" Clicked="BtnActivateAura_Clicked"/>
+                    <Label x:Name="lblVoiceDesc" Text="Select a voice, type your text, and preview it instantly."
+                           FontSize="13" TextColor="#6B5B4E" LineHeight="1.4"/>
+
+                    <!-- Voice Profile Row -->
+                    <VerticalStackLayout Spacing="10">
+                        <Label x:Name="lblVoiceProfileRow" Text="VOICE PROFILE" FontSize="9" FontAttributes="Bold"
+                               TextColor="#6B5B4E" CharacterSpacing="1.5"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <!-- Female Voice -->
+                            <Border x:Name="btnVoiceFemale" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 16" StrokeThickness="2"
+                                    Stroke="#D35400" BackgroundColor="#3D1A00" Padding="12">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnGenderTapped" CommandParameter="female"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="👩🏼" FontSize="20" HorizontalOptions="Center"/>
+                                    <Label Text="Giọng Nữ" FontSize="11" FontAttributes="Bold" TextColor="#FDF5E6" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Male Voice -->
+                            <Border x:Name="btnVoiceMale" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 16" StrokeThickness="1"
+                                    Stroke="#3A3A3A" BackgroundColor="#2A2A2A" Padding="12">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnGenderTapped" CommandParameter="male"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                    <Label Text="👨🏻" FontSize="20" HorizontalOptions="Center"/>
+                                    <Label Text="Giọng Nam" FontSize="11" FontAttributes="Bold" TextColor="#B0A090" HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Language Picker -->
+                        <Label Text="Ngôn Ngữ" FontSize="9" FontAttributes="Bold" TextColor="#6B5B4E" CharacterSpacing="1.5" Margin="0,5,0,0"/>
+                        <Border StrokeShape="RoundRectangle 14" BackgroundColor="#1C1C1C" Padding="10,0" StrokeThickness="1" Stroke="#3A3A3A" HeightRequest="44">
+                            <Picker x:Name="pickerLanguage" TextColor="#FDF5E6" Title="Chọn ngôn ngữ đọc" TitleColor="#6B5B4E" SelectedIndexChanged="OnLanguagePickerChanged">
+                                <Picker.Items>
+                                    <x:String>🇻🇳 Tiếng Việt (Vietnamese)</x:String>
+                                    <x:String>🇬🇧 English</x:String>
+                                    <x:String>🇰🇷 한국어 (Korean)</x:String>
+                                    <x:String>🇯🇵 日本語 (Japanese)</x:String>
+                                    <x:String>🇫🇷 Français (French)</x:String>
+                                    <x:String>🇪🇸 Español (Spanish)</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Text Input -->
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label x:Name="lblVoiceTextRow" Text="YOUR TEXT" FontSize="9" FontAttributes="Bold"
+                                   TextColor="#6B5B4E" CharacterSpacing="1.5" Grid.Column="0"/>
+                            <Label x:Name="lblCharCount" Text="0 / 300" FontSize="9"
+                                   TextColor="#6B5B4E" Grid.Column="1"/>
+                        </Grid>
+                        <Border StrokeShape="RoundRectangle 16" BackgroundColor="#1C1C1C"
+                                Padding="4,0" StrokeThickness="1" Stroke="#3A3A3A">
+                            <Editor x:Name="voiceTextInput"
+                                    Placeholder="Nhập văn bản để nghe thử..."
+                                    PlaceholderColor="#4A4A4A"
+                                    TextColor="#FDF5E6"
+                                    BackgroundColor="Transparent"
+                                    HeightRequest="88"
+                                    MaxLength="300"
+                                    FontSize="14"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Speed Row -->
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label x:Name="lblVoiceSpeedRow" Text="SPEED" FontSize="9" FontAttributes="Bold"
+                                   TextColor="#6B5B4E" CharacterSpacing="1.5" Grid.Column="0"/>
+                            <Label x:Name="lblSpeedVal" Text="1.0×" FontSize="12"
+                                   FontAttributes="Bold" TextColor="#D35400" Grid.Column="1"/>
+                        </Grid>
+                        <Slider x:Name="voiceSpeedSlider" Minimum="0.5" Maximum="2.0" Value="1.0"
+                                ThumbColor="#D35400" MinimumTrackColor="#D35400"
+                                MaximumTrackColor="#3A3A3A" ValueChanged="OnSpeedChanged"/>
+                    </VerticalStackLayout>
+
+                    <!-- TEST VOICE Button -->
+                    <Button x:Name="btnTestVoice"
+                            Text="▶   TEST VOICE"
+                            CornerRadius="22"
+                            BackgroundColor="#D35400"
+                            TextColor="#FDF5E6"
+                            FontAttributes="Bold"
+                            FontSize="16"
+                            HeightRequest="52"
+                            CharacterSpacing="0.5"
+                            Clicked="OnTestVoiceClicked">
+                        <Button.Shadow>
+                            <Shadow Brush="#D35400" Offset="0,6" Radius="18" Opacity="0.5"/>
+                        </Button.Shadow>
+                    </Button>
+
+                    <!-- Status -->
+                    <Label x:Name="lblVoiceStatus"
+                           Text="💡 Select a voice, enter text, then tap Test Voice"
+                           FontSize="12" TextColor="#6B5B4E"
+                           HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <!-- Smart Pass Section -->
-            <VerticalStackLayout Spacing="15" Margin="0,10,0,0">
-                <Label Text="Thẻ Thông Hành Smart&#10;Pass" FontSize="22" FontAttributes="Bold" TextColor="#043940" LineHeight="1.1"/>
-
-                <!-- Pass 1 -->
-                <Frame CornerRadius="25" Padding="25" BackgroundColor="#DDFBFC" BorderColor="Transparent" HasShadow="False">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Pass1_Tapped" />
-                    </Frame.GestureRecognizers>
-                    <VerticalStackLayout Spacing="30">
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Bestseller" FontSize="12" FontAttributes="Bold" TextColor="#D35400"/>
-                            <Label Text="Foodie Day 1" FontSize="20" FontAttributes="Bold" TextColor="#043940"/>
-                            <Label Text="Ưu đãi 15% tất cả quán liên kết" FontSize="13" TextColor="#085B66"/>
-                        </VerticalStackLayout>
-                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
-                            <Label Text="199.000đ" FontSize="18" FontAttributes="Bold" TextColor="#043940" Grid.Column="0" VerticalOptions="Center"/>
-                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#045950" Padding="0" HasShadow="False" Grid.Column="1">
-                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
-                            </Frame>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- Pass 2 -->
-                <Frame CornerRadius="25" Padding="25" BackgroundColor="#AEECEB" BorderColor="Transparent" HasShadow="False">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Pass2_Tapped" />
-                    </Frame.GestureRecognizers>
-                    <VerticalStackLayout Spacing="30">
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Phổ biến nhất" FontSize="12" FontAttributes="Bold" TextColor="#045950"/>
-                            <Label Text="Explorer Pass 3" FontSize="20" FontAttributes="Bold" TextColor="#043940"/>
-                            <Label Text="Ưu đãi 20% + Voucher đồ uống" FontSize="13" TextColor="#085B66"/>
-                        </VerticalStackLayout>
-                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
-                            <Label Text="499.000đ" FontSize="18" FontAttributes="Bold" TextColor="#043940" Grid.Column="0" VerticalOptions="Center"/>
-                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#045950" Padding="0" HasShadow="False" Grid.Column="1">
-                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
-                            </Frame>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- Pass 3 -->
-                <Frame CornerRadius="25" Padding="25" BackgroundColor="#043940" BorderColor="Transparent" HasShadow="False">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Pass3_Tapped" />
-                    </Frame.GestureRecognizers>
-                    <VerticalStackLayout Spacing="30">
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Elite Choice" FontSize="12" FontAttributes="Bold" TextColor="#A0F0E5"/>
-                            <Label Text="Infinity Week" FontSize="20" FontAttributes="Bold" TextColor="White"/>
-                            <Label Text="Ưu đãi 25% + Set thực đơn VIP" FontSize="13" TextColor="#A0F0E5"/>
-                        </VerticalStackLayout>
-                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="End">
-                            <Label Text="999.000đ" FontSize="18" FontAttributes="Bold" TextColor="White" Grid.Column="0" VerticalOptions="Center"/>
-                            <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24" BackgroundColor="#A0F0E5" Padding="0" HasShadow="False" Grid.Column="1">
-                                <Label Text="+" FontSize="16" FontAttributes="Bold" TextColor="#043940" HorizontalOptions="Center" VerticalOptions="Center" TranslationY="-1"/>
-                            </Frame>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Frame>
-            </VerticalStackLayout>
-            
         </VerticalStackLayout>
     </ScrollView>
 

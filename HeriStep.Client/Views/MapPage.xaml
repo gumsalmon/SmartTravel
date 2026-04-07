@@ -4,71 +4,70 @@
              xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
              x:Class="HeriStep.Client.Views.MapPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#0D0D1A">
+             BackgroundColor="#1C1C1C">
 
     <Grid>
-        <!-- ═══ BẢN ĐỒ FULL SCREEN ═══ -->
-        <mapsui:MapView x:Name="mapView" VerticalOptions="Fill" HorizontalOptions="Fill" />
+        <!-- ── FULL-SCREEN MAP ── -->
+        <mapsui:MapView x:Name="mapView" VerticalOptions="Fill" HorizontalOptions="Fill"/>
 
-        <!-- ═══ TOP BAR - tiêu đề + legend ═══ -->
-        <Border VerticalOptions="Start" HorizontalOptions="Fill" Margin="0"
-                BackgroundColor="#CC0D0D1A" StrokeThickness="0" Padding="16,45,16,12">
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <!-- Nút Back -->
-                <Button Text="←" FontSize="18" FontAttributes="Bold"
-                        TextColor="White" BackgroundColor="#33FFFFFF"
-                        CornerRadius="18" WidthRequest="36" HeightRequest="36"
-                        Grid.Column="0" Clicked="BackButton_Clicked"/>
 
-                <!-- Tiêu đề -->
-                <Label Text="Phố Ẩm Thực Vĩnh Khánh" FontSize="17" FontAttributes="Bold"
-                       TextColor="White" VerticalOptions="Center" HorizontalOptions="Center"
-                       Grid.Column="1"/>
 
-                <!-- Legend toggle -->
-                <Button x:Name="btnLegend" Text="ℹ️" FontSize="16"
-                        BackgroundColor="#33FFFFFF" CornerRadius="18"
-                        WidthRequest="36" HeightRequest="36"
-                        Grid.Column="2" Clicked="ToggleLegend_Clicked"/>
+        <!-- ── GEOFENCE ALERT BANNER ── -->
+        <Border x:Name="geofenceBanner" IsVisible="False"
+                VerticalOptions="Start" HorizontalOptions="Fill"
+                Margin="14,44,14,0"
+                BackgroundColor="#EE242424" StrokeThickness="1" Stroke="#D35400"
+                StrokeShape="RoundRectangle 18" Padding="14,10">
+            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                <BoxView Grid.Column="0" WidthRequest="9" HeightRequest="9"
+                         Color="#D35400" CornerRadius="4.5" VerticalOptions="Center"/>
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                    <Label Text="📍 Sạp gần bạn" FontSize="10" TextColor="#6B5B4E"/>
+                    <Label x:Name="lblNearbyStallName" Text="" FontSize="14"
+                           FontAttributes="Bold" TextColor="#FDF5E6" LineBreakMode="TailTruncation"/>
+                </VerticalStackLayout>
+                <Button x:Name="btnGeofencePlayAudio" Text="🔊 Phát Audio"
+                        Grid.Column="2"
+                        BackgroundColor="#D35400" TextColor="White"
+                        FontAttributes="Bold" FontSize="12"
+                        CornerRadius="12" Padding="10,0" HeightRequest="36"
+                        Clicked="OnGeofencePlayAudioClicked">
+                    <Button.Shadow>
+                        <Shadow Brush="#D35400" Offset="0,3" Radius="8" Opacity="0.5"/>
+                    </Button.Shadow>
+                </Button>
             </Grid>
         </Border>
 
-        <!-- ═══ NEARBY PROMOTIONS PANEL (Hiện khi ở gần) ═══ -->
-        <ScrollView x:Name="nearbyScroll" Orientation="Horizontal" HorizontalOptions="Fill" VerticalOptions="Start"
-                    Margin="12,120,12,0" HeightRequest="48" IsVisible="False" VerticalScrollBarVisibility="Never">
-            <HorizontalStackLayout x:Name="nearbyStallsList" Spacing="10" Padding="4,0">
-                <!-- Các nút bấm sạp sẽ được thêm bằng code-behind -->
-            </HorizontalStackLayout>
-        </ScrollView>
-
-        <!-- ═══ LEGEND PANEL (ẩn mặc định) ═══ -->
+        <!-- ── LEGEND PANEL ── -->
         <Border x:Name="legendPanel" IsVisible="False"
-                HorizontalOptions="End" VerticalOptions="Start" Margin="0,100,12,0"
-                BackgroundColor="#EE1A1A2E" StrokeThickness="1" Stroke="#33FFFFFF"
-                StrokeShape="RoundRectangle 12" Padding="12,10">
-            <VerticalStackLayout Spacing="6">
-                <HorizontalStackLayout Spacing="6">
-                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#EF4444"/>
-                    <Label Text="Đang hoạt động" FontSize="11" TextColor="White"/>
+                HorizontalOptions="End" VerticalOptions="Start" Margin="0,44,14,0"
+                BackgroundColor="#EE242424" StrokeThickness="1" Stroke="#3A3A3A"
+                StrokeShape="RoundRectangle 14" Padding="14,12">
+            <VerticalStackLayout Spacing="8">
+                <HorizontalStackLayout Spacing="8">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#D35400"/>
+                    <Label Text="Đang hoạt động" FontSize="11" TextColor="#FDF5E6"/>
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Spacing="6">
+                <HorizontalStackLayout Spacing="8">
                     <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#22C55E"/>
-                    <Label Text="Chưa có chủ" FontSize="11" TextColor="White"/>
+                    <Label Text="Chưa có chủ" FontSize="11" TextColor="#FDF5E6"/>
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Spacing="6">
-                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#9696A0"/>
-                    <Label Text="Hết hạn" FontSize="11" TextColor="White"/>
+                <HorizontalStackLayout Spacing="8">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#6B5B4E"/>
+                    <Label Text="Hết hạn / Đóng" FontSize="11" TextColor="#FDF5E6"/>
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Spacing="6">
-                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#4285F4"/>
-                    <Label Text="Vị trí của bạn" FontSize="11" TextColor="White"/>
+                <HorizontalStackLayout Spacing="8">
+                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="#FFBF00"/>
+                    <Label Text="Vị trí của bạn" FontSize="11" TextColor="#FDF5E6"/>
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Border>
 
-        <!-- ═══ NÚT "VỀ VỊ TRÍ HIỆN TẠI" (góc phải dưới, trên popup) ═══ -->
+        <!-- ── FLOAT BUTTONS ── -->
+        <!-- My Location -->
         <Button x:Name="btnMyLocation" Text="📍" FontSize="20"
-                BackgroundColor="#EE1A1A2E"
+                BackgroundColor="#EE242424" BorderColor="#D35400" BorderWidth="1"
                 CornerRadius="24" WidthRequest="48" HeightRequest="48"
                 HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"
                 Clicked="MyLocation_Clicked">
@@ -76,82 +75,87 @@
                 <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
             </Button.Shadow>
         </Button>
-
+        <!-- Demo Mode -->
         <Button x:Name="btnDemoMode" Text="🏃" FontSize="20"
-                BackgroundColor="#EE1A1A2E" BorderColor="#4285F4" BorderWidth="2"
+                BackgroundColor="#EE242424" BorderColor="#6B5B4E" BorderWidth="1"
                 CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,145"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,148"
                 Clicked="DemoMode_Clicked">
             <Button.Shadow>
                 <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
             </Button.Shadow>
         </Button>
 
-        <!-- ═══ OVERLAY TỐI khi popup bật ═══ -->
-        <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.35" IsVisible="False">
+        <!-- ── DARK OVERLAY ── -->
+        <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.5" IsVisible="False">
             <BoxView.GestureRecognizers>
-                <TapGestureRecognizer Tapped="ClosePopup_Clicked" />
+                <TapGestureRecognizer Tapped="ClosePopup_Clicked"/>
             </BoxView.GestureRecognizers>
         </BoxView>
 
-        <!-- ═══ POPUP CHI TIẾT SẠP ═══ -->
-        <Border x:Name="shopPopup" IsVisible="False" VerticalOptions="End" Margin="12,0,12,20"
-                StrokeShape="RoundRectangle 20" StrokeThickness="0" BackgroundColor="#1A1A2E" Padding="0">
+        <!-- ── STALL DETAIL POPUP ── -->
+        <Border x:Name="shopPopup" IsVisible="False" VerticalOptions="End" Margin="14,0,14,18"
+                StrokeShape="RoundRectangle 24" StrokeThickness="1" Stroke="#3D1A00"
+                BackgroundColor="#242424" Padding="0">
             <Border.Shadow>
-                <Shadow Brush="Black" Offset="0,8" Radius="20" Opacity="0.4"/>
+                <Shadow Brush="Black" Offset="0,10" Radius="24" Opacity="0.5"/>
             </Border.Shadow>
-
-            <Grid RowDefinitions="120, Auto">
-                <!-- Ảnh -->
+            <Grid RowDefinitions="130, Auto">
+                <!-- Image -->
                 <Image x:Name="popupImage" Aspect="AspectFill" Grid.Row="0"
                        Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=400"/>
-
-                <!-- Gradient overlay trên ảnh -->
-                <BoxView Grid.Row="0" VerticalOptions="End" HeightRequest="50">
+                <BoxView Grid.Row="0" VerticalOptions="End" HeightRequest="55">
                     <BoxView.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="Transparent" Offset="0"/>
-                            <GradientStop Color="#FF1A1A2E" Offset="1"/>
+                            <GradientStop Color="#FF242424" Offset="1"/>
                         </LinearGradientBrush>
                     </BoxView.Background>
                 </BoxView>
-
-                <!-- Nút đóng -->
-                <Button Text="✕" FontSize="13" TextColor="White" BackgroundColor="#55000000"
+                <!-- Amber badge -->
+                <Border StrokeShape="RoundRectangle 8" BackgroundColor="#D35400" Padding="8,3"
+                        StrokeThickness="0" HorizontalOptions="Start" VerticalOptions="Start"
+                        Margin="12" Grid.Row="0">
+                    <Label Text="🔴 OPEN" FontSize="9" FontAttributes="Bold" TextColor="White"
+                           CharacterSpacing="0.5"/>
+                </Border>
+                <!-- Close btn -->
+                <Button Text="✕" FontSize="12" TextColor="#FDF5E6" BackgroundColor="#55000000"
                         CornerRadius="14" WidthRequest="28" HeightRequest="28" Padding="0"
-                        HorizontalOptions="End" VerticalOptions="Start" Margin="8"
+                        HorizontalOptions="End" VerticalOptions="Start" Margin="10"
                         Grid.Row="0" Clicked="ClosePopup_Clicked"/>
 
-                <!-- Nội dung -->
-                <VerticalStackLayout Grid.Row="1" Padding="14,10,14,14" Spacing="5">
+                <!-- Content -->
+                <VerticalStackLayout Grid.Row="1" Padding="14,10,14,16" Spacing="4">
                     <Grid ColumnDefinitions="*, Auto">
-                        <Label x:Name="popupName" Text="" FontSize="16" FontAttributes="Bold"
-                               TextColor="White" Grid.Column="0" LineBreakMode="TailTruncation"/>
+                        <Label x:Name="popupName" Text="" FontSize="17" FontAttributes="Bold"
+                               TextColor="#FDF5E6" Grid.Column="0" LineBreakMode="TailTruncation"/>
                         <Label x:Name="lblStatusTag" Text="" FontSize="11"
                                VerticalOptions="Center" Grid.Column="1"/>
                     </Grid>
-                    <Label x:Name="lblOwner" Text="" FontSize="12" TextColor="#AAAACC"/>
-
-                    <HorizontalStackLayout Spacing="10" Margin="0,6,0,0">
+                    <Label x:Name="lblOwner" Text="" FontSize="12" TextColor="#6B5B4E"/>
+                    <HorizontalStackLayout Spacing="10" Margin="0,8,0,0">
+                        <!-- Play Audio — fetches tts_script from DB -->
                         <Button x:Name="btnPlayAudio" Text="🔊 Nghe Giới Thiệu"
-                                BackgroundColor="#EE1A1A2E" TextColor="#4285F4"
-                                BorderColor="#4285F4" BorderWidth="1"
-                                FontAttributes="Bold" FontSize="14" CornerRadius="12"
-                                HeightRequest="42" HorizontalOptions="FillAndExpand"
+                                BackgroundColor="Transparent" TextColor="#D35400"
+                                BorderColor="#D35400" BorderWidth="1.5"
+                                FontAttributes="Bold" FontSize="13" CornerRadius="14"
+                                HeightRequest="44" HorizontalOptions="FillAndExpand"
                                 Clicked="OnPlayAudioClicked"/>
-
+                        <!-- Detail -->
                         <Button x:Name="btnViewDetail" Text="📋 Chi Tiết"
-                                BackgroundColor="#4285F4" TextColor="White"
-                                FontAttributes="Bold" FontSize="14" CornerRadius="12"
-                                HeightRequest="42" HorizontalOptions="FillAndExpand"
+                                BackgroundColor="#D35400" TextColor="White"
+                                FontAttributes="Bold" FontSize="13" CornerRadius="14"
+                                HeightRequest="44" HorizontalOptions="FillAndExpand"
                                 Clicked="btnViewDetail_Clicked">
                             <Button.Shadow>
-                                <Shadow Brush="#4285F4" Offset="0,3" Radius="8" Opacity="0.4"/>
+                                <Shadow Brush="#D35400" Offset="0,4" Radius="10" Opacity="0.4"/>
                             </Button.Shadow>
                         </Button>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Grid>
         </Border>
+
     </Grid>
 </ContentPage>

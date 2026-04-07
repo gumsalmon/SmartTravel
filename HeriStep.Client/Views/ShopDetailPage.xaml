@@ -3,143 +3,101 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="HeriStep.Client.Views.ShopDetailPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#E5F8FA">
+             BackgroundColor="#1C1C1C">
 
     <ScrollView>
         <VerticalStackLayout>
             
-            <!-- Hero Banner -->
-            <Grid HeightRequest="380">
-                <Image x:Name="heroImage" Source="https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&amp;w=800" Aspect="AspectFill"/>
-                
-                <BoxView>
-                    <BoxView.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#99000000" Offset="0"/>
-                            <GradientStop Color="#00000000" Offset="0.3"/>
-                            <GradientStop Color="#00000000" Offset="0.5"/>
-                            <GradientStop Color="#E5F8FA" Offset="1"/>
-                        </LinearGradientBrush>
-                    </BoxView.Background>
-                </BoxView>
-
-                <!-- Status Bar Icons -->
-                <Grid ColumnDefinitions="Auto, *, Auto" Padding="20,40,20,0" VerticalOptions="Start">
-                    <Button Text="☰" FontSize="20" TextColor="White" BackgroundColor="Transparent" Padding="0" Margin="0" Grid.Column="0" Clicked="OnBackButtonClicked"/>
-                    <Label Text="Vinh Khanh Guide" FontSize="16" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
-                    <Label Text="A文" FontSize="18" TextColor="White" VerticalOptions="Center" Grid.Column="2"/>
-                </Grid>
-
-                <VerticalStackLayout VerticalOptions="End" Padding="20" Spacing="5">
-                    <Label Text="Signature" FontSize="36" FontAttributes="Italic" TextColor="#F3DCA9" Margin="0,0,0,-10"/>
-                    <Label Text="GRILLED SEAFOOD WORK" FontSize="12" FontAttributes="Bold" TextColor="#F3DCA9" CharacterSpacing="1"/>
-
-                    <Frame CornerRadius="8" BackgroundColor="#E65100" Padding="8,4" HasShadow="False" BorderColor="Transparent" HorizontalOptions="Start" Margin="0,15,0,0">
-                        <Label Text="DISTRICT 4 HIDDEN GEM" FontSize="9" FontAttributes="Bold" TextColor="White"/>
-                    </Frame>
-
-                    <Label x:Name="shopName" Text="Oc Oanh Vinh&#10;Khanh" FontSize="32" FontAttributes="Bold" TextColor="White" LineHeight="1.1"/>
-                    
-                    <Grid ColumnDefinitions="*, Auto" Margin="0,5,0,0">
-                        <HorizontalStackLayout Spacing="6" Grid.Column="0" VerticalOptions="Center">
-                            <Label Text="📍" FontSize="12" TextColor="White"/>
-                            <Label Text="534 Vinh Khanh, Ward 10" FontSize="11" TextColor="White"/>
-                        </HorizontalStackLayout>
-                        <Frame CornerRadius="18" BackgroundColor="#00695C" Padding="15,8" HasShadow="False" BorderColor="Transparent" Grid.Column="1">
-                            <HorizontalStackLayout Spacing="6">
-                                <Label Text="Aura AI Guide" FontSize="12" FontAttributes="Bold" TextColor="White"/>
-                                <Label Text="🗣" FontSize="14" VerticalOptions="Center" TextColor="White"/>
-                            </HorizontalStackLayout>
-                        </Frame>
-                    </Grid>
-                </VerticalStackLayout>
+            <!-- Header Bar -->
+            <Grid ColumnDefinitions="Auto, *, Auto" Padding="15,20,20,10">
+                <Button Text="❮" FontSize="28" FontAttributes="Bold" TextColor="#FF8C00" BackgroundColor="Transparent" Padding="5,0,15,0" Margin="0" Grid.Column="0" Clicked="OnBackButtonClicked"/>
+                <Label Text="Vinh Khanh Guide" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+                <Label Text="A文" FontSize="18" TextColor="#FF8C00" VerticalOptions="Center" Grid.Column="2"/>
             </Grid>
+
+            <!-- Rounded Hero Image replacing tags -->
+            <Border StrokeShape="RoundRectangle 24" HeightRequest="220" Padding="0" BackgroundColor="#2A2A2A" Stroke="#FF8C00" StrokeThickness="1" Margin="20,5,20,15">
+                <!-- DropShadow for a glowing orange effect -->
+                <Border.Shadow>
+                    <Shadow Brush="#FF8C00" Offset="0,4" Radius="10" Opacity="0.3" />
+                </Border.Shadow>
+                <Image x:Name="heroImage" Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?q=80&amp;w=800" Aspect="AspectFill"/>
+            </Border>
+
+            <!-- Shop Info -->
+            <VerticalStackLayout Padding="20,0,20,10" Spacing="8">
+                <Label x:Name="shopName" Text="Ốc Oanh Vĩnh Khánh" FontSize="32" FontAttributes="Bold" TextColor="#FDF5E6" LineHeight="1.2"/>
+                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                    <Label Text="📍" FontSize="14" TextColor="#FDF5E6" VerticalOptions="Center"/>
+                    <Label x:Name="lblShopAddress" Text="534 Vinh Khanh, Ward 10" FontSize="14" TextColor="#B0A090" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
 
             <VerticalStackLayout Padding="20,10,20,40" Spacing="25">
                 
                 <!-- Menu Intro -->
                 <VerticalStackLayout Spacing="5">
-                    <Label Text="Signature Menu" FontSize="20" FontAttributes="Bold" TextColor="#004D40"/>
-                    <Label Text="Curated flavors from Saigon's most vibrant street food artery. Multilingual descriptions powered by Aura." FontSize="13" TextColor="#00695C" LineHeight="1.4"/>
+                    <Label x:Name="lblMenuTitle" Text="Signature Menu" FontSize="20" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                    <Label x:Name="lblMenuDesc" Text="Curated flavors from Saigon's most vibrant street food artery." FontSize="13" TextColor="#6B5B4E" LineHeight="1.4"/>
                 </VerticalStackLayout>
 
                 <!-- Dish 1 -->
-                <Frame CornerRadius="24" BackgroundColor="White" Padding="0" IsClippedToBounds="True" BorderColor="Transparent" HasShadow="False">
+                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
                     <VerticalStackLayout>
                         <Image Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?q=80&amp;w=600" HeightRequest="150" Aspect="AspectFill"/>
                         <VerticalStackLayout Padding="20" Spacing="10">
                             <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Oc Huong Rang&#10;Muoi" FontSize="18" FontAttributes="Bold" TextColor="#004D40" Grid.Column="0" LineHeight="1.1"/>
-                                <Label Text="185k" FontSize="16" FontAttributes="Bold" TextColor="#C62828" Grid.Column="1" VerticalOptions="Start"/>
+                                <Label Text="Ốc Hương Rang Muối" FontSize="18" FontAttributes="Bold" TextColor="#FDF5E6" Grid.Column="0" LineHeight="1.1"/>
+                                <Label Text="185k" FontSize="16" FontAttributes="Bold" TextColor="#D35400" Grid.Column="1" VerticalOptions="Start"/>
                             </Grid>
-                            <Label Text="Spotted Babylon snails roasted with chili salt. A perfect balance of sea sweetness and spicy crust." FontSize="12" TextColor="#5A969E" LineHeight="1.4"/>
+                            <Label x:Name="lblDish1Desc" Text="Spotted Babylon snails roasted with chili salt. A perfect balance of sea sweetness and spicy crust." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
                             <HorizontalStackLayout Spacing="8">
-                                <Frame CornerRadius="10" BackgroundColor="#E0F7FA" Padding="10,4" HasShadow="False" BorderColor="Transparent">
-                                    <Label Text="MUST TRY" FontSize="9" FontAttributes="Bold" TextColor="#00695C"/>
-                                </Frame>
-                                <Frame CornerRadius="10" BackgroundColor="#E0F7FA" Padding="10,4" HasShadow="False" BorderColor="Transparent">
-                                    <Label Text="SPICY" FontSize="9" FontAttributes="Bold" TextColor="#00695C"/>
-                                </Frame>
+                                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#3D1A00" Padding="10,4" StrokeThickness="0">
+                                    <Label x:Name="lblDish1Tag1" Text="MUST TRY" FontSize="9" FontAttributes="Bold" TextColor="#D35400"/>
+                                </Border>
+                                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#3A1010" Padding="10,4" StrokeThickness="0">
+                                    <Label x:Name="lblDish1Tag2" Text="SPICY" FontSize="9" FontAttributes="Bold" TextColor="#FF4444"/>
+                                </Border>
                             </HorizontalStackLayout>
                             
-                            <Button Text="🛒  Add to Order" CornerRadius="20" BackgroundColor="#80CBC4" TextColor="#004D40" FontAttributes="Bold" HeightRequest="40" Margin="0,10,0,0"/>
+                            <Button x:Name="btnOrder1" Text="🛒  Add to Order" CornerRadius="20" BackgroundColor="#D35400" TextColor="#FDF5E6" FontAttributes="Bold" HeightRequest="44" Margin="0,15,0,0" Clicked="OnOrderClicked"/>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- Dish 2 -->
-                <Frame CornerRadius="24" BackgroundColor="White" Padding="0" IsClippedToBounds="True" BorderColor="Transparent" HasShadow="False">
+                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
                     <VerticalStackLayout>
                         <Grid>
                             <Image Source="https://images.unsplash.com/photo-1551187126-1070e17631cc?q=80&amp;w=600" HeightRequest="120" Aspect="AspectFill"/>
-                            <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
-                                <Label Text="65k" TextColor="#C62828" FontSize="11" FontAttributes="Bold"/>
-                            </Frame>
+                            <Border StrokeShape="RoundRectangle 12" BackgroundColor="#1C1C1C" Padding="8,4" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
+                                <Label Text="65k" TextColor="#D35400" FontSize="11" FontAttributes="Bold"/>
+                            </Border>
                         </Grid>
                         <VerticalStackLayout Padding="15" Spacing="5">
-                            <Label Text="Rau Muong Xao Toi" FontSize="16" FontAttributes="Bold" TextColor="#004D40"/>
-                            <Label Text="Water spinach flash-fried with aromatic garlic." FontSize="12" TextColor="#5A969E" LineHeight="1.4"/>
+                            <Label Text="Rau Muống Xào Tỏi" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                            <Label x:Name="lblDish2Desc" Text="Water spinach flash-fried with aromatic garlic." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- Dish 3 -->
-                <Frame CornerRadius="24" BackgroundColor="White" Padding="0" IsClippedToBounds="True" BorderColor="Transparent" HasShadow="False">
+                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
                     <VerticalStackLayout>
                         <Grid>
                             <Image Source="https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&amp;w=600" HeightRequest="120" Aspect="AspectFill"/>
-                            <Frame CornerRadius="12" BackgroundColor="White" Padding="8,4" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" Margin="15" BorderColor="Transparent">
-                                <Label Text="210k" TextColor="#C62828" FontSize="11" FontAttributes="Bold"/>
-                            </Frame>
+                            <Border StrokeShape="RoundRectangle 12" BackgroundColor="#1C1C1C" Padding="8,4" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
+                                <Label Text="210k" TextColor="#D35400" FontSize="11" FontAttributes="Bold"/>
+                            </Border>
                         </Grid>
                         <VerticalStackLayout Padding="15" Spacing="5">
-                            <Label Text="Tom Nuong Muoi Ot" FontSize="16" FontAttributes="Bold" TextColor="#004D40"/>
-                            <Label Text="Tiger prawns grilled with spicy house-made chili salt." FontSize="12" TextColor="#5A969E" LineHeight="1.4"/>
+                            <Label Text="Tôm Nướng Muối Ớt" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                            <Label x:Name="lblDish3Desc" Text="Tiger prawns grilled with spicy house-made chili salt." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
-                <!-- Voice Aura Banner -->
-                <Frame CornerRadius="24" Padding="25" BorderColor="Transparent" HasShadow="False">
-                    <Frame.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#00695C" Offset="0"/>
-                            <GradientStop Color="#004D40" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Frame.Background>
-                    <VerticalStackLayout Spacing="15">
-                        <Label Text="✨" FontSize="20" TextColor="#80CBC4"/>
-                        <Label Text="Voice Aura is Active" FontSize="18" FontAttributes="Bold" TextColor="White"/>
-                        <Label Text="Scan any dish name to hear the story, ingredients, and flavor profile in your preferred language." FontSize="13" TextColor="#B2DFDB" LineHeight="1.4"/>
-                        
-                        <HorizontalStackLayout Spacing="10" Margin="0,10,0,0">
-                            <Button Text="EN" CornerRadius="20" BackgroundColor="Transparent" BorderColor="White" BorderWidth="1" TextColor="White" FontAttributes="Bold" HeightRequest="40" WidthRequest="40" Padding="0"/>
-                            <Button Text="VN" CornerRadius="20" BackgroundColor="Transparent" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="#4DFFFFFF" FontAttributes="Bold" HeightRequest="40" WidthRequest="40" Padding="0"/>
-                            <Button Text="KR" CornerRadius="20" BackgroundColor="Transparent" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="#4DFFFFFF" FontAttributes="Bold" HeightRequest="40" WidthRequest="40" Padding="0"/>
-                            <Button Text="JP" CornerRadius="20" BackgroundColor="Transparent" BorderColor="#4DFFFFFF" BorderWidth="1" TextColor="#4DFFFFFF" FontAttributes="Bold" HeightRequest="40" WidthRequest="40" Padding="0"/>
-                        </HorizontalStackLayout>
-                    </VerticalStackLayout>
-                </Frame>
+
 
             </VerticalStackLayout>
         </VerticalStackLayout>
