@@ -223,6 +223,14 @@ BEGIN
 END;
 GO
 
+-- Thêm cột cho bảng nội dung sạp
+ALTER TABLE StallContents 
+ADD is_processed BIT DEFAULT 0 NOT NULL;
+
+-- Thêm cột cho bảng dịch tên món ăn
+ALTER TABLE ProductTranslations 
+ADD is_processed BIT DEFAULT 0 NOT NULL;
+GO
 -- ==========================================
 -- PHẦN 5: BƠM DỮ LIỆU MỒI (SEED DATA)
 -- ==========================================
