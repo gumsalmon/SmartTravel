@@ -1,8 +1,108 @@
-using HeriStep.Shared.Models.DTOs.Requests;
 using HeriStep.Shared.Models.DTOs.Responses;
 using HeriStep.API.Data;
-using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-namespace HeriStep.API.Controllers { [Route("api/[controller]")][ApiController] public class StatsController : ControllerBase { private readonly HeriStepDbContext _context; public StatsController(HeriStepDbContext context) => _context = context; [HttpGet] public async Task<ActionResult<DashboardStats>> GetSystemStats([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate) {             /*  1. Kh?i t?o Object Stats */ var stats = new DashboardStats();              /*  2. T�nh to�n c�c con s? t?ng qu�t */ stats.TotalStalls = await _context.Stalls.CountAsync(); stats.TotalStallOwners = await _context.Users.CountAsync(u => u.Role == "StallOwner"); stats.TotalTours = await _context.Tours.CountAsync(t => t.IsActive == true); stats.ActiveDevices = await _context.Subscriptions.CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > DateTime.Now)); stats.TotalVisits = await _context.StallVisits.CountAsync(); stats.TotalLanguages = await _context.Languages.CountAsync();              /*  3. Tr?ng th�i s?p (Bi?u d? Donut) */ stats.OpenStalls = await _context.Stalls.CountAsync(s => s.IsOpen == true); stats.ClosedStalls = stats.TotalStalls - stats.OpenStalls;              /*  4. X? l� th?i gian l?c */ var end = endDate?.Date ?? DateTime.Today; var start = startDate?.Date ?? end.AddDays(-6); if (start > end) { var temp = start; start = end; end = temp; }              /*  5. Th?ng k� v� theo ng�y (Bi?u d? �u?ng) */ var ticketsInPeriod = await _context.TouristTickets.Where(t => t.CreatedAt >= start && t.CreatedAt < end.AddDays(1)).Select(t => new { t.CreatedAt }).ToListAsync(); for (var date = start; date <= end; date = date.AddDays(1)) { stats.ChartLabels.Add(date.ToString("dd/MM")); stats.ChartData.Add(ticketsInPeriod.Count(t => t.CreatedAt.Date == date.Date)); }              /*  6. Top 5 S?p H�ng (D�ng Join d? l?y NameDefault ngay l?p t?c, tr�nh l?i N+1) */ var topStalls = await _context.StallVisits.GroupBy(v => v.StallId).OrderByDescending(g => g.Count()).Take(5).Select(g => new {                     /*  L?y t�n s?p tr?c ti?p t? b?ng Stalls */ Name = _context.Stalls.Where(s => s.Id == g.Key).Select(s => s.Name).FirstOrDefault(), Count = g.Count() }).ToListAsync(); foreach (var item in topStalls) { stats.TopStallNames.Add(item.Name ?? "S?p ?n"); stats.TopStallVisits.Add(item.Count); }              /*  7. Doanh thu theo G�i v� (Join v?i TicketPackages) */ var revenue = await _context.TouristTickets.GroupBy(t => t.PackageId).Select(g => new { Name = _context.TicketPackages.Where(p => p.Id == g.Key).Select(p => p.PackageName).FirstOrDefault(), Total = g.Sum(t => (double)t.AmountPaid) }).ToListAsync(); foreach (var item in revenue) { stats.RevenueLabels.Add(item.Name ?? "G�i l?"); stats.RevenueData.Add(item.Total); } return Ok(stats); } } }
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
+namespace HeriStep.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class StatsController : ControllerBase
+    {
+        private readonly HeriStepDbContext _context;
+
+        public StatsController(HeriStepDbContext context) => _context = context;
+
+        // 💡 TECH LEAD FIX: Bỏ "system-stats" để khớp với đường dẫn api/Stats mà Web đang gọi
+        [HttpGet]
+        public async Task<ActionResult<DashboardStats>> GetSystemStats([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        {
+            try
+            {
+                var stats = new DashboardStats();
+
+                /* 1. Các con số tổng quát (Chỉ đếm những thứ chưa bị xóa) */
+                stats.TotalStalls = await _context.Stalls.AsNoTracking()
+                    .CountAsync(s => s.IsDeleted == false);
+
+                stats.TotalStallOwners = await _context.Users.AsNoTracking()
+                    .CountAsync(u => u.Role == "StallOwner" && u.IsDeleted == false);
+
+                stats.TotalTours = await _context.Tours.AsNoTracking()
+                    .CountAsync(t => t.IsActive == true && t.IsDeleted == false);
+
+                var now = DateTime.Now;
+                stats.ActiveDevices = await _context.Subscriptions.AsNoTracking()
+                    .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > now));
+
+                stats.TotalVisits = await _context.StallVisits.AsNoTracking().CountAsync();
+                stats.TotalLanguages = await _context.Languages.AsNoTracking()
+                    .CountAsync(l => l.IsDeleted == false);
+
+                /* 2. Trạng thái sạp (Biểu đồ Donut) */
+                stats.OpenStalls = await _context.Stalls.AsNoTracking()
+                    .CountAsync(s => s.IsOpen == true && s.IsDeleted == false);
+                stats.ClosedStalls = stats.TotalStalls - stats.OpenStalls;
+
+                /* 3. Xử lý thời gian lọc */
+                var end = endDate?.Date ?? DateTime.Today;
+                var start = startDate?.Date ?? end.AddDays(-6);
+
+                /* 4. Thống kê vé theo ngày (Biểu đồ Đường) */
+                var ticketsInPeriod = await _context.TouristTickets.AsNoTracking()
+                    .Where(t => t.CreatedAt >= start && t.CreatedAt < end.AddDays(1))
+                    .Select(t => t.CreatedAt)
+                    .ToListAsync();
+
+                for (var date = start; date <= end; date = date.AddDays(1))
+                {
+                    stats.ChartLabels.Add(date.ToString("dd/MM"));
+                    stats.ChartData.Add(ticketsInPeriod.Count(t => t.Date == date.Date));
+                }
+
+                /* 5. Top 5 Sạp Hàng (Dựa trên lượt ghé thăm) */
+                var topStalls = await _context.StallVisits.AsNoTracking()
+                    .GroupBy(v => v.StallId)
+                    .Select(g => new { StallId = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count)
+                    .Take(5)
+                    .Join(_context.Stalls.AsNoTracking(),
+                          v => v.StallId,
+                          s => s.Id,
+                          (v, s) => new { s.Name, v.Count }) // Đảm bảo thuộc tính là .Name
+                    .ToListAsync();
+
+                foreach (var item in topStalls)
+                {
+                    stats.TopStallNames.Add(item.Name ?? "Sạp ẩn");
+                    stats.TopStallVisits.Add(item.Count);
+                }
+
+                /* 6. Doanh thu theo Gói vé */
+                var revenue = await _context.TouristTickets.AsNoTracking()
+                    .GroupBy(t => t.PackageId)
+                    .Select(g => new { PackageId = g.Key, Total = g.Sum(t => (double)t.AmountPaid) })
+                    .Join(_context.TicketPackages.AsNoTracking(),
+                          t => t.PackageId,
+                          p => p.Id,
+                          (t, p) => new { p.PackageName, Total = t.Total })
+                    .ToListAsync();
+
+                foreach (var item in revenue)
+                {
+                    stats.RevenueLabels.Add(item.PackageName ?? "Gói lẻ");
+                    stats.RevenueData.Add(item.Total);
+                }
+
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi Backend", detail = ex.Message });
+            }
+        }
+    }
+}

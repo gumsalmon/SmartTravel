@@ -80,8 +80,9 @@ namespace HeriStep.API.Controllers
                 if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
 
                 var stall = await _context.Stalls.FindAsync(id);
-                if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng!" });
+                if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
 
+                // 1. XỬ LÝ UPLOAD ẢNH
                 if (req.ImageFile != null && req.ImageFile.Length > 0)
                 {
                     if (req.ImageFile.Length > 5 * 1024 * 1024)
@@ -101,31 +102,80 @@ namespace HeriStep.API.Controllers
                     stall.ImageUrl = "/uploads/" + fileName;
                 }
 
+                // 2. CẬP NHẬT THÔNG TIN SẠP
                 stall.Name = req.Name;
                 stall.IsOpen = req.IsOpen;
                 stall.OwnerId = req.OwnerId;
                 stall.RadiusMeter = req.RadiusMeter;
                 stall.UpdatedAt = DateTime.Now;
 
-                if (req.TtsScript != null)
+                // ====================================================================
+                // 3. XỬ LÝ ĐA NGÔN NGỮ (Mô hình UPSERT: Chống lỗi UNIQUE KEY)
+                // ====================================================================
+                if (!string.IsNullOrWhiteSpace(req.TtsScript))
                 {
-                    var oldContents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
-                    _context.StallContents.RemoveRange(oldContents);
+                    var currentTime = DateTime.Now;
 
-                    _context.StallContents.Add(new StallContent { StallId = id, LangCode = "vi", TtsScript = req.TtsScript, IsActive = true });
+                    // Lấy TOÀN BỘ dữ liệu cũ của sạp này (bất kể đã bị xóa mềm hay chưa)
+                    var existingContents = await _context.StallContents
+                                                    .Where(c => c.StallId == id)
+                                                    .ToListAsync();
 
-                    string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
-                    foreach (var lang in foreignLangs)
+                    // 3.1 Xử lý bản Tiếng Việt (Mã ngắn: vi)
+                    var viContent = existingContents.FirstOrDefault(c => c.LangCode == "vi");
+                    if (viContent != null)
                     {
+                        // Đã có -> Ghi đè (UPDATE)
+                        viContent.TtsScript = req.TtsScript;
+                        viContent.IsProcessed = true;
+                        viContent.IsDeleted = false; // Phục hồi nếu lỡ xóa mềm
+                        viContent.IsActive = true;
+                        viContent.UpdatedAt = currentTime;
+                    }
+                    else
+                    {
+                        // Chưa có -> Thêm mới (INSERT)
                         _context.StallContents.Add(new StallContent
                         {
                             StallId = id,
-                            LangCode = lang,
-                            TtsScript = $"[AI TTS in {lang.ToUpper()}] {req.TtsScript}",
-                            IsActive = true
+                            LangCode = "vi",
+                            TtsScript = req.TtsScript,
+                            IsActive = true,
+                            IsProcessed = true,
+                            UpdatedAt = currentTime
                         });
                     }
+
+                    // 3.2 Xử lý 9 bản dịch chờ
+                    string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                    foreach (var lang in foreignLangs)
+                    {
+                        var fContent = existingContents.FirstOrDefault(c => c.LangCode == lang);
+                        if (fContent != null)
+                        {
+                            // Đã có -> Ghi đè chữ thành rỗng và hạ cờ IsProcessed để AI dịch lại
+                            fContent.TtsScript = "";
+                            fContent.IsProcessed = false;
+                            fContent.IsDeleted = false;
+                            fContent.IsActive = true;
+                            fContent.UpdatedAt = currentTime;
+                        }
+                        else
+                        {
+                            // Chưa có -> Thêm mới (INSERT)
+                            _context.StallContents.Add(new StallContent
+                            {
+                                StallId = id,
+                                LangCode = lang,
+                                TtsScript = "",
+                                IsActive = true,
+                                IsProcessed = false,
+                                UpdatedAt = currentTime
+                            });
+                        }
+                    }
                 }
+                // ====================================================================
 
                 await _context.SaveChangesAsync();
                 return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
@@ -133,10 +183,9 @@ namespace HeriStep.API.Controllers
             catch (Exception ex)
             {
                 var detail = ex.InnerException?.Message ?? ex.Message;
-                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail });
+                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail = detail });
             }
         }
-
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStall(int id)
         {
@@ -236,11 +285,27 @@ namespace HeriStep.API.Controllers
                     imageUrl = "/images/products/" + uniqueFileName;
                 }
 
-                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false };
+                // 💡 FIX LỖI: Bắt buộc gán UpdatedAt = DateTime.Now
+                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false, UpdatedAt = DateTime.Now };
                 _context.Products.Add(newProduct);
                 await _context.SaveChangesAsync();
 
-                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name });
+                // 💡 FIX LỖI: Bắt buộc gán UpdatedAt = DateTime.Now cho các bản dịch
+                var currentTime = DateTime.Now;
+                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name, IsProcessed = true, UpdatedAt = currentTime });
+
+                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                foreach (var lang in foreignLangs)
+                {
+                    _context.ProductTranslations.Add(new ProductTranslation
+                    {
+                        ProductId = newProduct.Id,
+                        LangCode = lang,
+                        ProductName = "", // Background Job 
+                        IsProcessed = false,
+                        UpdatedAt = currentTime // <-- Chốt chặn sinh tồn
+                    });
+                }
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });

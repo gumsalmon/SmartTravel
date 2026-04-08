@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared.Models.DTOs.Requests;
+using HeriStep.Shared.Models.DTOs.Requests;
 using HeriStep.Shared.Models.DTOs.Responses;
 using HeriStep.API.Data;
 using HeriStep.Shared.Models;

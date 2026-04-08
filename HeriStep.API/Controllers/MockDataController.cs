@@ -174,25 +174,53 @@ namespace HeriStep.API.Controllers
                 }
 
                 // 5. Tạo Package & Lịch sử mua vé
-                var package = await _context.TicketPackages.FirstOrDefaultAsync();
-                if (package == null)
+                // 1. KHỞI TẠO 3 GÓI VÉ (Nếu DB chưa có)
+                // 1. KHỞI TẠO 3 GÓI VÉ (ĐỒNG BỘ 100% VỚI SCRIPT SQL ENTERPRISE)
+                if (!await _context.TicketPackages.AnyAsync())
                 {
-                    package = new TicketPackage { PackageName = "Vé Tuần Vĩnh Khánh", Price = 50000, DurationHours = 168, IsActive = true };
-                    _context.TicketPackages.Add(package);
+                    _context.TicketPackages.AddRange(
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Khám Phá Nhanh (2 Giờ)",
+                            Price = 50000.00m,
+                            DurationHours = 2,
+                            IsActive = true
+                        },
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Trải Nghiệm Tiêu Chuẩn (24 Giờ)",
+                            Price = 150000.00m,
+                            DurationHours = 24,
+                            IsActive = true
+                        },
+                        new TicketPackage
+                        {
+                            PackageName = "Gói Bản Địa Không Giới Hạn (1 Tuần)",
+                            Price = 300000.00m,
+                            DurationHours = 168,
+                            IsActive = true
+                        }
+                    );
                     await _context.SaveChangesAsync();
                 }
 
+                // Lấy danh sách các gói vé ra để Random
+                var packages = await _context.TicketPackages.ToListAsync();
+
+                // 2. SINH DỮ LIỆU MOCK VÉ KHÁCH HÀNG MUA NGẪU NHIÊN
                 for (int i = 0; i < req.VisitCount; i++)
                 {
                     var randomDate = now.AddDays(-rand.Next(0, 90));
+                    var randomPackage = packages[rand.Next(packages.Count)]; // Chọn ngẫu nhiên 1 trong 3 gói
+
                     _context.TouristTickets.Add(new TouristTicket
                     {
                         TicketCode = $"TC-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
                         DeviceId = $"DEV-{rand.Next(1000, 9999)}",
-                        PackageId = package.Id,
-                        AmountPaid = package.Price,
+                        PackageId = randomPackage.Id,
+                        AmountPaid = randomPackage.Price,
                         CreatedAt = randomDate,
-                        ExpiryDate = randomDate.AddHours(package.DurationHours)
+                        ExpiryDate = randomDate.AddHours(randomPackage.DurationHours) // Tính ngày hết hạn chuẩn xác
                     });
 
                     if (createdStalls.Any())

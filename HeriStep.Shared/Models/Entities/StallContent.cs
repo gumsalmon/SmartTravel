@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HeriStep.Shared
@@ -20,5 +20,14 @@ namespace HeriStep.Shared
 
         [Column("is_active")]
         public bool? IsActive { get; set; }
+
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; }
+
+        [Column("is_processed")]
+        public bool IsProcessed { get; set; }
+
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; }
     }
 }
