@@ -105,6 +105,16 @@ CREATE TABLE Subscriptions (
 
     CONSTRAINT FK_Subscriptions_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id) ON DELETE CASCADE
 );
+CREATE TABLE SubscriptionTransactions (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    stall_id INT NOT NULL,
+    amount DECIMAL(18,2) NOT NULL, -- Số tiền thực tế thu (sau khi giảm giá nếu có)
+    payment_date DATETIME DEFAULT GETDATE(),
+    duration_days INT, -- Gia hạn bao nhiêu ngày (30, 90, 365)
+    note NVARCHAR(255), -- Ghi chú: "Gia hạn tháng 4", "Admin tặng gói thử"
+    
+    CONSTRAINT FK_Trans_Stalls FOREIGN KEY (stall_id) REFERENCES Stalls(id)
+);
 
 -- 7. Bảng Lịch Sử Mua Vé Của Khách (Liên kết TicketPackages)
 CREATE TABLE TouristTickets (
