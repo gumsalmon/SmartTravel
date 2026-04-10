@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using HeriStep.Client.Services;
 using HeriStep.Shared.Models;
 using Microsoft.Maui.Controls;
@@ -8,6 +11,8 @@ namespace HeriStep.Client.Views
     public partial class ShopDetailPage : ContentPage
     {
         private Stall _stall;
+        private bool _isTtsPlaying = false;
+        private Action? _langChangedHandler;
 
         public ShopDetailPage(Stall stall)
         {
@@ -37,13 +42,26 @@ namespace HeriStep.Client.Views
                     }
                 }
 
+                // Subscribe language changes
                 ApplyLocalization();
-                L.LanguageChanged += () => MainThread.BeginInvokeOnMainThread(ApplyLocalization);
+                _langChangedHandler = () => MainThread.BeginInvokeOnMainThread(ApplyLocalization);
+                L.LanguageChanged += _langChangedHandler;
                 Console.WriteLine("[CRITICAL_LOG] ShopDetailPage Constructor finished successfully.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[CRITICAL_LOG] ShopDetailPage FATAL INSTANTIATION CRASH: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            // Unsubscribe so we don't leak the static event reference
+            if (_langChangedHandler != null)
+            {
+                L.LanguageChanged -= _langChangedHandler;
+                _langChangedHandler = null;
             }
         }
 
@@ -63,11 +81,90 @@ namespace HeriStep.Client.Views
             btnOrder1.Text = "🛒  " + L.Get("shop_add_order");
         }
 
-        private async void OnBackButtonClicked(object sender, EventArgs e)
+        private async void OnPlayIntroClicked(object sender, EventArgs e)
         {
-            try { await Navigation.PopAsync(); }
-            catch { }
+            if (_isTtsPlaying) return;
+            if (_stall == null || _stall.Id == 0)
+            {
+                lblTtsStatus.Text = "⚠️ Chưa có thông tin sạp.";
+                return;
+            }
+
+            _isTtsPlaying = true;
+            btnPlayIntro.IsEnabled = false;
+            btnPlayIntro.Text = "⏳  Đang tải...";
+            lblTtsStatus.Text = "🔊 Đang kết nối...";
+            lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#FF8C00");
+
+            try
+            {
+                string lang = L.CurrentLanguage;
+                string textToSpeak;
+
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
+                var url = $"{AppConstants.BaseApiUrl}/api/Stalls/{_stall.Id}/tts/{lang}";
+                Console.WriteLine($"[LOG] Fetching TTS from: {url}");
+
+                var response = await client.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadFromJsonAsync<TtsPayload>();
+                    textToSpeak = (!string.IsNullOrWhiteSpace(data?.Text))
+                        ? data!.Text
+                        : BuildFallback();
+                    Console.WriteLine($"[LOG] TTS text fetched OK ({textToSpeak.Length} chars).");
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] TTS API returned {response.StatusCode}. Using fallback.");
+                    textToSpeak = BuildFallback();
+                }
+
+                var locales = await TextToSpeech.Default.GetLocalesAsync();
+                var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(lang, StringComparison.OrdinalIgnoreCase));
+
+                lblTtsStatus.Text = "🔊 Đang phát...";
+                await TextToSpeech.Default.SpeakAsync(textToSpeak, new SpeechOptions
+                {
+                    Volume = 1.0f,
+                    Pitch  = 1.0f,
+                    Locale = locale
+                });
+
+                lblTtsStatus.Text = "✅ Phát xong.";
+                lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+                Console.WriteLine("[LOG] TTS playback complete.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] TTS OnPlayIntroClicked failed: {ex.Message}");
+                lblTtsStatus.Text = $"❌ Lỗi: {ex.Message}";
+                lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
+            }
+            finally
+            {
+                _isTtsPlaying = false;
+                btnPlayIntro.IsEnabled = true;
+                btnPlayIntro.Text = "🔊  Nghe Giới Thiệu";
+            }
         }
+
+        private string BuildFallback()
+        {
+            string lang = L.CurrentLanguage;
+            string name = _stall?.Name ?? "sạp này";
+            return lang switch
+            {
+                "en" => $"Welcome to {name}! Come enjoy the best street food in Vinh Khanh.",
+                "ja" => $"{name}へようこそ！",
+                "ko" => $"{name}에 오신 것을 환영합니다!",
+                "fr" => $"Bienvenue à {name} !",
+                "es" => $"¡Bienvenido a {name}!",
+                _    => $"Chào mừng bạn đến {name}! Hãy thưởng thức ẩm thực Vĩnh Khánh nhé."
+            };
+        }
+
+        private class TtsPayload { public string Text { get; set; } = ""; }
 
         private async void OnOrderClicked(object sender, EventArgs e)
         {

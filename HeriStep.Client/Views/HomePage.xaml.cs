@@ -1,4 +1,5 @@
 using HeriStep.Client.ViewModels;
+using HeriStep.Client.Services;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -7,6 +8,7 @@ namespace HeriStep.Client.Views;
 public partial class HomePage : ContentPage
 {
     private readonly HomeViewModel _viewModel;
+    private Action? _langChangedHandler;
 
     public HomePage(HomeViewModel viewModel)
     {
@@ -19,7 +21,7 @@ public partial class HomePage : ContentPage
     {
         base.OnAppearing();
 
-        // GPS permission check remains...
+        // GPS permission check
 #if !WINDOWS
         var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
         if (status != PermissionStatus.Granted)
@@ -28,10 +30,30 @@ public partial class HomePage : ContentPage
         }
 #endif
 
-        // Gọi API với ngôn ngữ (query lang có thể bỏ vào LoadPointsAsync sau)
-        if (_viewModel.Points.Count == 0)
+        // Always reload data (to pick up language changes, new stalls, etc.)
+        Console.WriteLine("[LOG] HomePage OnAppearing: reloading data...");
+        await _viewModel.LoadPointsAsync();
+
+        // Subscribe to language changes — reload data when language switches
+        if (_langChangedHandler == null)
         {
-            await _viewModel.LoadPointsAsync();
+            _langChangedHandler = async () =>
+            {
+                Console.WriteLine("[LOG] Language changed, reloading data...");
+                await MainThread.InvokeOnMainThreadAsync(async () => await _viewModel.LoadPointsAsync());
+            };
+            L.LanguageChanged += _langChangedHandler;
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        // Unsubscribe to prevent memory leak from static event
+        if (_langChangedHandler != null)
+        {
+            L.LanguageChanged -= _langChangedHandler;
+            _langChangedHandler = null;
         }
     }
     // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ

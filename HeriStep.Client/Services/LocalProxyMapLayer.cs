@@ -24,6 +24,7 @@ namespace HeriStep.Client.Services
         {
             try
             {
+                Console.WriteLine($"[LOG] MapLayer: using proxy at {ProxyBaseUrl}");
                 var tileSource = new HttpTileSource(
                     new GlobalSphericalMercator(),
                     ProxyBaseUrl + "/{z}/{x}/{y}",
@@ -35,9 +36,9 @@ namespace HeriStep.Client.Services
 
                 return new TileLayer(tileSource) { Name = "BaseMapLayer" };
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback: use Mapsui's built-in OpenStreetMap layer directly
+                Console.WriteLine($"[ERROR] MapLayer proxy failed ({ex.Message}). Falling back to direct OSM.");
                 return OpenStreetMap.CreateTileLayer();
             }
         }

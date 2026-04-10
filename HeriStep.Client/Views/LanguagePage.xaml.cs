@@ -13,13 +13,15 @@ namespace HeriStep.Client.Views
         private static readonly Color StrokeSelected = Color.FromArgb("#D35400");
 
         private string? _selectedLang;
+        private readonly bool _isChangeMode;
 
         // Map: language code → card Border
         private Dictionary<string, Border> _cardMap = new();
 
-        public LanguagePage()
+        public LanguagePage(bool isChangeMode = false)
         {
             InitializeComponent();
+            _isChangeMode = isChangeMode;
 
             // Build the code → card mapping after InitializeComponent
             _cardMap = new Dictionary<string, Border>
@@ -33,6 +35,21 @@ namespace HeriStep.Client.Views
                 ["zh"] = cardZH,
                 ["es"] = cardES,
             };
+
+            // Pre-select current language when opened in change mode
+            if (_isChangeMode)
+            {
+                var current = L.CurrentLanguage;
+                if (_cardMap.TryGetValue(current, out var currentCard))
+                {
+                    currentCard.BackgroundColor = GlassSelected;
+                    currentCard.Stroke = StrokeSelected;
+                    currentCard.StrokeThickness = 2;
+                    _selectedLang = current;
+                    btnGetStarted.IsEnabled = true;
+                    btnGetStarted.Opacity = 1.0;
+                }
+            }
         }
 
         // ════════════════════════════════════════════
@@ -86,10 +103,20 @@ namespace HeriStep.Client.Views
                 Preferences.Default.Set("voice_speed", 1.0f);
                 Preferences.Default.Set("voice_radius", 50.0);
 
-                // Navigate to the main app shell
-                if (Application.Current?.Windows.Count > 0)
+                Console.WriteLine($"[LOG] Language changed to: {_selectedLang}");
+
+                if (_isChangeMode)
                 {
-                    Application.Current.Windows[0].Page = new AppShell();
+                    // Just go back — AppShell stays alive, L.LanguageChanged fires and refreshes everything
+                    await Navigation.PopAsync();
+                }
+                else
+                {
+                    // First-time setup: navigate to main shell
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new AppShell();
+                    }
                 }
             }
             catch (Exception ex)
