@@ -1,16 +1,9 @@
-using HeriStep.Shared.Models.DTOs.Responses;
 using HeriStep.API.Data;
 using HeriStep.Shared;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace HeriStep.API.Controllers
 {
@@ -33,7 +26,7 @@ namespace HeriStep.API.Controllers
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
             var query = from s in _context.Stalls
-                        where !s.IsDeleted // 💡 Chặn sạp đã xóa mềm
+                        where !s.IsDeleted
                         join u in _context.Users on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
                         select new PointOfInterest
@@ -120,7 +113,6 @@ namespace HeriStep.API.Controllers
                     var currentTime = DateTime.Now;
                     var existingContents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
 
-                    // 3.1 Tiếng Việt
                     var viContent = existingContents.FirstOrDefault(c => c.LangCode == "vi");
                     if (viContent != null)
                     {
@@ -143,7 +135,6 @@ namespace HeriStep.API.Controllers
                         });
                     }
 
-                    // 3.2 Các ngôn ngữ khác chờ AI dịch
                     string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
                     foreach (var lang in foreignLangs)
                     {
@@ -176,8 +167,7 @@ namespace HeriStep.API.Controllers
             }
             catch (Exception ex)
             {
-                var detail = ex.InnerException?.Message ?? ex.Message;
-                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail = detail });
+                return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail = ex.Message });
             }
         }
 
@@ -187,19 +177,15 @@ namespace HeriStep.API.Controllers
             try
             {
                 var stall = await _context.Stalls.FindAsync(id);
-
-                // 💡 ĐÃ FIX: Chặn xóa mềm 2 lần
                 if (stall == null || stall.IsDeleted)
                     return NotFound(new { message = "Không tìm thấy sạp hoặc sạp đã bị xóa từ trước!" });
 
-                // 1. SOFT DELETE SẠP CHÍNH
                 stall.IsDeleted = true;
                 stall.IsOpen = false;
                 stall.UpdatedAt = DateTime.Now;
-                stall.TourID = null;  // Gỡ khỏi Lộ trình
+                stall.TourID = null;
                 stall.SortOrder = 0;
 
-                // 2. SOFT DELETE NỘI DUNG TTS
                 var contents = await _context.StallContents.Where(c => c.StallId == id && !c.IsDeleted).ToListAsync();
                 foreach (var c in contents)
                 {
@@ -207,7 +193,6 @@ namespace HeriStep.API.Controllers
                     c.UpdatedAt = DateTime.Now;
                 }
 
-                // 3. SOFT DELETE MÓN ĂN THUỘC SẠP
                 var products = await _context.Products.Where(p => p.StallId == id && !p.IsDeleted).ToListAsync();
                 foreach (var p in products)
                 {
@@ -224,8 +209,6 @@ namespace HeriStep.API.Controllers
             }
         }
 
-
-
         // =======================================================
         // 2. API CHO MAP, MOBILE APP VÀ CHỦ SẠP
         // =======================================================
@@ -234,7 +217,7 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GetAllStallsForMap()
         {
             var stalls = await _context.Stalls
-                .Where(s => !s.IsDeleted) // 💡 ĐÃ FIX: Không tải sạp ma
+                .Where(s => !s.IsDeleted)
                 .Select(s => new
                 {
                     id = s.Id,
@@ -250,6 +233,7 @@ namespace HeriStep.API.Controllers
             return Ok(stalls);
         }
 
+        // 💡 [QUAN TRỌNG] API CHUYÊN DỤNG CHO TRANG CHỦ SẠP (ĐÃ CÓ isExpired)
         [HttpGet("my-stalls")]
         public async Task<IActionResult> GetMyStalls([FromQuery] int? ownerId)
         {
@@ -259,8 +243,19 @@ namespace HeriStep.API.Controllers
             if (finalOwnerId == 0) return Unauthorized(new { message = "Không xác định được chủ sạp. Vui lòng đăng nhập lại!" });
 
             var stalls = await _context.Stalls
-                .Where(s => s.OwnerId == finalOwnerId && !s.IsDeleted) // 💡 ĐÃ FIX: Ẩn sạp đã xóa khỏi màn hình của chủ
+                .Where(s => s.OwnerId == finalOwnerId && !s.IsDeleted)
+                .Select(s => new
+                {
+                    Id = s.Id,
+                    Name = s.Name ?? "Sạp chưa đặt tên",
+                    OwnerId = s.OwnerId,
+                    ImageUrl = s.ImageUrl,
+                    IsOpen = s.IsOpen,
+                    IsExpired = !_context.Subscriptions.Any(sub => sub.StallId == s.Id && sub.ExpiryDate > DateTime.Now)
+                })
+                .OrderBy(s => s.Id)
                 .ToListAsync();
+
             return Ok(stalls);
         }
 
@@ -268,7 +263,7 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GetTop5Stalls()
         {
             var top = await _context.Stalls
-                .Where(s => s.IsOpen && !s.IsDeleted) // 💡 ĐÃ FIX
+                .Where(s => s.IsOpen && !s.IsDeleted)
                 .OrderByDescending(s => s.RadiusMeter)
                 .Take(5)
                 .Select(s => new {
@@ -357,9 +352,7 @@ namespace HeriStep.API.Controllers
                 return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
         }
-        // =======================================================
-        // API SỬA MÓN ĂN (CẬP NHẬT TÊN, GIÁ, ẢNH)
-        // =======================================================
+
         [HttpPut("update-product/{productId}")]
         public async Task<IActionResult> UpdateProduct(int productId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile? ImageFile)
         {
@@ -368,11 +361,9 @@ namespace HeriStep.API.Controllers
                 var product = await _context.Products.FindAsync(productId);
                 if (product == null) return NotFound(new { message = "Không tìm thấy món ăn này!" });
 
-                // 1. Cập nhật giá bán
                 product.BasePrice = BasePrice;
                 product.UpdatedAt = DateTime.Now;
 
-                // 2. Cập nhật ảnh (Nếu người dùng có chọn ảnh mới)
                 if (ImageFile != null && ImageFile.Length > 0)
                 {
                     if (ImageFile.Length > 5 * 1024 * 1024)
@@ -391,14 +382,12 @@ namespace HeriStep.API.Controllers
                     product.ImageUrl = "/images/products/" + uniqueFileName;
                 }
 
-                // 3. Cập nhật tên Tiếng Việt trong bảng Dịch thuật
                 var viTranslation = await _context.ProductTranslations.FirstOrDefaultAsync(t => t.ProductId == productId && t.LangCode == "vi");
                 if (viTranslation != null)
                 {
                     viTranslation.ProductName = Name;
                     viTranslation.UpdatedAt = DateTime.Now;
 
-                    // (Tùy chọn) Đánh dấu các ngôn ngữ khác là chưa xử lý để AI dịch lại tên mới
                     var foreignLangs = await _context.ProductTranslations.Where(t => t.ProductId == productId && t.LangCode != "vi").ToListAsync();
                     foreach (var lang in foreignLangs)
                     {
@@ -421,16 +410,12 @@ namespace HeriStep.API.Controllers
             try
             {
                 var product = await _context.Products.FindAsync(productId);
-
-                // 💡 ĐÃ FIX: Áp dụng Xóa mềm (Soft Delete) cho món ăn
                 if (product == null || product.IsDeleted)
                     return NotFound("Không tìm thấy món ăn này hoặc đã bị xóa!");
 
-                // Soft Delete món ăn
                 product.IsDeleted = true;
                 product.UpdatedAt = DateTime.Now;
 
-                // Soft Delete các bản dịch liên quan
                 var translations = await _context.ProductTranslations.Where(t => t.ProductId == productId && !t.IsDeleted).ToListAsync();
                 foreach (var t in translations)
                 {
@@ -438,9 +423,7 @@ namespace HeriStep.API.Controllers
                     t.UpdatedAt = DateTime.Now;
                 }
 
-                // Bỏ đoạn _context.Products.Remove(product) đi
                 await _context.SaveChangesAsync();
-
                 return Ok(new { message = "Đã xóa món ăn thành công!" });
             }
             catch (Exception ex)
@@ -455,7 +438,7 @@ namespace HeriStep.API.Controllers
             try
             {
                 var products = await _context.Products
-                    .Where(p => p.StallId == stallId && !p.IsDeleted) // 💡 ĐÃ FIX: Lọc món bị xóa
+                    .Where(p => p.StallId == stallId && !p.IsDeleted)
                     .Select(p => new
                     {
                         Id = p.Id,
@@ -475,7 +458,7 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GetAvailableOwners()
         {
             var owners = await _context.Users
-                .Where(u => !u.IsDeleted) // 💡 TỐI ƯU: Không lấy User bị xóa
+                .Where(u => !u.IsDeleted)
                 .Select(u => new { id = u.Id, fullName = u.FullName ?? "Chưa cập nhật tên", username = u.Username })
                 .ToListAsync();
             return Ok(owners);
@@ -520,5 +503,8 @@ namespace HeriStep.API.Controllers
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
+
+        // DTO nội bộ cho GetStalls (Để tránh gọi đè vào Shared.Models nếu bị xung đột)
+        public class PointOfInterest { public int Id { get; set; } public string? Name { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public int RadiusMeter { get; set; } public bool IsOpen { get; set; } public string? ImageUrl { get; set; } public int? OwnerId { get; set; } public string? OwnerName { get; set; } public DateTime? UpdatedAt { get; set; } }
     }
 }

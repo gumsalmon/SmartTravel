@@ -1,4 +1,4 @@
-﻿using HeriStep.Shared.Models; // 💡 DÒNG SINH TỬ ĐỂ GỌI ĐƯỢC CLASS STALL
+﻿using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -37,27 +37,32 @@ namespace HeriStep.Merchant.Pages
 
             try
             {
-                // 2. Gọi API lấy toàn bộ sạp
-                var response = await _http.GetAsync($"api/Stalls/admin-map");
+                // 💡 BÍ KÍP Ở ĐÂY: Móc JWT Token từ túi ra và nhét vào Header (Đưa thẻ cho bảo vệ xem)
+                var jwtToken = User.FindFirst("jwt_token")?.Value;
+                if (!string.IsNullOrEmpty(jwtToken))
+                {
+                    _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+                }
+
+                // Nhớ check lại cổng 5297 xem có đúng với cổng API đang chạy không nhé sếp
+                var apiUrl = $"http://localhost:5297/api/Stalls/my-stalls?ownerId={CurrentUserId}";
+
+                var response = await _http.GetAsync(apiUrl);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // 💡 Bật chế độ không phân biệt chữ Hoa - chữ Thường để biến IsExpired không bị nuốt mất
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-                    // Chuyển JSON thành danh sách Stall
-                    var allStalls = await response.Content.ReadFromJsonAsync<List<Stall>>(options);
-
-                    // Lọc ra những sạp thuộc về User này
-                    MyStalls = allStalls?
-                        .Where(s => s.OwnerId.ToString() == CurrentUserId)
-                        .ToList() ?? new List<Stall>();
+                    MyStalls = await response.Content.ReadFromJsonAsync<List<Stall>>(options) ?? new List<Stall>();
+                }
+                else
+                {
+                    // Nếu vẫn lỗi thì lôi cổ nó ra màn hình xem tiếp
+                    TempData["ErrorMessage"] = $"Lỗi API: {response.StatusCode} - Có thể API báo lỗi bên trong.";
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Lỗi trang chủ]: {ex.Message}");
-                // Nếu lỗi API thì trả về danh sách trống, tránh sập web
+                TempData["ErrorMessage"] = $"Lỗi hệ thống: {ex.Message}";
                 MyStalls = new List<Stall>();
             }
 

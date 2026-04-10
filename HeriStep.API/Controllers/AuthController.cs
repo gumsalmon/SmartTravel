@@ -37,8 +37,20 @@ namespace HeriStep.API.Controllers
                 return Unauthorized(new { message = "Sai tài khoản, mật khẩu hoặc tài khoản đã bị khóa!" });
             }
 
-            return Ok(new { token = token, message = "Đăng nhập thành công!" });
+            // 💡 TECH LEAD FIX: Lấy thêm thông tin User từ DB để trả về kèm Token
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == req.Username && !u.IsDeleted);
+
+            // Gửi đầy đủ ID, Tên, Quyền về cho Web Chủ Sạp để nó không bị "mù" danh tính nữa
+            return Ok(new
+            {
+                token = token,
+                userId = user?.Id ?? 0,
+                fullName = user?.FullName ?? "Chủ sạp",
+                role = user?.Role ?? "StallOwner",
+                message = "Đăng nhập thành công!"
+            });
         }
+
 
         /* ========================================== */
         /* 2. CHỨC NĂNG ĐỔI MẬT KHẨU                  */
