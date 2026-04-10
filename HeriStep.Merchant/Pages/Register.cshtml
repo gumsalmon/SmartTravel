@@ -1,0 +1,164 @@
+﻿@page
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Đăng ký Sạp mới - HeriStep</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+        }
+
+        .register-card {
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card register-card p-4 bg-white">
+
+                    <div id="registerFormSection">
+                        <div class="text-center mb-4">
+                            <h3 class="fw-bold text-success">Mở Sạp Mới</h3>
+                            <p class="text-muted">Đăng ký kinh doanh tại Vĩnh Khánh</p>
+                        </div>
+
+                        <form id="frmRegister" onsubmit="executeRegister(event)">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Họ và tên chủ sạp</label>
+                                <input type="text" id="FullName" class="form-control rounded-pill px-3" required placeholder="Ví dụ: Nguyễn Văn A" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Số điện thoại (Dùng để đăng nhập)</label>
+                                <input type="text" id="Phone" class="form-control rounded-pill px-3" required placeholder="09xx..." />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Mật khẩu</label>
+                                <input type="password" id="Password" class="form-control rounded-pill px-3" required placeholder="******" />
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-muted small">Tên Sạp / Quán</label>
+                                <input type="text" id="StallName" class="form-control rounded-pill px-3" required placeholder="Ví dụ: Ốc Oanh" />
+                            </div>
+
+                            <div id="gpsStatus" class="alert alert-info py-2 small text-center rounded-3">
+                                <i class="bi bi-geo-alt-fill"></i> Đang lấy tọa độ bản đồ hiện tại...
+                            </div>
+
+                            <button type="submit" id="btnSubmit" class="btn btn-success w-100 rounded-pill py-2 fw-bold shadow-sm" disabled>
+                                ĐĂNG KÝ VÀ THANH TOÁN
+                            </button>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <a href="/Login" class="text-muted text-decoration-none small"><i class="bi bi-arrow-left"></i> Quay lại đăng nhập</a>
+                        </div>
+                    </div>
+
+                    <div id="qrPaymentSection" class="text-center d-none">
+                        <h4 class="fw-bold text-success mb-3">🎉 Đăng ký thành công!</h4>
+                        <p class="text-muted small mb-4">Để sạp được hiển thị lên bản đồ Phố Ẩm Thực, vui lòng thanh toán phí khởi tạo <strong class="text-danger">2.000 VNĐ</strong>.</p>
+
+                        <div class="bg-light p-3 rounded-4 mb-4 shadow-sm border">
+                            <img id="qrImage" src="" alt="Mã QR Thanh Toán" class="img-fluid rounded-3" style="max-width: 250px;">
+                        </div>
+
+                        <p class="small text-muted mb-4"><i class="bi bi-info-circle text-primary"></i> <b>Lưu ý:</b> Giữ nguyên nội dung chuyển khoản. Hệ thống tự động mở sạp sau 3 giây.</p>
+
+                        <a href="/Login" class="btn btn-primary w-100 rounded-pill fw-bold">TÔI ĐÃ THANH TOÁN (VỀ ĐĂNG NHẬP)</a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLat = 0;
+        let currentLng = 0;
+
+        // 1. Tự động lấy GPS ngay khi mở trang
+        document.addEventListener("DOMContentLoaded", () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLat = position.coords.latitude;
+                        currentLng = position.coords.longitude;
+
+                        let gpsAlert = document.getElementById('gpsStatus');
+                        gpsAlert.classList.replace('alert-info', 'alert-success');
+                        gpsAlert.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đã lấy được tọa độ sạp chuẩn xác!';
+
+                        document.getElementById('btnSubmit').disabled = false; // Mở khóa nút đăng ký
+                    },
+                    (error) => {
+                        let gpsAlert = document.getElementById('gpsStatus');
+                        gpsAlert.classList.replace('alert-info', 'alert-danger');
+                        gpsAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Vui lòng cho phép truy cập Vị trí (Location) để tiếp tục!';
+                    },
+                    { enableHighAccuracy: true } // Yêu cầu độ chính xác cao
+                );
+            } else {
+                alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
+            }
+        });
+
+        // 2. Gửi API Đăng ký
+        async function executeRegister(event) {
+            event.preventDefault(); // Chặn load lại trang
+
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+
+            const payload = {
+                FullName: document.getElementById('FullName').value,
+                Phone: document.getElementById('Phone').value,
+                Password: document.getElementById('Password').value,
+                StallName: document.getElementById('StallName').value,
+                Latitude: currentLat,
+                Longitude: currentLng
+            };
+
+            try {
+                // Sửa port 5297 nếu C# API của sếp chạy port khác
+                const res = await fetch('http://127.0.0.1:5297/api/Payments/register-new-merchant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Thành công -> Ẩn form, hiện mã QR
+                    document.getElementById('registerFormSection').classList.add('d-none');
+                    document.getElementById('qrPaymentSection').classList.remove('d-none');
+
+                    // Gắn link ảnh QR SePay vào thẻ <img>
+                    document.getElementById('qrImage').src = data.qrUrl;
+                } else {
+                    alert("Lỗi: " + (data.message || "Số điện thoại đã tồn tại!"));
+                    btn.disabled = false;
+                    btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
+                }
+            } catch (e) {
+                alert("Không thể kết nối tới Server!");
+                btn.disabled = false;
+                btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
+            }
+        }
+    </script>
+</body>
+</html>

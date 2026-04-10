@@ -154,6 +154,36 @@
     </div>
 </div>
 
+<div class="modal fade" id="editFoodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark rounded-top-4">
+                <h5 class="modal-title fw-bold">✏️ Sửa thông tin món ăn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editFoodId">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Tên món ăn (Tiếng Việt)</label>
+                    <input type="text" id="editFoodName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Giá bán (VNĐ)</label>
+                    <input type="number" id="editFoodPrice" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Thay ảnh mới (Bỏ trống nếu giữ ảnh cũ)</label>
+                    <input type="file" id="editFoodImage" class="form-control" accept="image/*">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning rounded-pill fw-bold px-4" onclick="submitEditFood()">💾 LƯU THAY ĐỔI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 
@@ -196,14 +226,13 @@
                 </div>`;
         });
 
-        // 💡 THÔNG MINH: Phục hồi lại Tab trước khi Reload trang
         const savedTab = localStorage.getItem('activeStallTab');
         if (savedTab) {
             const tabBtn = document.querySelector(`button[data-bs-target="${savedTab}"]`);
             if (tabBtn) {
                 new bootstrap.Tab(tabBtn).show();
             }
-            localStorage.removeItem('activeStallTab'); // Dùng xong thì xóa đi
+            localStorage.removeItem('activeStallTab');
         }
 
         loadMenu();
@@ -373,7 +402,6 @@
             const response = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
             if (response.ok) {
                 await Swal.fire("Thành công", "Đã cập nhật thông tin!", "success");
-                // Ghi nhớ lại tab Thông tin trước khi reload
                 localStorage.setItem('activeStallTab', '#info');
                 window.location.reload();
             }
@@ -405,7 +433,6 @@
             const response = await fetch(`http://127.0.0.1:5297/api/Stalls/add-product`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
             if (response.ok) {
                 await Swal.fire("Thành công", "Đã thêm món!", "success");
-                // 💡 ĐÃ FIX: Nhớ Tab Thực đơn rồi TẢI LẠI TRANG hoàn toàn
                 localStorage.setItem('activeStallTab', '#menu');
                 window.location.reload();
             }
@@ -437,7 +464,6 @@
 
             if (response.ok) {
                 await Swal.fire("Đã xóa!", "Món ăn đã được xóa thành công.", "success");
-                // 💡 ĐÃ FIX: Nhớ Tab Thực đơn rồi TẢI LẠI TRANG hoàn toàn
                 localStorage.setItem('activeStallTab', '#menu');
                 window.location.reload();
             } else {
@@ -445,6 +471,62 @@
             }
         } catch (e) {
             Swal.fire("Lỗi", "Mất kết nối API!", "error");
+        }
+    }
+
+    // 💡 LOGIC SỬA MÓN ĂN
+    function openEditFoodModal(id, name, price) {
+        document.getElementById('editFoodId').value = id;
+        document.getElementById('editFoodName').value = name;
+        document.getElementById('editFoodPrice').value = price;
+        document.getElementById('editFoodImage').value = ""; // Reset file
+
+        const modal = new bootstrap.Modal(document.getElementById('editFoodModal'));
+        modal.show();
+    }
+
+    async function submitEditFood() {
+        const btn = document.querySelector('button[onclick="submitEditFood()"]');
+        const token = localStorage.getItem('token');
+        const id = document.getElementById('editFoodId').value;
+        const name = document.getElementById('editFoodName').value.trim();
+        const price = document.getElementById('editFoodPrice').value;
+        const file = document.getElementById('editFoodImage').files[0];
+
+        if (!name || !price) return Swal.fire("Chú ý", "Vui lòng nhập đủ tên và giá!", "warning");
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+        const fd = new FormData();
+        fd.append("Name", name);
+        fd.append("BasePrice", price);
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                btn.disabled = false; btn.innerHTML = '💾 LƯU THAY ĐỔI';
+                return Swal.fire("Cảnh báo", "Ảnh không quá 5MB!", "warning");
+            }
+            fd.append("ImageFile", file);
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/update-product/${id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            if (response.ok) {
+                await Swal.fire("Thành công", "Đã cập nhật món ăn!", "success");
+                localStorage.setItem('activeStallTab', '#menu');
+                window.location.reload();
+            } else {
+                Swal.fire("Thất bại", "Lỗi: " + await response.text(), "error");
+            }
+        } catch (e) {
+            Swal.fire("Lỗi", "Mất kết nối API!", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '💾 LƯU THAY ĐỔI';
         }
     }
 
@@ -472,9 +554,14 @@
                             <span class="text-danger fw-bold fs-6">${parseInt(f.basePrice || 0).toLocaleString('vi-VN')} VNĐ</span>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger px-3 shadow-sm fw-bold" onclick="deleteFood(${f.id}, '${safeName}')">
-                        <i class="bi bi-trash"></i> Xóa
-                    </button>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-warning shadow-sm fw-bold" onclick="openEditFoodModal(${f.id}, '${safeName}', ${f.basePrice})">
+                            <i class="bi bi-pencil-square"></i> Sửa
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger shadow-sm fw-bold" onclick="deleteFood(${f.id}, '${safeName}')">
+                            <i class="bi bi-trash"></i> Xóa
+                        </button>
+                    </div>
                 </div>
             </div>
             `;

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -21,7 +21,7 @@ public class LoginModel : PageModel
     {
         try
         {
-            var response = await _http.PostAsJsonAsync("api/Auth/Login", new { Username, Password });
+            var response = await _http.PostAsJsonAsync("http://localhost:5297/api/Auth/Login", new { Username, Password });
 
             if (response.IsSuccessStatusCode)
             {
@@ -31,17 +31,23 @@ public class LoginModel : PageModel
 
                 if (result != null)
                 {
+                    // 💡 ĐỌC TOKEN TỪ API THEO CHUẨN SEQUENCE 1.1 Tạo JWT Token 
+                    var jwtToken = result.token ?? result.Token ?? "";
+
                     var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, result.userId.ToString()),
-                    new Claim(ClaimTypes.Name, result.fullName ?? Username),
-                    new Claim(ClaimTypes.Role, result.role ?? "StallOwner")
-                };
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, result.userId.ToString()),
+                        new Claim(ClaimTypes.Name, result.fullName ?? Username),
+                        new Claim(ClaimTypes.Role, result.role ?? "StallOwner"),
+                        new Claim("jwt_token", jwtToken) // 💡 LƯU KÈM TOKEN ĐỂ LOGOUT SỬ DỤNG
+                    };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
 
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                    // 💡 ĐÚNG UML: "Lưu thông tin phiên đăng nhập" (Vào cookie)
+                    var authProperties = new AuthenticationProperties { IsPersistent = true };
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
                     return RedirectToPage("/Index");
                 }
@@ -51,17 +57,24 @@ public class LoginModel : PageModel
             var errorContent = await response.Content.ReadAsStringAsync();
             if (!string.IsNullOrEmpty(errorContent))
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(errorContent);
-                if (doc.RootElement.TryGetProperty("message", out var msgElement))
+                try
                 {
-                    ErrorMessage = msgElement.GetString();
+                    using var doc = System.Text.Json.JsonDocument.Parse(errorContent);
+                    if (doc.RootElement.TryGetProperty("message", out var msgElement))
+                    {
+                        ErrorMessage = msgElement.GetString();
+                    }
+                }
+                catch
+                {
+                    ErrorMessage = $"Lỗi định dạng trả về: {errorContent}";
                 }
             }
             ErrorMessage ??= "Tên đăng nhập hoặc mật khẩu không đúng.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            ErrorMessage = "Không thể kết nối đến máy chủ API (Hãy kiểm tra API đã chạy chưa?).";
+            ErrorMessage = $"Không thể kết nối đến máy chủ API (Lỗi: {ex.Message}).";
         }
 
         return Page();
@@ -73,4 +86,6 @@ public class LoginRes
     public int userId { get; set; }
     public string? role { get; set; }
     public string? fullName { get; set; }
+    public string? token { get; set; }
+    public string? Token { get; set; }
 }

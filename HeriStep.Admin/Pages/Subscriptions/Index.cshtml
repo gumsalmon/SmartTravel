@@ -47,10 +47,6 @@
                         <a href="/Subscriptions/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
                     }
                 </form>
-
-                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#addSubModal">
-                    <i class="bi bi-plus-circle me-1"></i> Kích hoạt mới
-                </button>
             </div>
         </div>
 
@@ -122,28 +118,6 @@
                     </ul>
                 </nav>
             }
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addSubModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <form method="post" asp-page-handler="Create">
-                <div class="modal-body p-4">
-                    <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-rocket-takeoff me-2"></i>Kích hoạt thiết bị</h5>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Mã định danh thiết bị (Device ID)</label>
-                        <input type="text" asp-for="NewSub.DeviceId" class="form-control rounded-3" required placeholder="VD: HS-DEV-001">
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Mã kích hoạt (Activation Code)</label>
-                        <input type="text" asp-for="NewSub.ActivationCode" class="form-control rounded-3 text-uppercase" required placeholder="VD: ACT-XXXXX">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow">XÁC NHẬN KÍCH HOẠT</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

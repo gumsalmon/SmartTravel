@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -11,6 +11,7 @@ using HeriStep.Shared.Models.DTOs.Requests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Memory; // 💡 Khai báo để dùng Cache giả lập Redis
 
 namespace HeriStep.API.Services
 {
@@ -18,21 +19,35 @@ namespace HeriStep.API.Services
     {
         private readonly HeriStepDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IMemoryCache _cache; // 💡 Dùng làm Blacklist
 
-        public AuthService(HeriStepDbContext context, IConfiguration configuration)
+        public AuthService(HeriStepDbContext context, IConfiguration configuration, IMemoryCache cache)
         {
             _context = context;
             _configuration = configuration;
+            _cache = cache;
         }
 
         public async Task<string> LoginAsync(LoginRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+            // Bước 1: Query DB kiểm tra Username (Đúng sơ đồ UML)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username && !u.IsDeleted);
             if (user == null) return null;
 
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                return null;
+            // Bước 2: Xác thực mật khẩu (Đúng sơ đồ UML)
+            bool isPasswordValid = false;
+            if (user.PasswordHash == request.Password)
+            {
+                isPasswordValid = true;
+            }
+            else
+            {
+                try { isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash); } catch { }
+            }
 
+            if (!isPasswordValid) return null;
+
+            // Bước 3: Tạo JWT Token (Đúng sơ đồ UML)
             return GenerateJwtToken(user);
         }
 
@@ -46,11 +61,22 @@ namespace HeriStep.API.Services
                 Username = request.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FullName = request.FullName,
-                Role = request.Role ?? "StallOwner"
+                Role = request.Role ?? "StallOwner",
+                UpdatedAt = DateTime.Now
             };
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> LogoutAsync(string token)
+        {
+            // 💡 Đưa Token vào Blacklist (Vô hiệu hóa Token) - Đúng sơ đồ UML
+            // Set thời gian nằm trong Blacklist bằng đúng thời gian sống của Token (2 tiếng)
+            _cache.Set($"blacklist_{token}", true, TimeSpan.FromHours(2));
+
+            await Task.CompletedTask;
             return true;
         }
 

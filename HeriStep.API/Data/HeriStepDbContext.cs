@@ -20,6 +20,7 @@ namespace HeriStep.API.Data
         public DbSet<ProductTranslation> ProductTranslations { get; set; }
         public DbSet<TicketPackage> TicketPackages { get; set; }
         public DbSet<TouristTicket> TouristTickets { get; set; }
+        public DbSet<SubscriptionTransaction> SubscriptionTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

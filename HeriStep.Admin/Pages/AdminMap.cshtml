@@ -1,64 +1,30 @@
 @page
 @model HeriStep.Admin.Pages.AdminMapModel
 @{
-    ViewData["Title"] = "Bản đồ Phố Ẩm Thực";
+    ViewData["Title"] = "Bản đồ Admin";
+    // Nếu sếp dùng Layout chung thì giữ nguyên, không thì thêm Layout = null;
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<div class="container-fluid mt-3">
-    <h3 class="fw-bold text-danger">🗺️ Sơ đồ Phố Ẩm Thực Vĩnh Khánh (Quận 4)</h3>
-    <p>
-        <span class="badge bg-success">🟢 Sạp trống (Click để gán)</span> |
-        <span class="badge bg-danger">🔴 Sạp đang hoạt động</span> |
-        <span class="text-primary fw-bold">💡 Mẹo: Click chuột vào vỉa hè để tạo sạp mới!</span>
-    </p>
+<style>
+    #vinhKhanhMap {
+        height: 700px; /* Sếp thích cao bao nhiêu thì chỉnh số này */
+        width: 100%;
+        border-radius: 10px;
+        z-index: 1; /* Để popup không bị che */
+    }
+</style>
 
-    <div id="vinhKhanhMap" style="height: 650px; width: 100%; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
-</div>
+<div class="container-fluid mt-4 px-4">
+    <h2 class="fw-bold text-danger mb-3">🗺️ Quản lý Bản đồ Sạp (Admin)</h2>
 
-<div class="modal fade" id="assignStallModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold" id="modalTitle">Gán Chủ Sạp Mới</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="assignForm">
-                    <input type="hidden" id="selectedStallId" />
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Tọa độ khóa cứng</label>
-                        <input type="text" id="stallCoords" class="form-control" readonly disabled>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Tên Sạp Kinh Doanh</label>
-                        <input type="text" id="newStallName" class="form-control" placeholder="Ví dụ: Ốc Oanh" required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">🔍 Tìm & Chọn Chủ Sạp</label>
-                        <input type="text" id="searchOwner" class="form-control mb-2 border-primary" placeholder="Nhập Số điện thoại hoặc Tên..." oninput="filterOwners()">
-
-                        <select id="ownerIdSelect" class="form-select" size="4" required>
-                            <option value="">⏳ Đang tải danh sách...</option>
-                        </select>
-                        <div class="form-text text-muted">Click chọn 1 người từ danh sách phía trên.</div>
-                    </div>
-
-                    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="saveStallAssignment()">
-                        💾 XÁC NHẬN LƯU THÔNG TIN
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
+    <div id="vinhKhanhMap" class="shadow-sm border border-2 border-danger"></div>
 </div>
 
 <script>
+    // Khởi tạo bản đồ
     var map = L.map('vinhKhanhMap').setView([10.7614, 106.7036], 18);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -78,7 +44,7 @@
     });
 
     // ==========================================
-    // 1. TẢI VÀ VẼ BẢN ĐỒ (CẬP NHẬT GIAO DIỆN POPUP)
+    // 1. TẢI VÀ VẼ BẢN ĐỒ
     // ==========================================
     async function loadMapData() {
         try {
@@ -89,18 +55,12 @@
                 let isOwned = stall.ownerId !== null;
                 let marker = L.marker([stall.lat, stall.lng], { icon: isOwned ? redIcon : greenIcon }).addTo(map);
 
-                // Tránh lỗi khi tên sạp có dấu nháy đơn
-                let safeName = stall.name.replace(/'/g, "\\'");
-
                 if (isOwned) {
                     marker.bindPopup(`
                         <div class="text-center">
                             <b class="text-danger fs-6">${stall.name}</b><br>
                             <span class="text-muted small">Đang hoạt động (Chủ ID: ${stall.ownerId})</span><br>
                             <hr class="my-2">
-                            <button class="btn btn-sm btn-warning w-100 mb-1 fw-bold text-dark" onclick="openAssignModal(${stall.id}, ${stall.lat}, ${stall.lng}, '${safeName}', ${stall.ownerId})">
-                                ✏️ Sửa / Đổi chủ
-                            </button>
                             <button class="btn btn-sm btn-danger w-100 fw-bold" onclick="deleteStall(${stall.id})">
                                 🗑️ Xóa sạp
                             </button>
@@ -109,12 +69,9 @@
                 } else {
                     marker.bindPopup(`
                         <div class="text-center">
-                            <b class="text-success fs-6">🟢 SẠP TRỐNG</b><br>
+                            <b class="text-success fs-6">🟢 SẠP VÔ CHỦ</b><br>
                             <span class="text-muted small">ID Tọa độ: ${stall.id}</span><br>
                             <hr class="my-2">
-                            <button class="btn btn-sm btn-primary w-100 mb-1 fw-bold" onclick="openAssignModal(${stall.id}, ${stall.lat}, ${stall.lng}, '', '')">
-                                ➕ Gán chủ sạp
-                            </button>
                             <button class="btn btn-sm btn-danger w-100 fw-bold" onclick="deleteStall(${stall.id})">
                                 🗑️ Xóa sạp
                             </button>
@@ -124,72 +81,19 @@
             });
         } catch (error) {
             console.error("Lỗi tải bản đồ:", error);
+            // Thêm cảnh báo nếu rớt mạng
+            alert("Không thể kết nối API tải bản đồ. Nhớ chạy Project Backend nha sếp!");
         }
     }
 
     // ==========================================
-    // 2. MỞ MODAL ĐỂ GÁN HOẶC SỬA SẠP
-    // ==========================================
-    function openAssignModal(id, lat, lng, currentName = '', currentOwnerId = '') {
-        document.getElementById('selectedStallId').value = id;
-        document.getElementById('stallCoords').value = `Vĩ độ: ${lat.toFixed(5)} | Kinh độ: ${lng.toFixed(5)}`;
-
-        // Đổ dữ liệu cũ vào form nếu đang Edit
-        document.getElementById('newStallName').value = currentName;
-        document.getElementById('modalTitle').innerText = currentName ? "✏️ Chỉnh Sửa Sạp" : "➕ Gán Chủ Sạp Mới";
-
-        // Reset tìm kiếm và chọn lại chủ sạp cũ (nếu có)
-        document.getElementById('searchOwner').value = "";
-        renderOwnerSelect(allOwners);
-        document.getElementById('ownerIdSelect').value = currentOwnerId;
-
-        map.closePopup();
-        new bootstrap.Modal(document.getElementById('assignStallModal')).show();
-    }
-
-    // Lưu thông tin sạp (Dùng chung cho cả Thêm mới và Sửa)
-    async function saveStallAssignment() {
-        let reqData = {
-            stallId: parseInt(document.getElementById('selectedStallId').value),
-            newStallName: document.getElementById('newStallName').value,
-            ownerId: parseInt(document.getElementById('ownerIdSelect').value)
-        };
-
-        if(!reqData.newStallName || !reqData.ownerId || isNaN(reqData.ownerId)) {
-            alert("Vui lòng điền đủ tên sạp và CHỌN 1 CHỦ SẠP từ danh sách!"); return;
-        }
-
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://127.0.0.1:5297/api/Stalls/assign', {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify(reqData)
-            });
-
-            if (res.ok) {
-                alert("🎉 Lưu thông tin sạp thành công!");
-                location.reload();
-            } else {
-                let err = await res.json();
-                alert("❌ Lỗi: " + err.message);
-            }
-        } catch (e) {
-            alert("❌ Không thể kết nối tới Server!");
-        }
-    }
-
-    // ==========================================
-    // 3. XÓA SẠP (GỌI API DELETE TỪ POINTS)
+    // 2. XÓA SẠP
     // ==========================================
     async function deleteStall(id) {
         if (!confirm('⚠️ Bạn có CHẮC CHẮN muốn xóa vĩnh viễn sạp này khỏi bản đồ không?')) return;
 
         try {
-            const res = await fetch(`http://127.0.0.1:5297/api/Points/${id}`, {
+            const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${id}`, {
                 method: 'DELETE'
             });
 
@@ -205,85 +109,24 @@
     }
 
     // ==========================================
-    // 4. CLICK BẢN ĐỒ ĐỂ TẠO SẠP TRỐNG
+    // 3. CLICK BẢN ĐỒ XEM TỌA ĐỘ
     // ==========================================
     map.on('click', function(e) {
         var lat = e.latlng.lat;
         var lng = e.latlng.lng;
 
-        var popup = L.popup()
+        L.popup()
             .setLatLng(e.latlng)
             .setContent(`
                 <div class="text-center p-1">
-                    <b class="text-primary">📍 Vị trí sạp mới</b><br>
-                    Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}<br>
-                    <button class="btn btn-sm btn-success mt-2 fw-bold" onclick="createNewStall(${lat}, ${lng})">
-                        ✅ Cắm sạp trống tại đây
-                    </button>
+                    <b class="text-primary">📍 Tọa độ điểm này</b><br>
+                    Lat: ${lat.toFixed(6)}<br>
+                    Lng: ${lng.toFixed(6)}
                 </div>
             `)
             .openOn(map);
     });
 
-    async function createNewStall(lat, lng) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://127.0.0.1:5297/api/Stalls/create-at-pos', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({ latitude: lat, longitude: lng })
-            });
-            if (res.ok) {
-                alert("🎉 Đã cắm sạp trống thành công!");
-                location.reload();
-            }
-        } catch (e) {
-            alert("❌ Lỗi gọi API tạo sạp!");
-        }
-    }
-
-    // ==========================================
-    // 5. TÌM KIẾM CHỦ SẠP
-    // ==========================================
-    let allOwners = [];
-
-    async function loadOwnersList() {
-        try {
-            const res = await fetch('http://127.0.0.1:5297/api/Stalls/available-owners');
-            allOwners = await res.json();
-            renderOwnerSelect(allOwners);
-        } catch (e) {
-            console.error("Lỗi tải danh sách chủ sạp:", e);
-        }
-    }
-
-    function renderOwnerSelect(list) {
-        const selectBox = document.getElementById('ownerIdSelect');
-        selectBox.innerHTML = '';
-
-        if (list.length === 0) {
-            selectBox.innerHTML = '<option value="" disabled>❌ Không tìm thấy ai phù hợp</option>';
-            return;
-        }
-
-        list.forEach(owner => {
-            selectBox.innerHTML += `<option value="${owner.id}">👤 ${owner.fullName} - 📞 ${owner.username}</option>`;
-        });
-    }
-
-    function filterOwners() {
-        const keyword = document.getElementById('searchOwner').value.toLowerCase();
-        const filteredList = allOwners.filter(owner =>
-            owner.fullName.toLowerCase().includes(keyword) ||
-            owner.username.toLowerCase().includes(keyword)
-        );
-        renderOwnerSelect(filteredList);
-    }
-
-    // Khởi chạy khi load
+    // Khởi chạy
     loadMapData();
-    loadOwnersList();
 </script>

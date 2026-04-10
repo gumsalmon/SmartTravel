@@ -12,9 +12,6 @@ namespace HeriStep.Admin.Pages.Users
 
         public List<UserDto> UserList { get; set; } = new();
 
-        [BindProperty] public UserDto NewUser { get; set; } = new();
-
-        // 💡 Thêm biến Tìm kiếm
         [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
 
         [BindProperty(SupportsGet = true)]
@@ -28,7 +25,6 @@ namespace HeriStep.Admin.Pages.Users
             {
                 var allUsers = await _http.GetFromJsonAsync<List<UserDto>>("api/Users/owners-summary") ?? new();
 
-                // 1. TÌM KIẾM: Lọc theo Số điện thoại (Username) HOẶC Họ tên
                 if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
                     var term = SearchTerm.ToLower();
@@ -38,7 +34,6 @@ namespace HeriStep.Admin.Pages.Users
                     ).ToList();
                 }
 
-                // 2. Cấu hình phân trang
                 int pageSize = 10;
                 int totalItems = allUsers.Count;
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
@@ -46,7 +41,6 @@ namespace HeriStep.Admin.Pages.Users
                 if (PageNumber < 1) PageNumber = 1;
                 if (TotalPages > 0 && PageNumber > TotalPages) PageNumber = TotalPages;
 
-                // 3. Cắt danh sách và sắp xếp
                 UserList = allUsers
                     .OrderByDescending(u => u.Id)
                     .Skip((PageNumber - 1) * pageSize)
@@ -58,32 +52,6 @@ namespace HeriStep.Admin.Pages.Users
                 TempData["Error"] = "❌ Lỗi kết nối API: " + ex.Message;
                 UserList = new();
             }
-        }
-
-        public async Task<IActionResult> OnPostCreateAsync()
-        {
-            if (!ModelState.IsValid)
-            {
-                await OnGetAsync();
-                return Page();
-            }
-
-            if (string.IsNullOrEmpty(NewUser.Password)) NewUser.Password = "123456";
-
-            try
-            {
-                var response = await _http.PostAsJsonAsync("api/Users", NewUser);
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = $"✅ Đã cấp tài khoản cho {NewUser.FullName} thành công!";
-                    return RedirectToPage();
-                }
-                TempData["Error"] = "❌ " + await response.Content.ReadAsStringAsync();
-            }
-            catch { TempData["Error"] = "❌ Lỗi hệ thống khi gọi API."; }
-
-            await OnGetAsync();
-            return Page();
         }
 
         public async Task<IActionResult> OnPostResetPasswordAsync(int id)

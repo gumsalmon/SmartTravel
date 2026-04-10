@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization; // 💡 THÊM DÒNG NÀY
+using System.Text.Json.Serialization;
 
 namespace HeriStep.Shared.Models
 {
@@ -40,33 +40,23 @@ namespace HeriStep.Shared.Models
         [Column("sort_order")]
         public int SortOrder { get; set; }
 
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; } = false;
+
         [Column("updated_at")]
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime? UpdatedAt { get; set; }
 
-        [Column("is_deleted")]
-        public bool IsDeleted { get; set; } = false;
-
-        // ... Các thuộc tính [NotMapped] của bạn ...
-        [NotMapped]
-        public string? Category { get; set; }
-
-        [NotMapped]
-        public int Level { get; set; }
+        // --- CÁC TRƯỜNG KHÔNG LƯU SQL NHƯNG CẦN CHO WEB/APP ---
+        [NotMapped] public string? Category { get; set; }
+        [NotMapped] public int Level { get; set; }
+        [NotMapped] public string? OwnerName { get; set; }
+        [NotMapped] public double? Radius { get; set; }
+        [NotMapped] public bool IsExpired { get; set; }
 
         [NotMapped]
-        public string? OwnerName { get; set; }
+        public string? TtsScript { get; set; } // 💡 CÁI SẾP ĐANG THIẾU ĐÂY!
 
-        [NotMapped]
-        public double? Radius { get; set; }
-
-        [NotMapped]
-        public string? TtsScript { get; set; }
-
-        [NotMapped]
-        public bool IsExpired { get; set; }
-
-        // 💡 NGĂN VÒNG LẶP JSON
         [JsonIgnore]
         public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     }

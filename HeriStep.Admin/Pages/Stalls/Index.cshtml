@@ -7,15 +7,6 @@
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .bulk-actions-bar {
-        display: none;
-        position: sticky;
-        top: 10px;
-        z-index: 1020;
-        background: #fff;
-        border: 2px solid #0d6efd;
-    }
-
     .page-link {
         border-radius: 8px !important;
         margin: 0 3px;
@@ -23,19 +14,6 @@
 </style>
 
 <div class="container-fluid py-4">
-
-    <!-- THANH THAO TÁC HÀNG LOẠT -->
-    <div class="bulk-actions-bar shadow-lg p-3 mb-4 rounded-4 animate__animated animate__fadeInDown">
-        <div class="d-flex justify-content-between align-items-center">
-            <span class="fw-bold text-primary ms-2">📦 Đã chọn <span id="selected-count">0</span> sạp</span>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#bulkAssignModal">
-                    <i class="bi bi-person-plus me-1"></i> Gán chủ hàng loạt
-                </button>
-                <button type="button" class="btn btn-light btn-sm rounded-pill" onclick="unselectAll()">Bỏ chọn</button>
-            </div>
-        </div>
-    </div>
 
     @if (TempData["Success"] != null)
     {
@@ -46,18 +24,15 @@
     }
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-        <!-- 💡 HEADER & BỘ LỌC ĐÃ ĐƯỢC GỘP GỌN GÀNG -->
         <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
             <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-shop me-2 text-primary"></i> Quản lý sạp</h4>
 
             <div class="d-flex gap-2 flex-wrap justify-content-end">
                 <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-                    <!-- Ô tìm Tên Sạp / Tên Chủ / SĐT -->
                     <div class="input-group input-group-sm" style="width: 250px;">
                         <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm tên, SĐT chủ sạp...">
                     </div>
 
-                    <!-- Lọc Từ ngày -> Đến ngày -->
                     <div class="input-group input-group-sm" style="width: 130px;">
                         <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
                     </div>
@@ -84,8 +59,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4" style="width: 40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
-                        <th>Thông tin Sạp</th>
+                        <th class="ps-4">Thông tin Sạp</th>
                         <th>Chủ quản lý</th>
                         <th class="text-center">Vị trí</th>
                         <th class="text-center">Trạng thái</th>
@@ -97,9 +71,6 @@
                     {
                         <tr>
                             <td class="ps-4">
-                                <input type="checkbox" name="SelectedStallIds" value="@s.Id" class="form-check-input stall-checkbox">
-                            </td>
-                            <td>
                                 <div class="fw-bold text-dark">@s.Name</div>
                                 <div class="text-muted extra-small">ID: #@s.Id | @s.RadiusMeter m</div>
                             </td>
@@ -136,7 +107,6 @@
             </table>
         </div>
 
-        <!-- 💡 BỘ PHÂN TRANG (Đã kẹp thêm StartDate và EndDate) -->
         <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
             <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
 
@@ -174,28 +144,6 @@
     </div>
 </div>
 
-<!-- Modal Bulk Assign -->
-<div class="modal fade" id="bulkAssignModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4">
-            <form method="post" asp-page-handler="BulkAssign">
-                <div class="modal-body p-4 text-center">
-                    <h5 class="fw-bold">Gán chủ hàng loạt</h5>
-                    <div id="bulk-ids-container"></div>
-                    <select name="NewOwnerId" class="form-select mb-3">
-                        @foreach (var o in Model.Owners)
-                        {
-                            <option value="@o.Id">@o.FullName</option>
-                        }
-                    </select>
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">XÁC NHẬN</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Edit -->
 <div class="modal fade" id="editStallModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
@@ -240,21 +188,6 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('.stall-checkbox, #selectAll').on('change', function() {
-                if($('#selectAll').is(':checked')) $('.stall-checkbox').prop('checked', true);
-                let count = $('.stall-checkbox:checked').length;
-                $('#selected-count').text(count);
-                count > 0 ? $('.bulk-actions-bar').fadeIn() : $('.bulk-actions-bar').fadeOut();
-            });
-
-            $('#bulkAssignModal').on('show.bs.modal', function() {
-                let container = $('#bulk-ids-container');
-                container.empty();
-                $('.stall-checkbox:checked').each(function() {
-                    container.append(`<input type="hidden" name="SelectedStallIds" value="${$(this).val()}">`);
-                });
-            });
-
             $('#editStallModal').on('shown.bs.modal', function () {
                 $('#edit-owner').select2({ dropdownParent: $('#editStallModal') });
             });
@@ -267,7 +200,5 @@
             $('#edit-isopen').val($(btn).data('isopen').toString());
             $('#edit-owner').val($(btn).data('owner')).trigger('change');
         }
-
-        function unselectAll() { $('.stall-checkbox, #selectAll').prop('checked', false); $('.bulk-actions-bar').fadeOut(); }
     </script>
 }

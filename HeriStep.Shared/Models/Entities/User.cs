@@ -1,4 +1,4 @@
-using System; // 💡 THÊM DÒNG NÀY ĐỂ DÙNG DATETIME
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -23,11 +23,11 @@ namespace HeriStep.Shared.Models
         [Column("role")]
         public string Role { get; set; } = "StallOwner";
 
-        // 💡 TECH LEAD ĐÃ THÊM:
         [Column("is_deleted")]
         public bool IsDeleted { get; set; } = false;
 
         [Column("updated_at")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)] // 💡 ÉP SQL TỰ LO, C# KHÔNG GỬI LÊN
         public DateTime? UpdatedAt { get; set; }
     }
 }

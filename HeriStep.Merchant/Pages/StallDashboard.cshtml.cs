@@ -3,7 +3,7 @@ using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json; // 💡 Nhớ phải có using này
+using System.Text.Json;
 
 namespace HeriStep.Merchant.Pages
 {
@@ -26,7 +26,6 @@ namespace HeriStep.Merchant.Pages
 
             try
             {
-                // 💡 BỌC THÉP JSON: Ép C# đọc JSON không phân biệt chữ hoa/thường
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true

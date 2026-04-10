@@ -29,11 +29,22 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("lang_code");
 
                     b.Property<string>("FlagIconUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("flag_icon_url");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("LangName")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("lang_name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
 
                     b.HasKey("LangCode");
 
@@ -57,6 +68,12 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("image_url");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<bool>("IsSignature")
                         .HasColumnType("bit")
                         .HasColumnName("is_signature");
@@ -65,9 +82,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("int")
                         .HasColumnName("stall_id");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products", null, t =>
+                        {
+                            t.HasTrigger("TRG_UpdateProductTime");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.ProductTranslation", b =>
@@ -78,6 +104,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsProcessed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_processed");
 
                     b.Property<string>("LangCode")
                         .HasColumnType("nvarchar(max)")
@@ -95,9 +133,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("product_name");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id");
 
-                    b.ToTable("ProductTranslations", (string)null);
+                    b.ToTable("ProductTranslations", null, t =>
+                        {
+                            t.HasTrigger("TRG_UpdateTranslationTime");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.Stall", b =>
@@ -112,6 +159,12 @@ namespace HeriStep.API.Migrations
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("image_thumb");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
 
                     b.Property<bool>("IsOpen")
                         .HasColumnType("bit")
@@ -146,6 +199,7 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("TourID");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
@@ -155,7 +209,7 @@ namespace HeriStep.API.Migrations
 
                     b.ToTable("Stalls", null, t =>
                         {
-                            t.HasTrigger("SomeTriggerName");
+                            t.HasTrigger("TRG_UpdateStallTime");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -163,11 +217,13 @@ namespace HeriStep.API.Migrations
 
             modelBuilder.Entity("HeriStep.Shared.Models.StallVisit", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAtServer")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_server");
 
                     b.Property<string>("DeviceId")
                         .HasColumnType("nvarchar(max)")
@@ -220,6 +276,10 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("start_date");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id");
 
                     b.HasIndex("StallId");
@@ -231,7 +291,8 @@ namespace HeriStep.API.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
@@ -250,6 +311,10 @@ namespace HeriStep.API.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Id");
 
@@ -276,6 +341,12 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<bool>("IsTopHot")
                         .HasColumnType("bit")
                         .HasColumnName("is_top_hot");
@@ -284,9 +355,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tour_name");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Tours", (string)null);
+                    b.ToTable("Tours", null, t =>
+                        {
+                            t.HasTrigger("TRG_UpdateTourTime");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.TouristTicket", b =>
@@ -343,6 +423,12 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("full_name");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("password_hash");
@@ -350,6 +436,10 @@ namespace HeriStep.API.Migrations
                     b.Property<string>("Role")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("role");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Username")
                         .HasColumnType("nvarchar(450)")
@@ -368,6 +458,7 @@ namespace HeriStep.API.Migrations
                         {
                             Id = 1,
                             FullName = "System Admin",
+                            IsDeleted = false,
                             PasswordHash = "$2a$11$n/A1qU55YyC7o2s1K0kC1O/0wA1oHh5X2w3E1z8e7H7A9R2lX4m",
                             Role = "Admin",
                             Username = "admin"
@@ -386,6 +477,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsProcessed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_processed");
+
                     b.Property<string>("LangCode")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("lang_code");
@@ -398,9 +501,18 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tts_script");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("id");
 
-                    b.ToTable("StallContents", (string)null);
+                    b.ToTable("StallContents", null, t =>
+                        {
+                            t.HasTrigger("TRG_UpdateContentTime");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.Stall", b =>

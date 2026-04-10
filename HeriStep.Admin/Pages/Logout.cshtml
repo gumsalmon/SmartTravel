@@ -1,2 +1,17 @@
-﻿@page
+@page
 @model HeriStep.Admin.Pages.LogoutModel
+
+<script>
+    // 💡 Chuẩn UML 1.2: Ngắt kết nối websocket và Clear LocalStorage / Cookies / SessionStorage
+    try {
+        if (typeof window.connection !== 'undefined' && window.connection) {
+            window.connection.stop();
+        }
+    } catch (e) { }
+
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Chuyển hướng về trang Đăng Nhập
+    window.location.href = '/Login';
+</script>

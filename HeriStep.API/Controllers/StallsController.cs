@@ -25,10 +25,15 @@ namespace HeriStep.API.Controllers
             _context = context;
         }
 
+        // =======================================================
+        // 1. QUẢN LÝ SẠP (CRUD & LỌC DANH SÁCH)
+        // =======================================================
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
         {
             var query = from s in _context.Stalls
+                        where !s.IsDeleted // 💡 Chặn sạp đã xóa mềm
                         join u in _context.Users on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
                         select new PointOfInterest
@@ -51,11 +56,11 @@ namespace HeriStep.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetStall(int id)
         {
-            var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
+            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+            if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này hoặc sạp đã bị xóa!" });
 
             var ttsContent = await _context.StallContents
-                .Where(c => c.StallId == id && c.LangCode == "vi")
+                .Where(c => c.StallId == id && c.LangCode == "vi" && !c.IsDeleted)
                 .FirstOrDefaultAsync();
 
             return Ok(new
@@ -79,7 +84,7 @@ namespace HeriStep.API.Controllers
             {
                 if (id != req.Id) return BadRequest(new { message = "ID không khớp!" });
 
-                var stall = await _context.Stalls.FindAsync(id);
+                var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
                 if (stall == null) return NotFound(new { message = "Không tìm thấy sạp hàng này!" });
 
                 // 1. XỬ LÝ UPLOAD ẢNH
@@ -109,32 +114,24 @@ namespace HeriStep.API.Controllers
                 stall.RadiusMeter = req.RadiusMeter;
                 stall.UpdatedAt = DateTime.Now;
 
-                // ====================================================================
-                // 3. XỬ LÝ ĐA NGÔN NGỮ (Mô hình UPSERT: Chống lỗi UNIQUE KEY)
-                // ====================================================================
+                // 3. XỬ LÝ ĐA NGÔN NGỮ (UPSERT)
                 if (!string.IsNullOrWhiteSpace(req.TtsScript))
                 {
                     var currentTime = DateTime.Now;
+                    var existingContents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
 
-                    // Lấy TOÀN BỘ dữ liệu cũ của sạp này (bất kể đã bị xóa mềm hay chưa)
-                    var existingContents = await _context.StallContents
-                                                    .Where(c => c.StallId == id)
-                                                    .ToListAsync();
-
-                    // 3.1 Xử lý bản Tiếng Việt (Mã ngắn: vi)
+                    // 3.1 Tiếng Việt
                     var viContent = existingContents.FirstOrDefault(c => c.LangCode == "vi");
                     if (viContent != null)
                     {
-                        // Đã có -> Ghi đè (UPDATE)
                         viContent.TtsScript = req.TtsScript;
                         viContent.IsProcessed = true;
-                        viContent.IsDeleted = false; // Phục hồi nếu lỡ xóa mềm
+                        viContent.IsDeleted = false;
                         viContent.IsActive = true;
                         viContent.UpdatedAt = currentTime;
                     }
                     else
                     {
-                        // Chưa có -> Thêm mới (INSERT)
                         _context.StallContents.Add(new StallContent
                         {
                             StallId = id,
@@ -146,14 +143,13 @@ namespace HeriStep.API.Controllers
                         });
                     }
 
-                    // 3.2 Xử lý 9 bản dịch chờ
+                    // 3.2 Các ngôn ngữ khác chờ AI dịch
                     string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
                     foreach (var lang in foreignLangs)
                     {
                         var fContent = existingContents.FirstOrDefault(c => c.LangCode == lang);
                         if (fContent != null)
                         {
-                            // Đã có -> Ghi đè chữ thành rỗng và hạ cờ IsProcessed để AI dịch lại
                             fContent.TtsScript = "";
                             fContent.IsProcessed = false;
                             fContent.IsDeleted = false;
@@ -162,7 +158,6 @@ namespace HeriStep.API.Controllers
                         }
                         else
                         {
-                            // Chưa có -> Thêm mới (INSERT)
                             _context.StallContents.Add(new StallContent
                             {
                                 StallId = id,
@@ -175,7 +170,6 @@ namespace HeriStep.API.Controllers
                         }
                     }
                 }
-                // ====================================================================
 
                 await _context.SaveChangesAsync();
                 return Ok(new { message = "Cập nhật thông tin sạp thành công!" });
@@ -186,24 +180,61 @@ namespace HeriStep.API.Controllers
                 return StatusCode(500, new { message = "Lỗi khi cập nhật sạp", detail = detail });
             }
         }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStall(int id)
         {
-            var stall = await _context.Stalls.FindAsync(id);
-            if (stall == null) return NotFound();
+            try
+            {
+                var stall = await _context.Stalls.FindAsync(id);
 
-            var contents = await _context.StallContents.Where(c => c.StallId == id).ToListAsync();
-            _context.StallContents.RemoveRange(contents);
+                // 💡 ĐÃ FIX: Chặn xóa mềm 2 lần
+                if (stall == null || stall.IsDeleted)
+                    return NotFound(new { message = "Không tìm thấy sạp hoặc sạp đã bị xóa từ trước!" });
 
-            _context.Stalls.Remove(stall);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Đã xóa sạp hàng!" });
+                // 1. SOFT DELETE SẠP CHÍNH
+                stall.IsDeleted = true;
+                stall.IsOpen = false;
+                stall.UpdatedAt = DateTime.Now;
+                stall.TourID = null;  // Gỡ khỏi Lộ trình
+                stall.SortOrder = 0;
+
+                // 2. SOFT DELETE NỘI DUNG TTS
+                var contents = await _context.StallContents.Where(c => c.StallId == id && !c.IsDeleted).ToListAsync();
+                foreach (var c in contents)
+                {
+                    c.IsDeleted = true;
+                    c.UpdatedAt = DateTime.Now;
+                }
+
+                // 3. SOFT DELETE MÓN ĂN THUỘC SẠP
+                var products = await _context.Products.Where(p => p.StallId == id && !p.IsDeleted).ToListAsync();
+                foreach (var p in products)
+                {
+                    p.IsDeleted = true;
+                    p.UpdatedAt = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Đã xóa sạp hàng an toàn!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống khi xóa sạp", detail = ex.Message });
+            }
         }
+
+
+
+        // =======================================================
+        // 2. API CHO MAP, MOBILE APP VÀ CHỦ SẠP
+        // =======================================================
 
         [HttpGet("admin-map")]
         public async Task<IActionResult> GetAllStallsForMap()
         {
             var stalls = await _context.Stalls
+                .Where(s => !s.IsDeleted) // 💡 ĐÃ FIX: Không tải sạp ma
                 .Select(s => new
                 {
                     id = s.Id,
@@ -219,149 +250,6 @@ namespace HeriStep.API.Controllers
             return Ok(stalls);
         }
 
-        [HttpPut("assign")]
-        public async Task<IActionResult> AssignStall([FromBody] AssignStallRequest req)
-        {
-            var stall = await _context.Stalls.FindAsync(req.StallId);
-            if (stall == null) return NotFound(new { message = "Không tìm thấy tọa độ sạp này!" });
-
-            stall.OwnerId = req.OwnerId;
-            stall.Name = req.NewStallName;
-            stall.IsOpen = true;
-            stall.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Đã gán sạp thành công!" });
-        }
-
-        [HttpPost("create-at-pos")]
-        public async Task<IActionResult> CreateAtPos([FromBody] CreateStallPos req)
-        {
-            _context.Stalls.Add(new Stall { Name = "Sạp mới", Latitude = req.Latitude, Longitude = req.Longitude, IsOpen = false, RadiusMeter = 20 });
-            await _context.SaveChangesAsync();
-            return Ok();
-        }
-
-        [HttpGet("available-owners")]
-        public async Task<IActionResult> GetAvailableOwners()
-        {
-            var owners = await _context.Users
-                .Select(u => new { id = u.Id, fullName = u.FullName ?? "Chưa cập nhật tên", username = u.Username })
-                .ToListAsync();
-            return Ok(owners);
-        }
-
-        [HttpGet("{id}/tts/{langCode}")]
-        public async Task<IActionResult> GetStallTts(int id, string langCode)
-        {
-            var content = await _context.StallContents
-                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode);
-            if (content == null) return NotFound(new { message = "Không tìm thấy TTS" });
-            return Ok(new { text = content.TtsScript });
-        }
-
-        [HttpPost("add-product")]
-        public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
-        {
-            try
-            {
-                string imageUrl = "";
-                if (ImageFile != null && ImageFile.Length > 0)
-                {
-                    if (ImageFile.Length > 5 * 1024 * 1024)
-                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
-
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "images", "products");
-                    if (!Directory.Exists(uploadsFolder))
-                        Directory.CreateDirectory(uploadsFolder);
-
-                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + Path.GetFileName(ImageFile.FileName);
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await ImageFile.CopyToAsync(fileStream);
-                    }
-                    imageUrl = "/images/products/" + uniqueFileName;
-                }
-
-                // 💡 FIX LỖI: Bắt buộc gán UpdatedAt = DateTime.Now
-                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false, UpdatedAt = DateTime.Now };
-                _context.Products.Add(newProduct);
-                await _context.SaveChangesAsync();
-
-                // 💡 FIX LỖI: Bắt buộc gán UpdatedAt = DateTime.Now cho các bản dịch
-                var currentTime = DateTime.Now;
-                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name, IsProcessed = true, UpdatedAt = currentTime });
-
-                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
-                foreach (var lang in foreignLangs)
-                {
-                    _context.ProductTranslations.Add(new ProductTranslation
-                    {
-                        ProductId = newProduct.Id,
-                        LangCode = lang,
-                        ProductName = "", // Background Job 
-                        IsProcessed = false,
-                        UpdatedAt = currentTime // <-- Chốt chặn sinh tồn
-                    });
-                }
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
-            }
-        }
-
-        // 💡 ĐÃ FIX: Chống lỗi Open DataReader bằng ToListAsync() trước khi xóa
-        [HttpDelete("delete-product/{productId}")]
-        public async Task<IActionResult> DeleteProduct(int productId)
-        {
-            try
-            {
-                var product = await _context.Products.FindAsync(productId);
-                if (product == null) return NotFound("Không tìm thấy món ăn này!");
-
-                var translations = await _context.ProductTranslations.Where(t => t.ProductId == productId).ToListAsync();
-                if (translations.Any())
-                {
-                    _context.ProductTranslations.RemoveRange(translations);
-                }
-
-                _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Đã xóa món ăn thành công!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("{stallId}/products")]
-        public async Task<IActionResult> GetProductsByStall(int stallId)
-        {
-            try
-            {
-                var products = await _context.Products.Where(p => p.StallId == stallId).Select(p => new
-                {
-                    Id = p.Id,
-                    BasePrice = p.BasePrice,
-                    ImageUrl = p.ImageUrl,
-                    Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
-                }).ToListAsync();
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
-            }
-        }
-
         [HttpGet("my-stalls")]
         public async Task<IActionResult> GetMyStalls([FromQuery] int? ownerId)
         {
@@ -370,7 +258,9 @@ namespace HeriStep.API.Controllers
 
             if (finalOwnerId == 0) return Unauthorized(new { message = "Không xác định được chủ sạp. Vui lòng đăng nhập lại!" });
 
-            var stalls = await _context.Stalls.Where(s => s.OwnerId == finalOwnerId).ToListAsync();
+            var stalls = await _context.Stalls
+                .Where(s => s.OwnerId == finalOwnerId && !s.IsDeleted) // 💡 ĐÃ FIX: Ẩn sạp đã xóa khỏi màn hình của chủ
+                .ToListAsync();
             return Ok(stalls);
         }
 
@@ -378,7 +268,7 @@ namespace HeriStep.API.Controllers
         public async Task<IActionResult> GetTop5Stalls()
         {
             var top = await _context.Stalls
-                .Where(s => s.IsOpen)
+                .Where(s => s.IsOpen && !s.IsDeleted) // 💡 ĐÃ FIX
                 .OrderByDescending(s => s.RadiusMeter)
                 .Take(5)
                 .Select(s => new {
@@ -398,17 +288,210 @@ namespace HeriStep.API.Controllers
             return await GetAllStallsForMap();
         }
 
+        [HttpGet("{id}/tts/{langCode}")]
+        public async Task<IActionResult> GetStallTts(int id, string langCode)
+        {
+            var content = await _context.StallContents
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode && !c.IsDeleted);
+
+            if (content == null || string.IsNullOrWhiteSpace(content.TtsScript))
+                return NotFound(new { message = "Không tìm thấy TTS hoặc đang chờ dịch" });
+
+            return Ok(new { text = content.TtsScript });
+        }
+
+        // =======================================================
+        // 3. QUẢN LÝ MÓN ĂN & GÓI CƯỚC (PRODUCTS / SUBSCRIPTIONS)
+        // =======================================================
+
+        [HttpPost("add-product")]
+        public async Task<IActionResult> AddProduct([FromForm] int StallId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile ImageFile)
+        {
+            try
+            {
+                string imageUrl = "";
+                if (ImageFile != null && ImageFile.Length > 0)
+                {
+                    if (ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
+
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "images", "products");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + Path.GetFileName(ImageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(fileStream);
+                    }
+                    imageUrl = "/images/products/" + uniqueFileName;
+                }
+
+                var newProduct = new Product { StallId = StallId, BasePrice = BasePrice, ImageUrl = imageUrl, IsSignature = false, UpdatedAt = DateTime.Now };
+                _context.Products.Add(newProduct);
+                await _context.SaveChangesAsync();
+
+                var currentTime = DateTime.Now;
+                _context.ProductTranslations.Add(new ProductTranslation { ProductId = newProduct.Id, LangCode = "vi", ProductName = Name, IsProcessed = true, UpdatedAt = currentTime });
+
+                string[] foreignLangs = { "en", "ja", "ko", "zh", "fr", "es", "ru", "th", "de" };
+                foreach (var lang in foreignLangs)
+                {
+                    _context.ProductTranslations.Add(new ProductTranslation
+                    {
+                        ProductId = newProduct.Id,
+                        LangCode = lang,
+                        ProductName = "",
+                        IsProcessed = false,
+                        UpdatedAt = currentTime
+                    });
+                }
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Thêm món ăn thành công!", imageUrl = imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            }
+        }
+        // =======================================================
+        // API SỬA MÓN ĂN (CẬP NHẬT TÊN, GIÁ, ẢNH)
+        // =======================================================
+        [HttpPut("update-product/{productId}")]
+        public async Task<IActionResult> UpdateProduct(int productId, [FromForm] string Name, [FromForm] decimal BasePrice, IFormFile? ImageFile)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(productId);
+                if (product == null) return NotFound(new { message = "Không tìm thấy món ăn này!" });
+
+                // 1. Cập nhật giá bán
+                product.BasePrice = BasePrice;
+                product.UpdatedAt = DateTime.Now;
+
+                // 2. Cập nhật ảnh (Nếu người dùng có chọn ảnh mới)
+                if (ImageFile != null && ImageFile.Length > 0)
+                {
+                    if (ImageFile.Length > 5 * 1024 * 1024)
+                        return BadRequest(new { message = "File ảnh không được vượt quá 5MB!" });
+
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles", "images", "products");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = DateTime.Now.Ticks.ToString() + "_" + Path.GetFileName(ImageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(fileStream);
+                    }
+                    product.ImageUrl = "/images/products/" + uniqueFileName;
+                }
+
+                // 3. Cập nhật tên Tiếng Việt trong bảng Dịch thuật
+                var viTranslation = await _context.ProductTranslations.FirstOrDefaultAsync(t => t.ProductId == productId && t.LangCode == "vi");
+                if (viTranslation != null)
+                {
+                    viTranslation.ProductName = Name;
+                    viTranslation.UpdatedAt = DateTime.Now;
+
+                    // (Tùy chọn) Đánh dấu các ngôn ngữ khác là chưa xử lý để AI dịch lại tên mới
+                    var foreignLangs = await _context.ProductTranslations.Where(t => t.ProductId == productId && t.LangCode != "vi").ToListAsync();
+                    foreach (var lang in foreignLangs)
+                    {
+                        lang.IsProcessed = false;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Cập nhật món ăn thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật món ăn", detail = ex.Message });
+            }
+        }
+
+        [HttpDelete("delete-product/{productId}")]
+        public async Task<IActionResult> DeleteProduct(int productId)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(productId);
+
+                // 💡 ĐÃ FIX: Áp dụng Xóa mềm (Soft Delete) cho món ăn
+                if (product == null || product.IsDeleted)
+                    return NotFound("Không tìm thấy món ăn này hoặc đã bị xóa!");
+
+                // Soft Delete món ăn
+                product.IsDeleted = true;
+                product.UpdatedAt = DateTime.Now;
+
+                // Soft Delete các bản dịch liên quan
+                var translations = await _context.ProductTranslations.Where(t => t.ProductId == productId && !t.IsDeleted).ToListAsync();
+                foreach (var t in translations)
+                {
+                    t.IsDeleted = true;
+                    t.UpdatedAt = DateTime.Now;
+                }
+
+                // Bỏ đoạn _context.Products.Remove(product) đi
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Đã xóa món ăn thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("{stallId}/products")]
+        public async Task<IActionResult> GetProductsByStall(int stallId)
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.StallId == stallId && !p.IsDeleted) // 💡 ĐÃ FIX: Lọc món bị xóa
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        BasePrice = p.BasePrice,
+                        ImageUrl = p.ImageUrl,
+                        Name = _context.ProductTranslations.Where(t => t.ProductId == p.Id && t.LangCode == "vi").Select(t => t.ProductName).FirstOrDefault()
+                    }).ToListAsync();
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi khi tải thực đơn", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("available-owners")]
+        public async Task<IActionResult> GetAvailableOwners()
+        {
+            var owners = await _context.Users
+                .Where(u => !u.IsDeleted) // 💡 TỐI ƯU: Không lấy User bị xóa
+                .Select(u => new { id = u.Id, fullName = u.FullName ?? "Chưa cập nhật tên", username = u.Username })
+                .ToListAsync();
+            return Ok(owners);
+        }
+
         [HttpPost("extend-subscription/{id}")]
         public async Task<IActionResult> ExtendSubscription(int id)
         {
-            var stall = await _context.Stalls.FindAsync(id);
+            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
             if (stall == null) return NotFound("Không tìm thấy sạp.");
 
             var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.StallId == id);
 
             if (sub == null)
             {
-                sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true };
+                sub = new Subscription { StallId = id, ExpiryDate = DateTime.Now.AddDays(30), IsActive = true, UpdatedAt = DateTime.Now };
                 _context.Subscriptions.Add(sub);
             }
             else
@@ -422,6 +505,7 @@ namespace HeriStep.API.Controllers
                     sub.ExpiryDate = sub.ExpiryDate.Value.AddDays(30);
                 }
                 sub.IsActive = true;
+                sub.UpdatedAt = DateTime.Now;
             }
 
             stall.IsOpen = true;
@@ -430,6 +514,9 @@ namespace HeriStep.API.Controllers
             return Ok(new { message = "Gia hạn thành công" });
         }
 
+        // =======================================================
+        // DTOs (Data Transfer Objects)
+        // =======================================================
         public class UpdateStallRequest { public int Id { get; set; } public string Name { get; set; } = ""; public bool IsOpen { get; set; } public int? OwnerId { get; set; } public int RadiusMeter { get; set; } public string? TtsScript { get; set; } public IFormFile? ImageFile { get; set; } }
         public class AssignStallRequest { public int StallId { get; set; } public int OwnerId { get; set; } public string NewStallName { get; set; } = ""; }
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }

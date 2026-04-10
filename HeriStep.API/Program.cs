@@ -82,7 +82,8 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // T
 
 builder.Services.AddHostedService<DailyTourUpdateService>();
 builder.Services.AddHttpClient<TranslationService>();
-
+builder.Services.AddHostedService<TranslationWorker>();
+builder.Services.AddMemoryCache(); // 💡 Thêm dòng này
 
 // --- 1.4 JWT Authentication ---
 var jwtKeyString = builder.Configuration["Jwt:Key"] ?? "superSecretKey_NeedToChange_InProduction_123456789";
