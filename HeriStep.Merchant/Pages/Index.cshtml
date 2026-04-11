@@ -203,130 +203,143 @@
         if (uname) document.getElementById('lblGreetingName').innerText = uname;
     });
 
-    // 💡 KHAI BÁO CỜ "LÍNH CANH" ĐỂ BIẾT KHÁCH ĐÃ QUÉT GPS CHƯA
-    let isLocationFetched = false;
+    document.addEventListener("DOMContentLoaded", () => {
+           const uname = localStorage.getItem('username');
+           if (uname) document.getElementById('lblGreetingName').innerText = uname;
+       });
 
-    // 💡 LẤY TỌA ĐỘ VÀ BẮT LỖI TỪ CHỐI QUYỀN TRUY CẬP
-    function getLocation() {
-        if (navigator.geolocation) {
-            Swal.fire({
-                title: 'Đang tìm vị trí...',
-                text: 'Vui lòng bấm "Cho phép" (Allow) nếu trình duyệt yêu cầu cấp quyền vị trí nhé sếp!',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+       let isLocationFetched = false;
+       let paymentPollingInterval = null; // Biến giữ vòng lặp chờ thanh toán
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    document.getElementById('newLat').value = position.coords.latitude;
-                    document.getElementById('newLng').value = position.coords.longitude;
-                    isLocationFetched = true; // Bật cờ xanh!
-                    Swal.fire("Thành công", "Đã lấy được tọa độ chuẩn xác của sạp!", "success");
-                },
-                (error) => {
-                    let msg = "Lỗi không xác định.";
-                    if (error.code === 1) msg = "Sếp đã chặn quyền truy cập vị trí! Vui lòng bật lại trong cài đặt trình duyệt rồi thử lại.";
-                    else if (error.code === 2) msg = "Không thể tìm thấy vị trí của sếp (Hãy kiểm tra lại sóng GPS hoặc mạng).";
-                    else if (error.code === 3) msg = "Quá thời gian quét vị trí.";
-                    Swal.fire("Lỗi GPS", msg, "error");
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } // Ép quét chính xác cao nhất
-            );
-        } else {
-            Swal.fire("Lỗi", "Trình duyệt hoặc thiết bị của sếp không hỗ trợ GPS.", "error");
-        }
+       function getLocation() {
+           if (navigator.geolocation) {
+               Swal.fire({
+                   title: 'Đang tìm vị trí...',
+                   text: 'Vui lòng bấm "Cho phép" (Allow)!',
+                   allowOutsideClick: false,
+                   didOpen: () => { Swal.showLoading(); }
+               });
+
+               navigator.geolocation.getCurrentPosition(
+                   (position) => {
+                       document.getElementById('newLat').value = position.coords.latitude;
+                       document.getElementById('newLng').value = position.coords.longitude;
+                       isLocationFetched = true;
+                       Swal.fire("Thành công", "Đã lấy được tọa độ chuẩn xác của sạp!", "success");
+                   },
+                   (error) => {
+                       Swal.fire("Lỗi GPS", "Không thể lấy được vị trí GPS!", "error");
+                   },
+                   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+               );
+           }
+       }
+
+    // 💡 HÀM TỰ ĐỘNG KIỂM TRA THANH TOÁN
+    function startRealtimePaymentCheck(orderId) {
+        if(paymentPollingInterval) clearInterval(paymentPollingInterval);
+
+        paymentPollingInterval = setInterval(async () => {
+            try {
+                let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+                let statusData = await res.json();
+
+                if (statusData.isPaid) {
+                    clearInterval(paymentPollingInterval); // Ngừng vòng lặp
+                    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide(); // Tắt popup QR
+
+                    Swal.fire({
+                        title: "🎉 Thanh toán thành công!",
+                        text: "Hệ thống đã tự động cập nhật sạp cho bạn.",
+                        icon: "success",
+                        showConfirmButton: false,
+                        timer: 2000
+                    }).then(() => {
+                        window.location.reload(); // Tự tải lại trang
+                    });
+                }
+            } catch (e) { console.log(e); }
+        }, 3000); // 3 giây quét 1 lần
     }
 
-    // 💡 GỌI API MUA THÊM SẠP
-    async function executeBuyExtraStall() {
-        const name = document.getElementById('newStallName').value.trim();
-        const userId = parseInt("@Model.CurrentUserId");
+    // GỌI API MUA THÊM SẠP
+        async function executeBuyExtraStall() {
+            const name = document.getElementById('newStallName').value.trim();
+            const userId = parseInt("@Model.CurrentUserId");
 
-        if (!name) return Swal.fire("Chú ý", "Vui lòng nhập tên sạp hàng!", "warning");
+            if (!name) return Swal.fire("Chú ý", "Vui lòng nhập tên sạp hàng!", "warning");
+            if (!isLocationFetched) return Swal.fire("Chú ý", "Bắt buộc lấy tọa độ GPS!", "warning");
 
-        // 💡 ÉP BUỘC CHẶN NẾU CHƯA CÓ TỌA ĐỘ GPS
-        if (!isLocationFetched) {
-            return Swal.fire("Chú ý", "Sếp bắt buộc phải bấm nút 'Lấy tọa độ hiện tại' để quét GPS trước khi thanh toán nhé!", "warning");
-        }
+            const lat = parseFloat(document.getElementById('newLat').value);
+            const lng = parseFloat(document.getElementById('newLng').value);
 
-        const lat = parseFloat(document.getElementById('newLat').value);
-        const lng = parseFloat(document.getElementById('newLng').value);
+            const btn = document.getElementById('btnBuyStall');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
 
-        if (!userId) return Swal.fire("Lỗi", "Không lấy được ID Chủ sạp. Vui lòng tải lại trang!", "error");
+            try {
+                const response = await fetch('http://127.0.0.1:5297/api/Payments/buy-extra-stall', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ OwnerId: userId, StallName: name, Latitude: lat, Longitude: lng })
+                });
 
-        const btn = document.getElementById('btnBuyStall');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+                const data = await response.json();
 
-        try {
-            const response = await fetch('http://127.0.0.1:5297/api/Payments/buy-extra-stall', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    OwnerId: userId,
-                    StallName: name,
-                    Latitude: lat,
-                    Longitude: lng
-                })
-            });
+                if (response.ok && data.qrUrl) {
+                    bootstrap.Modal.getInstance(document.getElementById('addStallModal')).hide();
 
-            const data = await response.json();
+                    const payModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                    payModal.show();
 
-            if (response.ok && data.qrUrl) {
-                bootstrap.Modal.getInstance(document.getElementById('addStallModal')).hide();
+                    const bodyContent = document.getElementById('paymentModalBody');
+                    bodyContent.innerHTML = `
+                        <h5 class="fw-bold text-success mb-3">Sạp: ${name}</h5>
+                        <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px; border: 2px solid #28a745;">
+                        <p class="small text-danger fw-bold mt-2">
+                            <i class="spinner-border spinner-border-sm me-1"></i> Hệ thống đang tự động chờ thanh toán...
+                        </p>
+                    `;
 
-                const payModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-                payModal.show();
-
-                const bodyContent = document.getElementById('paymentModalBody');
-                bodyContent.innerHTML = `
-                    <h5 class="fw-bold text-success mb-3">Sạp: ${name}</h5>
-                    <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px; border: 2px solid #28a745;">
-                    <p class="text-muted small px-3">Mở app Ngân hàng quét mã trên. Điền đúng số tiền <b>2.000đ</b> và giữ nguyên nội dung chuyển khoản.<br/>
-                    <span class="text-danger fw-bold mt-2 d-block">Hệ thống sẽ tự động mở sạp cho bạn trong vòng 5 giây sau khi chuyển khoản thành công.</span></p>
-                    <button class="btn btn-outline-success mt-2 fw-bold rounded-pill px-4" onclick="window.location.reload()">
-                        🔄 Tôi đã thanh toán xong
-                    </button>
-                `;
-            } else {
-                Swal.fire("Lỗi", data.message || "Không thể tạo mã thanh toán!", "error");
+                    // Kích hoạt Vòng lặp check giao dịch
+                    startRealtimePaymentCheck(data.orderId);
+                } else {
+                    Swal.fire("Lỗi", data.message || "Lỗi tạo QR!", "error");
+                }
+            } catch (e) {
+                Swal.fire("Lỗi", "Mất kết nối!", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'TIẾN HÀNH THANH TOÁN';
             }
-        } catch (e) {
-            Swal.fire("Lỗi", "Mất kết nối với máy chủ thanh toán!", "error");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = 'TIẾN HÀNH THANH TOÁN';
         }
-    }
-
     // GỌI API GIA HẠN SẠP CŨ
-    async function showPaymentModal(stallId, stallName) {
-        const modalEl = document.getElementById('paymentModal');
-        const myModal = new bootstrap.Modal(modalEl);
-        myModal.show();
+        async function showPaymentModal(stallId, stallName) {
+            const modalEl = document.getElementById('paymentModal');
+            const myModal = new bootstrap.Modal(modalEl);
+            myModal.show();
 
-        const bodyContent = document.getElementById('paymentModalBody');
-        bodyContent.innerHTML = `
-            <h5 class="fw-bold">${stallName}</h5>
-            <p>Đang tạo mã QR tự động...</p>
-            <div class="spinner-border text-primary"></div>
-        `;
+            const bodyContent = document.getElementById('paymentModalBody');
+            bodyContent.innerHTML = `<h5 class="fw-bold">${stallName}</h5><div class="spinner-border text-primary"></div>`;
 
-        try {
-            const res = await fetch(`http://127.0.0.1:5297/api/Payments/get-renewal-qr/${stallId}`);
-            const data = await res.json();
+            try {
+                const res = await fetch(`http://127.0.0.1:5297/api/Payments/get-renewal-qr/${stallId}`);
+                const data = await res.json();
 
-            bodyContent.innerHTML = `
-                <h5 class="fw-bold">${stallName}</h5>
-                <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px;">
-                <p class="text-muted small">Mở app Ngân hàng quét mã trên. Điền đúng số tiền <b>2.000đ</b> và giữ nguyên nội dung chuyển khoản.<br/>
-                <span class="text-danger fw-bold">Hệ thống sẽ tự động mở sạp sau 3-5 giây kể từ khi chuyển khoản thành công.</span></p>
-                <button class="btn btn-outline-success mt-2" onclick="window.location.reload()">🔄 Nhấn vào đây để tải lại trang khi đã trả tiền</button>
-            `;
-        } catch(e) {
-            bodyContent.innerHTML = `<p class="text-danger">Lỗi không thể tải mã QR.</p>`;
+                bodyContent.innerHTML = `
+                    <h5 class="fw-bold">${stallName}</h5>
+                    <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px;">
+                    <p class="small text-danger fw-bold mt-2">
+                        <i class="spinner-border spinner-border-sm me-1"></i> Đang chờ tiền vào tài khoản...
+                    </p>
+                `;
+
+                // Kích hoạt Vòng lặp check giao dịch gia hạn
+                startRealtimePaymentCheck(data.orderId);
+            } catch(e) {
+                bodyContent.innerHTML = `<p class="text-danger">Lỗi không thể tải mã QR.</p>`;
+            }
         }
-    }
 
     // ĐỔI MẬT KHẨU
     async function executeChangePassword() {

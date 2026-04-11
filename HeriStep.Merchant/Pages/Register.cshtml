@@ -10,6 +10,7 @@
     <title>Đăng ký Sạp mới - HeriStep</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -68,15 +69,15 @@
 
                     <div id="qrPaymentSection" class="text-center d-none">
                         <h4 class="fw-bold text-success mb-3">🎉 Đăng ký thành công!</h4>
-                        <p class="text-muted small mb-4">Để sạp được hiển thị lên bản đồ Phố Ẩm Thực, vui lòng thanh toán phí khởi tạo <strong class="text-danger">2.000 VNĐ</strong>.</p>
+                        <p class="text-muted small mb-4">Để hoàn tất mở sạp, vui lòng quét mã thanh toán phí <strong class="text-danger">2.000 VNĐ</strong>.</p>
 
                         <div class="bg-light p-3 rounded-4 mb-4 shadow-sm border">
                             <img id="qrImage" src="" alt="Mã QR Thanh Toán" class="img-fluid rounded-3" style="max-width: 250px;">
                         </div>
 
-                        <p class="small text-muted mb-4"><i class="bi bi-info-circle text-primary"></i> <b>Lưu ý:</b> Giữ nguyên nội dung chuyển khoản. Hệ thống tự động mở sạp sau 3 giây.</p>
-
-                        <a href="/Login" class="btn btn-primary w-100 rounded-pill fw-bold">TÔI ĐÃ THANH TOÁN (VỀ ĐĂNG NHẬP)</a>
+                        <p class="small text-danger fw-bold mb-4">
+                            <i class="spinner-border spinner-border-sm me-1"></i> Hệ thống đang tự động chờ thanh toán...
+                        </p>
                     </div>
 
                 </div>
@@ -87,37 +88,31 @@
     <script>
         let currentLat = 0;
         let currentLng = 0;
+        let pollingInterval = null;
 
-        // 1. Tự động lấy GPS ngay khi mở trang
         document.addEventListener("DOMContentLoaded", () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         currentLat = position.coords.latitude;
                         currentLng = position.coords.longitude;
-
                         let gpsAlert = document.getElementById('gpsStatus');
                         gpsAlert.classList.replace('alert-info', 'alert-success');
                         gpsAlert.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đã lấy được tọa độ sạp chuẩn xác!';
-
-                        document.getElementById('btnSubmit').disabled = false; // Mở khóa nút đăng ký
+                        document.getElementById('btnSubmit').disabled = false;
                     },
                     (error) => {
                         let gpsAlert = document.getElementById('gpsStatus');
                         gpsAlert.classList.replace('alert-info', 'alert-danger');
-                        gpsAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Vui lòng cho phép truy cập Vị trí (Location) để tiếp tục!';
+                        gpsAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Vui lòng cho phép truy cập Vị trí (Location)!';
                     },
-                    { enableHighAccuracy: true } // Yêu cầu độ chính xác cao
+                    { enableHighAccuracy: true }
                 );
-            } else {
-                alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
             }
         });
 
-        // 2. Gửi API Đăng ký
         async function executeRegister(event) {
-            event.preventDefault(); // Chặn load lại trang
-
+            event.preventDefault();
             const btn = document.getElementById('btnSubmit');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
@@ -132,7 +127,6 @@
             };
 
             try {
-                // Sửa port 5297 nếu C# API của sếp chạy port khác
                 const res = await fetch('http://127.0.0.1:5297/api/Payments/register-new-merchant', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -142,22 +136,46 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    // Thành công -> Ẩn form, hiện mã QR
                     document.getElementById('registerFormSection').classList.add('d-none');
                     document.getElementById('qrPaymentSection').classList.remove('d-none');
-
-                    // Gắn link ảnh QR SePay vào thẻ <img>
                     document.getElementById('qrImage').src = data.qrUrl;
+
+                    // 💡 TỰ ĐỘNG HỎI SERVER LIÊN TỤC
+                    startPaymentPolling(data.orderId, '/Login');
                 } else {
-                    alert("Lỗi: " + (data.message || "Số điện thoại đã tồn tại!"));
+                    Swal.fire("Lỗi", data.message || "Số điện thoại đã tồn tại!", "error");
                     btn.disabled = false;
                     btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
                 }
             } catch (e) {
-                alert("Không thể kết nối tới Server!");
+                Swal.fire("Lỗi", "Không thể kết nối tới Server!", "error");
                 btn.disabled = false;
                 btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
             }
+        }
+
+        // 💡 HÀM CHỜ THANH TOÁN TỰ ĐỘNG
+        function startPaymentPolling(orderId, redirectUrl) {
+            if(pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+                    let statusData = await res.json();
+
+                    if (statusData.isPaid) {
+                        clearInterval(pollingInterval); // Ngừng hỏi
+                        Swal.fire({
+                            title: "🎉 Thanh toán thành công!",
+                            text: "Tuyệt vời sếp! Hệ thống đã tạo tài khoản và mở sạp.",
+                            icon: "success",
+                            confirmButtonText: "Đăng nhập ngay"
+                        }).then(() => {
+                            window.location.href = redirectUrl;
+                        });
+                    }
+                } catch (e) { console.log("Lỗi polling: ", e); }
+            }, 3000); // Cứ 3 giây hỏi 1 lần
         }
     </script>
 </body>

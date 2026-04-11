@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.Collections.Concurrent; // 💡 Bắt buộc phải có cái này để dùng RAM
 
 namespace HeriStep.API.Controllers
 {
@@ -14,7 +15,10 @@ namespace HeriStep.API.Controllers
         private readonly HeriStepDbContext _context;
         private readonly string _soTaiKhoanMB;
         private readonly string _pendingFile = "pending_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (ĐĂNG KÝ MỚI)
-        private readonly string _extraStallFile = "pending_extra_stalls.json"; // 💡 Ổ CỨNG LƯU TRỮ TẠM (MUA THÊM SẠP)
+        private readonly string _extraStallFile = "pending_extra_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (MUA THÊM SẠP)
+
+        // 💡 BỘ NHỚ TẠM (RAM) ĐỂ LƯU CÁC ĐƠN VỪA THANH TOÁN XONG
+        private static readonly ConcurrentDictionary<string, bool> _paidOrders = new();
 
         public PaymentsController(HeriStepDbContext context, IConfiguration config)
         {
@@ -45,7 +49,6 @@ namespace HeriStep.API.Controllers
             return null;
         }
 
-        // 💡 [MỚI] HÀM HỖ TRỢ CHO VIỆC MUA THÊM SẠP
         private void SaveExtraStallToDisk(string id, AddStallDto req)
         {
             var dict = System.IO.File.Exists(_extraStallFile) ? JsonSerializer.Deserialize<Dictionary<string, AddStallDto>>(System.IO.File.ReadAllText(_extraStallFile)) ?? new() : new();
@@ -67,6 +70,21 @@ namespace HeriStep.API.Controllers
         }
 
         // =======================================================
+        // 💡 API CHECK TRẠNG THÁI (CHO FRONTEND TỰ ĐỘNG HỎI THĂM)
+        // =======================================================
+        [HttpGet("check-status/{orderId}")]
+        public IActionResult CheckStatus(string orderId)
+        {
+            bool isPaid = _paidOrders.ContainsKey(orderId);
+            if (isPaid)
+            {
+                // Khi Frontend đã hỏi và biết là thành công, ta xóa khỏi RAM cho nhẹ máy
+                _paidOrders.TryRemove(orderId, out _);
+            }
+            return Ok(new { isPaid });
+        }
+
+        // =======================================================
         // 1. ĐĂNG KÝ MERCHANT MỚI (CHƯA CÓ TÀI KHOẢN)
         // =======================================================
         [HttpPost("register-new-merchant")]
@@ -81,27 +99,27 @@ namespace HeriStep.API.Controllers
             string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng tạm DH{tempId} cho SĐT: {req.Phone}\n");
 
-            return Ok(new { qrUrl = qrUrl });
+            // 💡 Trả về thêm orderId để Frontend gọi check-status
+            return Ok(new { qrUrl = qrUrl, orderId = tempId });
         }
 
         // =======================================================
-        // 2. MUA THÊM SẠP (ĐÃ CÓ TÀI KHOẢN) 💡 [TÍNH NĂNG MỚI]
+        // 2. MUA THÊM SẠP (ĐÃ CÓ TÀI KHOẢN)
         // =======================================================
         [HttpPost("buy-extra-stall")]
         public async Task<IActionResult> BuyExtraStall([FromBody] AddStallDto req)
         {
-            // Kiểm tra xem Chủ sạp này có tồn tại thật không
             if (!await _context.Users.AnyAsync(u => u.Id == req.OwnerId && !u.IsDeleted))
                 return BadRequest(new { message = "Không tìm thấy tài khoản Chủ sạp!" });
 
-            // Sinh mã DH ngẫu nhiên đầu 8 để dễ phân biệt (Ví dụ: DH8123)
             string tempId = "8" + new Random().Next(100, 999).ToString() + DateTime.Now.Second;
             SaveExtraStallToDisk(tempId, req);
 
             string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng mua sạp phụ DH{tempId} cho Chủ sạp ID: {req.OwnerId}\n");
 
-            return Ok(new { qrUrl = qrUrl });
+            // 💡 Trả về thêm orderId để Frontend gọi check-status
+            return Ok(new { qrUrl = qrUrl, orderId = tempId });
         }
 
         // =======================================================
@@ -111,7 +129,8 @@ namespace HeriStep.API.Controllers
         public IActionResult GetRenewalQr(int stallId)
         {
             string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{stallId}";
-            return Ok(new { qrUrl = qrUrl });
+            // 💡 Trả về thêm orderId (chính là stallId) để Frontend gọi check-status
+            return Ok(new { qrUrl = qrUrl, orderId = stallId.ToString() });
         }
 
         // =======================================================
@@ -182,17 +201,20 @@ namespace HeriStep.API.Controllers
                             await _context.SaveChangesAsync();
                             await transaction.CommitAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã tạo User {newUser.Id} và Sạp {newStall.Id}!");
+
+                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG ĐỂ BÊN WEB TỰ ĐỘNG CHUYỂN TRANG
+                            _paidOrders.TryAdd(idValue, true);
                         }
                         catch (Exception ex)
                         {
                             await transaction.RollbackAsync();
-                            SavePendingToDisk(idValue, pendingNew); // Treo lại
+                            SavePendingToDisk(idValue, pendingNew); // Bị lỗi thì cất lại vào file để tí thử lại
                             Console.WriteLine($"[LỖI TẠO DB] {ex.Message}");
                         }
                         return Ok(new { success = true });
                     }
 
-                    // 🟡 TRƯỜNG HỢP 2: MUA THÊM SẠP CHO MERCHANT HIỆN TẠI (FRANCHISE) 💡 [TÍNH NĂNG MỚI]
+                    // 🟡 TRƯỜNG HỢP 2: MUA THÊM SẠP CHO MERCHANT HIỆN TẠI (FRANCHISE)
                     var pendingExtra = ExtractExtraStallFromDisk(idValue);
                     if (pendingExtra != null)
                     {
@@ -232,6 +254,9 @@ namespace HeriStep.API.Controllers
                             await _context.SaveChangesAsync();
                             await transaction.CommitAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã tạo thêm Sạp phụ {extraStall.Id} cho User {pendingExtra.OwnerId}!");
+
+                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG
+                            _paidOrders.TryAdd(idValue, true);
                         }
                         catch (Exception ex)
                         {
@@ -259,6 +284,9 @@ namespace HeriStep.API.Controllers
 
                             await _context.SaveChangesAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã gia hạn sạp {existingStallId} thành công!");
+
+                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG
+                            _paidOrders.TryAdd(idValue, true);
                         }
                         else
                         {
