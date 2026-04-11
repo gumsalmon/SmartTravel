@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /HeriStep.API/appsettings.json
 /PRD.html
+/HeriStep.API/appsettings.Development.json
+/.gitignore
