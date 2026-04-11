@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.SubscriptionPage"
+             Title="Đăng ký gói cước"
+             BackgroundColor="#121212">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20" HorizontalOptions="Center" VerticalOptions="Start">
+            <Image Source="splash.png" WidthRequest="150" HeightRequest="150" HorizontalOptions="Center" />
+            <Label Text="HeriStep SmartTravel" FontSize="26" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#FF8C00" />
+            <Label x:Name="lblDescription" Text="Thiết bị của bạn chưa được kích hoạt hoặc đã hết hạn. Vui lòng chọn gói cước bên dưới để tiếp tục sử dụng."
+                   HorizontalTextAlignment="Center" TextColor="#CCCCCC" FontFamily="OpenSansRegular" />
+
+            <!-- Device ID -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Label x:Name="lblDevicePrefix" Text="Mã thiết bị:" TextColor="Gray" FontFamily="OpenSansRegular" />
+                <Label x:Name="lblDeviceId" Text="..." FontAttributes="Bold" TextColor="White" />
+            </HorizontalStackLayout>
+
+            <!-- Packages -->
+            <VerticalStackLayout x:Name="vlPackages" Spacing="10">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="#FF8C00" StrokeThickness="2" BackgroundColor="#1E1E1E" Padding="15" Margin="0,5">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPackageTapped" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="{Binding PackageName}" FontAttributes="Bold" FontSize="18" TextColor="White" FontFamily="OpenSansSemibold" />
+                                    <Label Text="{Binding DurationHours, StringFormat='{0} Hrs'}" TextColor="LightGray" FontSize="14" FontFamily="OpenSansRegular" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1" Text="{Binding Price, StringFormat='{0:N0} đ'}" 
+                                       TextColor="#FFD700" FontAttributes="Bold" FontSize="18" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <!-- Payment Layer -->
+            <VerticalStackLayout x:Name="vlPayment" IsVisible="False" Spacing="15" HorizontalOptions="Center">
+                <Label x:Name="lblQrTitle" Text="Quét mã QR dưới đây để thanh toán:" HorizontalOptions="Center" TextColor="White" FontFamily="OpenSansRegular" />
+                <Image x:Name="imgQrCode" WidthRequest="250" HeightRequest="250" HorizontalOptions="Center" />
+                
+                <Label x:Name="lblPaymentAmount" TextColor="#FFD700" FontAttributes="Bold" FontSize="22" HorizontalOptions="Center"/>
+                <Label x:Name="lblQrNote" Text="Nội dung/mã lệnh nạp tiền đã được nhập sẵn!" FontSize="12" TextColor="Orange" HorizontalOptions="Center" FontFamily="OpenSansRegular" />
+
+                <ActivityIndicator x:Name="aiPolling" IsRunning="True" Color="#FF8C00" HorizontalOptions="Center" Margin="0,15,0,0" />
+                <Label x:Name="lblWait" Text="Đang chờ nhận tiền tít tít..." TextColor="LightGray" HorizontalOptions="Center" FontSize="14" FontFamily="OpenSansItalic" />
+
+                <Button x:Name="btnCancel" Text="Trở lại chọn gói" BackgroundColor="Transparent" TextColor="#888888" Clicked="OnCancelPayment" FontFamily="OpenSansRegular" Margin="0,10,0,0"/>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

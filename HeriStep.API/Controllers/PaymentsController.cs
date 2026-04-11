@@ -1,4 +1,4 @@
-﻿using HeriStep.API.Data;
+using HeriStep.API.Data;
 using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +13,11 @@ namespace HeriStep.API.Controllers
     public class PaymentsController : ControllerBase
     {
         private readonly HeriStepDbContext _context;
-        private readonly string _soTaiKhoanMB;
+        private readonly string _bankName;
+        private readonly string _soTaiKhoan;
         private readonly string _pendingFile = "pending_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (ĐĂNG KÝ MỚI)
         private readonly string _extraStallFile = "pending_extra_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (MUA THÊM SẠP)
+        private readonly string _pendingTicketsFile = "pending_tickets.json"; // Ổ CỨNG LUG TRỮ VÉ DU LICH
 
         // 💡 BỘ NHỚ TẠM (RAM) ĐỂ LƯU CÁC ĐƠN VỪA THANH TOÁN XONG
         private static readonly ConcurrentDictionary<string, bool> _paidOrders = new();
@@ -23,7 +25,8 @@ namespace HeriStep.API.Controllers
         public PaymentsController(HeriStepDbContext context, IConfiguration config)
         {
             _context = context;
-            _soTaiKhoanMB = config["SePay:BankAccount"] ?? "0366994409";
+            _bankName = config["SePay:BankName"] ?? "MBBank";
+            _soTaiKhoan = config["SePay:BankAccount"] ?? "0366994409";
         }
 
         // =======================================================
@@ -69,6 +72,19 @@ namespace HeriStep.API.Controllers
             return null;
         }
 
+        private PendingTicketDto? ExtractPendingTicketFromDisk(string id)
+        {
+            if (!System.IO.File.Exists(_pendingTicketsFile)) return null;
+            var dict = JsonSerializer.Deserialize<Dictionary<string, PendingTicketDto>>(System.IO.File.ReadAllText(_pendingTicketsFile)) ?? new();
+            if (dict.TryGetValue(id, out var req))
+            {
+                dict.Remove(id);
+                System.IO.File.WriteAllText(_pendingTicketsFile, JsonSerializer.Serialize(dict));
+                return req;
+            }
+            return null;
+        }
+
         // =======================================================
         // 💡 API CHECK TRẠNG THÁI (CHO FRONTEND TỰ ĐỘNG HỎI THĂM)
         // =======================================================
@@ -96,7 +112,7 @@ namespace HeriStep.API.Controllers
             string tempId = new Random().Next(100, 999).ToString() + DateTime.Now.Second;
             SavePendingToDisk(tempId, req);
 
-            string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{tempId}";
+            string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng tạm DH{tempId} cho SĐT: {req.Phone}\n");
 
             // 💡 Trả về thêm orderId để Frontend gọi check-status
@@ -115,7 +131,7 @@ namespace HeriStep.API.Controllers
             string tempId = "8" + new Random().Next(100, 999).ToString() + DateTime.Now.Second;
             SaveExtraStallToDisk(tempId, req);
 
-            string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{tempId}";
+            string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng mua sạp phụ DH{tempId} cho Chủ sạp ID: {req.OwnerId}\n");
 
             // 💡 Trả về thêm orderId để Frontend gọi check-status
@@ -128,7 +144,7 @@ namespace HeriStep.API.Controllers
         [HttpGet("get-renewal-qr/{stallId}")]
         public IActionResult GetRenewalQr(int stallId)
         {
-            string qrUrl = $"https://qr.sepay.vn/img?bank=MBBank&acc={_soTaiKhoanMB}&amount=2000&des=DH{stallId}";
+            string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{stallId}";
             // 💡 Trả về thêm orderId (chính là stallId) để Frontend gọi check-status
             return Ok(new { qrUrl = qrUrl, orderId = stallId.ToString() });
         }
@@ -290,7 +306,48 @@ namespace HeriStep.API.Controllers
                         }
                         else
                         {
-                            Console.WriteLine($"[CẢNH BÁO] Không tìm thấy mã DH{idValue} ở cả 3 trường hợp.");
+                            Console.WriteLine($"[CẢNH BÁO] Không tìm thấy mã DH{idValue} ở các trường hợp Sạp cũ.");
+                        }
+                    }
+
+                    // 🟣 TRƯỜNG HỢP 4: MUA VÉ DU LỊCH BẰNG APP CLIENT (Bắt đầu bằng số 9)
+                    if (idValue.StartsWith("9"))
+                    {
+                        var pendingTicket = ExtractPendingTicketFromDisk(idValue);
+                        if (pendingTicket != null)
+                        {
+                            Console.WriteLine($"=> [WEBHOOK] Tiền mua vé đã về! Kích hoạt vé cho thiết bị: {pendingTicket.DeviceId}");
+                            using var transaction = await _context.Database.BeginTransactionAsync();
+                            try
+                            {
+                                var ticketCode = $"DEV-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+                                var newTicket = new TouristTicket
+                                {
+                                    DeviceId = pendingTicket.DeviceId,
+                                    PackageId = pendingTicket.PackageId,
+                                    AmountPaid = pendingTicket.Price,
+                                    TicketCode = ticketCode,
+                                    PaymentMethod = "SePay_" + data.transferAmount,
+                                    CreatedAt = DateTime.Now,
+                                    ExpiryDate = DateTime.Now.AddHours(pendingTicket.DurationHours)
+                                };
+                                _context.TouristTickets.Add(newTicket);
+                                await _context.SaveChangesAsync();
+                                await transaction.CommitAsync();
+                                
+                                Console.WriteLine($"🎉 [THÀNH CÔNG] Đã cấp Mã vé {ticketCode} cho App Client!");
+                                _paidOrders.TryAdd(idValue, true);
+                            }
+                            catch (Exception ex)
+                            {
+                                await transaction.RollbackAsync();
+                                // Trả lại ổ cứng để lưu vết
+                                var dict = System.IO.File.Exists(_pendingTicketsFile) ? JsonSerializer.Deserialize<Dictionary<string, PendingTicketDto>>(System.IO.File.ReadAllText(_pendingTicketsFile)) ?? new() : new();
+                                dict[idValue] = pendingTicket;
+                                System.IO.File.WriteAllText(_pendingTicketsFile, JsonSerializer.Serialize(dict));
+                                Console.WriteLine($"[LỖI TẠO VÉ DB] {ex.Message}");
+                            }
+                            return Ok(new { success = true });
                         }
                     }
                 }

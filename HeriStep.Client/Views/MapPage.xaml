@@ -10,6 +10,11 @@
         <!-- ── FULL-SCREEN MAP ── -->
         <mapsui:MapView x:Name="mapView" VerticalOptions="Fill" HorizontalOptions="Fill"/>
 
+        <!-- ── BACK BUTTON ── -->
+        <Button Text="❮" FontSize="28" FontAttributes="Bold" TextColor="#FF8C00" BackgroundColor="Transparent" 
+                Padding="0" Margin="14,10,0,0" WidthRequest="40" HeightRequest="40" 
+                HorizontalOptions="Start" VerticalOptions="Start" Clicked="OnBackButtonClicked"/>
+
 
 
         <!-- ── GEOFENCE ALERT BANNER ── -->
@@ -136,17 +141,29 @@
                     <Label x:Name="lblOwner" Text="" FontSize="12" TextColor="#6B5B4E"/>
                     <HorizontalStackLayout Spacing="10" Margin="0,8,0,0">
                         <!-- Play Audio — fetches tts_script from DB -->
-                        <Button x:Name="btnPlayAudio" Text="🔊 Nghe Giới Thiệu"
+                        <Button x:Name="btnPlayAudio" Text="🔊 Âm Thanh"
                                 BackgroundColor="Transparent" TextColor="#D35400"
                                 BorderColor="#D35400" BorderWidth="1.5"
-                                FontAttributes="Bold" FontSize="13" CornerRadius="14"
-                                HeightRequest="44" HorizontalOptions="FillAndExpand"
+                                FontAttributes="Bold" FontSize="11" CornerRadius="12"
+                                HeightRequest="40" HorizontalOptions="FillAndExpand" WidthRequest="100"
                                 Clicked="OnPlayAudioClicked"/>
+
+                        <!-- Navigate -->
+                        <Button x:Name="btnNavigate" Text="🗺️ Chỉ Đường"
+                                BackgroundColor="#004D40" TextColor="White"
+                                FontAttributes="Bold" FontSize="11" CornerRadius="12"
+                                HeightRequest="40" HorizontalOptions="FillAndExpand" WidthRequest="100"
+                                Clicked="btnNavigate_Clicked">
+                            <Button.Shadow>
+                                <Shadow Brush="#004D40" Offset="0,4" Radius="10" Opacity="0.4"/>
+                            </Button.Shadow>
+                        </Button>
+
                         <!-- Detail -->
                         <Button x:Name="btnViewDetail" Text="📋 Chi Tiết"
                                 BackgroundColor="#D35400" TextColor="White"
-                                FontAttributes="Bold" FontSize="13" CornerRadius="14"
-                                HeightRequest="44" HorizontalOptions="FillAndExpand"
+                                FontAttributes="Bold" FontSize="11" CornerRadius="12"
+                                HeightRequest="40" HorizontalOptions="FillAndExpand" WidthRequest="100"
                                 Clicked="btnViewDetail_Clicked">
                             <Button.Shadow>
                                 <Shadow Brush="#D35400" Offset="0,4" Radius="10" Opacity="0.4"/>

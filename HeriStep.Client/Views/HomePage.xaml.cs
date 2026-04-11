@@ -8,12 +8,14 @@ namespace HeriStep.Client.Views;
 public partial class HomePage : ContentPage
 {
     private readonly HomeViewModel _viewModel;
+    private readonly AudioTranslationService _audioService;
     private Action? _langChangedHandler;
 
-    public HomePage(HomeViewModel viewModel)
+    public HomePage(HomeViewModel viewModel, AudioTranslationService audioService)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _audioService = audioService;
         BindingContext = _viewModel;
     }
 
@@ -60,7 +62,7 @@ public partial class HomePage : ContentPage
     // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
     private async void OnMapButtonClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new MapPage());
+        await Navigation.PushAsync(new MapPage(_audioService));
     }
 
     private async void OnShopSelected(object sender, SelectionChangedEventArgs e)
@@ -71,7 +73,7 @@ public partial class HomePage : ContentPage
             var cv = (CollectionView)sender;
             cv.SelectedItem = null;
 
-            await Navigation.PushAsync(new ShopDetailPage(selectedStall));
+            await Navigation.PushAsync(new ShopDetailPage(selectedStall, _audioService));
         }
     }
 
@@ -84,7 +86,7 @@ public partial class HomePage : ContentPage
 
             await DisplayAlert("Tour Khám Phá", $"Bạn đã chọn: {selectedTour.TourName}. Lịch trình chi tiết đang được phát triển.", "OK");
             // Optionally, could go to MapPage to show all stalls on that tour.
-            await Navigation.PushAsync(new MapPage());
+            await Navigation.PushAsync(new MapPage(_audioService));
         }
     }
 }

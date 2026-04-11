@@ -36,11 +36,15 @@ namespace HeriStep.Client.ViewModels
         public Command<string> FilterCommand { get; set; }
 
         private readonly HeriStep.Client.Services.Location.ILocationService _locationService;
+        private readonly LocalDatabaseService _localDb;
+        private readonly AudioTranslationService _audioService;
 
-        public HomeViewModel(HttpClient httpClient, HeriStep.Client.Services.Location.ILocationService locationService)
+        public HomeViewModel(HttpClient httpClient, HeriStep.Client.Services.Location.ILocationService locationService, LocalDatabaseService localDb, AudioTranslationService audioService)
         {
             _httpClient = httpClient;
             _locationService = locationService;
+            _localDb = localDb;
+            _audioService = audioService;
             _httpClient.BaseAddress ??= new Uri(AppConstants.BaseApiUrl);
             _geofenceService = new GeofenceService();
 
@@ -67,34 +71,12 @@ namespace HeriStep.Client.ViewModels
         {
             _geofenceService.StallEntered += async (stall) =>
             {
-                string lang = L.CurrentLanguage;
-                string message = lang switch
-                {
-                    "en" => $"Welcome to {stall.Name}! Come enjoy the best street food here.",
-                    "ja" => $"{stall.Name}へようこそ！",
-                    "ko" => $"{stall.Name}에 오신 것을 환영합니다!",
-                    "zh" => $"欢迎来到{stall.Name}！",
-                    "fr" => $"Bienvenue à {stall.Name} !",
-                    "es" => $"¡Bienvenido a {stall.Name}!",
-                    "de" => $"Willkommen bei {stall.Name}!",
-                    "th" => $"ยินดีต้อนรับสู่ {stall.Name}!",
-                    _ => $"Chào mừng bạn đến {stall.Name}! Hãy ghé thăm để trải nghiệm ẩm thực Vĩnh Khánh."
-                };
+                string message = !string.IsNullOrEmpty(stall.Description) 
+                    ? stall.Description 
+                    : $"Chào mừng bạn đến với {stall.Name}!";
 
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[TTS] Playing: {message}");
-                    try
-                    {
-                        var locales = await TextToSpeech.Default.GetLocalesAsync();
-                        var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(lang));
-                        await TextToSpeech.Default.SpeakAsync(message, new SpeechOptions { Locale = locale });
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TTS Error] {ex.Message}");
-                    }
-                });
+                // Automation: Auto-translate and Speak in background
+                await _audioService.SpeakAsync(message);
             };
 
             Task.Run(async () =>
@@ -155,11 +137,66 @@ namespace HeriStep.Client.ViewModels
                         }
                         Console.WriteLine($"[LOG] Loaded {Points.Count} stalls OK.");
                     });
+                    
+                    // SAVE TO SQLITE (OFFLINE CACHE)
+                    try 
+                    {
+                        var cacheStalls = data.Select(p => new HeriStep.Client.Models.LocalModels.LocalStall {
+                            Id = p.Id,
+                            Name = p.Name ?? "Chưa có tên",
+                            Description = p.Description ?? p.Name ?? "Chào mừng bạn, hiện tại ứng dụng đang ở chế độ ngoại tuyến.",
+                            ImageUrl = p.ImageUrl ?? "",
+                            Latitude = p.Latitude,
+                            Longitude = p.Longitude,
+                            IsOpen = p.IsOpen,
+                            HasOwner = p.OwnerId.HasValue,
+                            RadiusMeter = p.RadiusMeter
+                        });
+                        await _localDb.SaveStallsAsync(cacheStalls);
+                    } 
+                    catch (Exception dbEx) 
+                    {
+                        Console.WriteLine($"[OFFLINE_DB] Failed to cache stalls: {dbEx.Message}");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] LoadPointsAsync stalls failed: {ex.Message}");
+                Console.WriteLine($"[OFFLINE_DB] Fetching API stalls failed: {ex.Message}");
+                // OFFLINE FALLBACK
+                try 
+                {
+                    var offlineStalls = await _localDb.GetStallsAsync();
+                    if (offlineStalls != null && offlineStalls.Count > 0)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            Points.Clear(); _allPoints.Clear();
+                            foreach (var ls in offlineStalls)
+                            {
+                                var p = new Stall {
+                                    Id = ls.Id,
+                                    Name = ls.Name,
+                                    Description = ls.Description,
+                                    ImageUrl = ls.ImageUrl,
+                                    Latitude = ls.Latitude,
+                                    Longitude = ls.Longitude,
+                                    IsOpen = ls.IsOpen,
+                                    OwnerId = ls.HasOwner ? 1 : null,
+                                    RadiusMeter = (int)ls.RadiusMeter
+                                };
+                                Points.Add(p);
+                                _allPoints.Add(p);
+                            }
+                            Console.WriteLine($"[OFFLINE_DB] Loaded {Points.Count} stalls from SQLite.");
+                            await CommunityToolkit.Maui.Alerts.Toast.Make("Mất kết nối mạng. Đang hiển thị danh sách quán lưu tạm.").Show();
+                        });
+                    }
+                }
+                catch (Exception readEx)
+                {
+                    Console.WriteLine($"[OFFLINE_DB] Cannot read stalls from SQLite: {readEx.Message}");
+                }
             }
 
             // --- Load Top 5 Stalls from dedicated endpoint (real rating order) ---
@@ -187,7 +224,27 @@ namespace HeriStep.Client.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] LoadPointsAsync top5 failed: {ex.Message}");
+                Console.WriteLine($"[OFFLINE_DB] Fetching API top5 failed: {ex.Message}");
+                // OFFLINE FALLBACK FOR TOP 5
+                try
+                {
+                    if (_allPoints != null && _allPoints.Count > 0)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(() =>
+                        {
+                            TopRatedPoints.Clear();
+                            foreach (var p in _allPoints.Take(5))
+                            {
+                                TopRatedPoints.Add(p);
+                            }
+                        });
+                        Console.WriteLine($"[OFFLINE_DB] Loaded {TopRatedPoints.Count} top-rated stalls from Local Cache fallback.");
+                    }
+                }
+                catch (Exception readEx)
+                {
+                    Console.WriteLine($"[OFFLINE_DB] Top 5 fallback failed: {readEx.Message}");
+                }
             }
 
             // --- Load Top Tours ---
@@ -211,11 +268,53 @@ namespace HeriStep.Client.ViewModels
                         }
                         Console.WriteLine($"[LOG] Loaded {TopTours.Count} tours OK.");
                     });
+                    
+                    // SAVE TO SQLITE
+                    try
+                    {
+                        var cacheTours = toursData.Select(t => new HeriStep.Client.Models.LocalModels.LocalTour {
+                            Id = t.Id,
+                            TourName = t.TourName,
+                            ImageUrl = t.ImageUrl ?? "",
+                            StallCount = t.StallCount
+                        });
+                        await _localDb.SaveToursAsync(cacheTours);
+                    }
+                    catch (Exception dbEx)
+                    {
+                        Console.WriteLine($"[OFFLINE_DB] Failed to cache tours: {dbEx.Message}");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] LoadPointsAsync tours failed: {ex.Message}");
+                Console.WriteLine($"[OFFLINE_DB] Fetching tours failed: {ex.Message}");
+                // OFFLINE FALLBACK
+                try 
+                {
+                    var offlineTours = await _localDb.GetToursAsync();
+                    if (offlineTours != null && offlineTours.Count > 0)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            TopTours.Clear();
+                            foreach (var lt in offlineTours)
+                            {
+                                TopTours.Add(new Tour {
+                                    Id = lt.Id,
+                                    TourName = lt.TourName,
+                                    ImageUrl = lt.ImageUrl,
+                                    StallCount = lt.StallCount
+                                });
+                            }
+                            Console.WriteLine($"[OFFLINE_DB] Loaded {TopTours.Count} tours from SQLite.");
+                        });
+                    }
+                }
+                catch (Exception readEx)
+                {
+                    Console.WriteLine($"[OFFLINE_DB] Cannot read tours from SQLite: {readEx.Message}");
+                }
             }
             finally { IsBusy = false; }
         }
@@ -234,8 +333,9 @@ namespace HeriStep.Client.ViewModels
                 return;
             }
 
+            string searchKw = RemoveDiacritics(keyword).ToLower();
             var filtered = _allPoints
-                .Where(p => p.Name != null && p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .Where(p => p.Name != null && RemoveDiacritics(p.Name).ToLower().Contains(searchKw))
                 .ToList();
 
             // Fallback: show all if filter returns empty (prevents blank screen)
@@ -251,9 +351,26 @@ namespace HeriStep.Client.ViewModels
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await Application.Current.Windows[0].Page.Navigation
-                        .PushAsync(new Views.FilterResultPage(keyword, dataToPass));
+                        .PushAsync(new Views.FilterResultPage(keyword, dataToPass, _audioService));
                 });
             }
+        }
+
+        private string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+            var stringBuilder = new System.Text.StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+            return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
         }
     }
 }

@@ -1,5 +1,6 @@
 using HeriStep.Shared.Models;
 using System.Collections.ObjectModel;
+using HeriStep.Client.Services;
 
 namespace HeriStep.Client.Views;
 
@@ -8,10 +9,13 @@ public partial class FilterResultPage : ContentPage
     public string CategoryTitle { get; set; }
     public ObservableCollection<Stall> FilteredPoints { get; set; }
 
+    private readonly AudioTranslationService _audioService;
+
     // Hàm khởi tạo nhận vào Tên Danh Mục và Danh sách quán đã lọc
-    public FilterResultPage(string categoryName, List<Stall> points)
+    public FilterResultPage(string categoryName, List<Stall> points, AudioTranslationService audioService)
     {
         InitializeComponent();
+        _audioService = audioService;
 
         CategoryTitle = $"Kết quả tìm kiếm: {categoryName}";
 
@@ -30,7 +34,7 @@ public partial class FilterResultPage : ContentPage
             ((CollectionView)sender).SelectedItem = null;
 
             // BAY SANG TRANG CHI TIẾT CỦA BẠN!
-            await Navigation.PushAsync(new ShopDetailPage(selectedShop));
+            await Navigation.PushAsync(new ShopDetailPage(selectedShop, _audioService));
         }
     }
 }

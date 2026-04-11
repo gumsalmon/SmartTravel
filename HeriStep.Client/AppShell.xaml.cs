@@ -8,16 +8,40 @@ public partial class AppShell : Shell
     {
         InitializeComponent();
 
-        // Register push-navigation routes (pages opened via Navigation.PushAsync)
-        Routing.RegisterRoute(nameof(Views.ShopDetailPage), typeof(Views.ShopDetailPage));
-        Routing.RegisterRoute(nameof(Views.FilterResultPage), typeof(Views.FilterResultPage));
-        Routing.RegisterRoute(nameof(Views.LanguagePage), typeof(Views.LanguagePage));
-
         // Apply localized tab titles
         ApplyLocalization();
 
         // Refresh tab titles whenever the user changes language
         L.LanguageChanged += ApplyLocalization;
+
+        // Hook offline detection globally without restarting app
+        Microsoft.Maui.Networking.Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+    }
+
+    private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        if (e.NetworkAccess != NetworkAccess.Internet)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    await CommunityToolkit.Maui.Alerts.Toast.Make("Mất kết nối mạng. Ứng dụng đã chuyển sang chế độ ngoại tuyến (Offline).").Show();
+                }
+                catch { }
+            });
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    await CommunityToolkit.Maui.Alerts.Toast.Make("Đã có kết nối Internet trở lại!").Show();
+                }
+                catch { }
+            });
+        }
     }
 
     private void ApplyLocalization()
@@ -26,4 +50,5 @@ public partial class AppShell : Shell
         tabMap.Title = L.Get("tab_map");
         tabProfile.Title = L.Get("tab_profile");
     }
+
 }

@@ -17,10 +17,7 @@
 
             <!-- Rounded Hero Image replacing tags -->
             <Border StrokeShape="RoundRectangle 24" HeightRequest="220" Padding="0" BackgroundColor="#2A2A2A" Stroke="#FF8C00" StrokeThickness="1" Margin="20,5,20,15">
-                <!-- DropShadow for a glowing orange effect -->
-                <Border.Shadow>
-                    <Shadow Brush="#FF8C00" Offset="0,4" Radius="10" Opacity="0.3" />
-                </Border.Shadow>
+                <!-- DropShadow removed to prevent Android rendering crash -->
                 <Image x:Name="heroImage" Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?q=80&amp;w=800" Aspect="AspectFill"/>
             </Border>
 

@@ -4,6 +4,7 @@ using HeriStep.Client.ViewModels;
 using HeriStep.Client.Views;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using CommunityToolkit.Maui;
 
 namespace HeriStep.Client;
 
@@ -15,6 +16,7 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseSkiaSharp()
+            .UseMauiCommunityToolkit()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -31,6 +33,9 @@ public static class MauiProgram
         // ═══ SERVICES ═══
         builder.Services.AddSingleton<ShopService>();
         builder.Services.AddSingleton<GeofenceService>();
+        builder.Services.AddSingleton<SubscriptionService>();
+        builder.Services.AddSingleton<LocalDatabaseService>();
+        builder.Services.AddSingleton<AudioTranslationService>();
 
 #if DEBUG
         builder.Services.AddSingleton<ILocationService, MockLocationService>();
@@ -42,10 +47,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<HomeViewModel>();
 
         // ═══ PAGES ═══
+        builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<SubscriptionPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
-        // Note: VoiceAuraPage removed — voice customization is now inline on MainPage
+        builder.Services.AddTransient<HomePage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

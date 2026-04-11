@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.LanguageSelectionPage"
+             BackgroundColor="#121212"
+             Shell.NavBarIsVisible="False">
+             
+    <VerticalStackLayout Padding="30" Spacing="25" VerticalOptions="Center">
+        
+        <Image Source="splash.png" WidthRequest="120" HeightRequest="120" HorizontalOptions="Center" Margin="0,0,0,20"/>
+        
+        <Label Text="Welcome / Chào mừng" FontSize="26" FontAttributes="Bold" TextColor="#FF8C00" HorizontalOptions="Center" />
+        <Label Text="Please select your language / Vui lòng chọn ngôn ngữ" FontSize="14" TextColor="#B0A090" HorizontalOptions="Center" HorizontalTextAlignment="Center" Margin="0,0,0,20"/>
+
+        <Button Text="🇻🇳 Tiếng Việt" BackgroundColor="#1C1C1C" TextColor="White" BorderColor="#FF8C00" BorderWidth="1" CornerRadius="12" HeightRequest="55" FontAttributes="Bold" FontSize="16" Clicked="OnLanguageSelected" CommandParameter="vi" />
+        <Button Text="🇺🇸 English" BackgroundColor="#1C1C1C" TextColor="White" BorderColor="#FF8C00" BorderWidth="1" CornerRadius="12" HeightRequest="55" FontAttributes="Bold" FontSize="16" Clicked="OnLanguageSelected" CommandParameter="en" />
+        <Button Text="🇯🇵 日本語 (Japanese)" BackgroundColor="#1C1C1C" TextColor="White" BorderColor="#FF8C00" BorderWidth="1" CornerRadius="12" HeightRequest="55" FontAttributes="Bold" FontSize="16" Clicked="OnLanguageSelected" CommandParameter="ja" />
+        <Button Text="🇰🇷 한국어 (Korean)" BackgroundColor="#1C1C1C" TextColor="White" BorderColor="#FF8C00" BorderWidth="1" CornerRadius="12" HeightRequest="55" FontAttributes="Bold" FontSize="16" Clicked="OnLanguageSelected" CommandParameter="ko" />
+        <Button Text="🇨🇳 中文 (Chinese)" BackgroundColor="#1C1C1C" TextColor="White" BorderColor="#FF8C00" BorderWidth="1" CornerRadius="12" HeightRequest="55" FontAttributes="Bold" FontSize="16" Clicked="OnLanguageSelected" CommandParameter="zh" />
+        
+    </VerticalStackLayout>
+</ContentPage>

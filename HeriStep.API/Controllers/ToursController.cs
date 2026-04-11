@@ -49,6 +49,10 @@
                 return Ok(topTours);
             }
 
+            // Alias for legacy client calls using /api/Tours/top-hot
+            [HttpGet("top-hot")]
+            public Task<IActionResult> GetTopHotTours() => GetTop10Tours();
+
             [HttpGet]
             public async Task<IActionResult> GetTours()
             {

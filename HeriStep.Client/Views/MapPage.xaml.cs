@@ -25,6 +25,7 @@ public partial class MapPage : ContentPage
     private CancellationTokenSource? _locationLoopCts;
     private List<Stall> _allStalls = new();
     private bool _isTtsPlaying = false;
+    private readonly AudioTranslationService _audioService;
 
 
     // ═══ DEMO MODE ═══
@@ -54,9 +55,10 @@ public partial class MapPage : ContentPage
     private static readonly Mapsui.Styles.Color PinGrey      = new(107, 91,  78);
     private static readonly Mapsui.Styles.Color PinHighlight = new(255, 191,  0);   // #FFBF00
 
-    public MapPage()
+    public MapPage(AudioTranslationService audioService)
     {
         InitializeComponent();
+        _audioService = audioService;
 
         var map = new Mapsui.Map();
         map.Layers.Add(LocalProxyMapLayer.Create());
@@ -280,6 +282,39 @@ public partial class MapPage : ContentPage
         }
     }
 
+    private async Task SpeakCurrentStallAsync(Stall stall)
+    {
+        if (_isTtsPlaying) return;
+        _isTtsPlaying = true;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            btnGeofencePlayAudio.Text = "⏳ Processing...";
+            btnGeofencePlayAudio.IsEnabled = false;
+        });
+
+        try
+        {
+            var lang = L.CurrentLanguage;
+            string textToSpeak = !string.IsNullOrEmpty(stall.Description) 
+                ? stall.Description 
+                : BuildFallback(stall, lang);
+
+            // Forward to the automated service
+            await _audioService.SpeakAsync(textToSpeak);
+        }
+        catch (Exception ex) { Console.WriteLine($"[VOICE_SERVICE] MapPage Error: {ex.Message}"); }
+        finally
+        {
+            _isTtsPlaying = false;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                btnGeofencePlayAudio.Text = "🔊 Play Audio";
+                btnGeofencePlayAudio.IsEnabled = true;
+            });
+        }
+    }
+
     // ══════════════════════════════════════════════
     // TTS — FETCHED FROM StallContents (DB)
     // ══════════════════════════════════════════════
@@ -287,57 +322,13 @@ public partial class MapPage : ContentPage
     private async void OnGeofencePlayAudioClicked(object sender, EventArgs e)
     {
         if (_nearestStall == null || _isTtsPlaying) return;
-        await PlayStallTtsFromDb(_nearestStall);
+        await SpeakCurrentStallAsync(_nearestStall);
     }
 
     private void OnPlayAudioClicked(object sender, EventArgs e)
     {
         if (_currentSelectedShop?.Id != 0)
-            _ = PlayStallTtsFromDb(_currentSelectedShop);
-    }
-
-    private async Task PlayStallTtsFromDb(Stall stall)
-    {
-        if (_isTtsPlaying) return;
-        _isTtsPlaying = true;
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            btnGeofencePlayAudio.Text = "⏳ Đang tải...";
-            btnGeofencePlayAudio.IsEnabled = false;
-        });
-
-        try
-        {
-            var lang = Preferences.Default.Get("user_language", "vi");
-            string textToSpeak;
-
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
-            var url = $"{AppConstants.BaseApiUrl}/api/Stalls/{stall.Id}/tts/{lang}";
-            var response = await client.GetAsync(url);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<TtsResponse>();
-                textToSpeak = (data != null && !string.IsNullOrWhiteSpace(data.Text))
-                    ? data.Text : BuildFallback(stall, lang);
-            }
-            else textToSpeak = BuildFallback(stall, lang);
-
-            var locales = await TextToSpeech.Default.GetLocalesAsync();
-            var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(lang, StringComparison.OrdinalIgnoreCase));
-            await TextToSpeech.Default.SpeakAsync(textToSpeak, new SpeechOptions { Pitch = 1f, Volume = 1f, Locale = locale });
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TTS] {ex.Message}"); }
-        finally
-        {
-            _isTtsPlaying = false;
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                btnGeofencePlayAudio.Text = "🔊 Phát Audio";
-                btnGeofencePlayAudio.IsEnabled = true;
-            });
-        }
+            _ = SpeakCurrentStallAsync(_currentSelectedShop);
     }
 
     private string BuildFallback(Stall stall, string lang) => lang switch
@@ -352,8 +343,6 @@ public partial class MapPage : ContentPage
         "th" => $"ยินดีต้อนรับสู่ {stall.Name}!",
         _    => $"Chào mừng bạn đến với {stall.Name}! Hãy thưởng thức ẩm thực Vĩnh Khánh."
     };
-
-    public class TtsResponse { public string Text { get; set; } = ""; }
 
     // ══════════════════════════════════════════════
     // USER LOCATION RENDERING (Savory Ember colours)
@@ -444,7 +433,33 @@ public partial class MapPage : ContentPage
                 mapView.RefreshGraphics();
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Map] {ex.Message}"); }
+        catch (Exception ex) 
+        { 
+            System.Diagnostics.Debug.WriteLine($"[OFFLINE_DB] MapPage stalls fetch failed: {ex.Message}"); 
+            try 
+            {
+                var localDb = new LocalDatabaseService();
+                var offlineStalls = await localDb.GetStallsAsync();
+                if (offlineStalls != null && offlineStalls.Count > 0)
+                {
+                    _allStalls = offlineStalls.Select(ls => new Stall {
+                        Id = ls.Id, Name = ls.Name, Latitude = ls.Latitude, Longitude = ls.Longitude,
+                        RadiusMeter = (int)ls.RadiusMeter, IsOpen = ls.IsOpen, ImageUrl = ls.ImageUrl, Description = ls.Description,
+                        OwnerId = ls.HasOwner ? 1 : null
+                    }).ToList();
+
+                    var old = mapView.Map?.Layers.FirstOrDefault(l => l.Name == "QuanOcLayer");
+                    if (old != null) mapView.Map?.Layers.Remove(old);
+                    DrawPinsOnMap(_allStalls);
+                    MainThread.BeginInvokeOnMainThread(() => mapView.RefreshGraphics());
+                    System.Diagnostics.Debug.WriteLine($"[OFFLINE_DB] Map loaded {_allStalls.Count} pins from Local Cache.");
+                }
+            }
+            catch (Exception readEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OFFLINE_DB] MapPage LocalDb fallback failed: {readEx.Message}");
+            }
+        }
     }
 
     /// <summary>
@@ -512,15 +527,43 @@ public partial class MapPage : ContentPage
     // UI EVENTS
     // ══════════════════════════════════════════════
 
-    private void ClosePopup_Clicked(object sender, EventArgs e) => ClosePopup();
-    private void ClosePopup() { overlay.IsVisible = false; shopPopup.IsVisible = false; }
+    private async void ClosePopup_Clicked(object sender, EventArgs e)
+    {
+        ClosePopup();
+    }
+
+    private void ClosePopup()
+    {
+        shopPopup.IsVisible = false;
+        overlay.IsVisible = false;
+    }
+
+    private async void OnBackButtonClicked(object sender, EventArgs e)
+    {
+        await Navigation.PopAsync();
+    }
 
     private async void btnViewDetail_Clicked(object sender, EventArgs e)
     {
         if (_currentSelectedShop?.Id == 0) return;
         ClosePopup();
-        try { await Navigation.PushAsync(new ShopDetailPage(_currentSelectedShop)); }
+        try { await Navigation.PushAsync(new ShopDetailPage(_currentSelectedShop, _audioService)); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Nav] {ex.Message}"); }
+    }
+
+    private async void btnNavigate_Clicked(object sender, EventArgs e)
+    {
+        if (_currentSelectedShop == null) return;
+        try
+        {
+            var location = new Microsoft.Maui.Devices.Sensors.Location(_currentSelectedShop.Latitude, _currentSelectedShop.Longitude);
+            var options = new MapLaunchOptions { Name = _currentSelectedShop.Name };
+            await Microsoft.Maui.ApplicationModel.Map.Default.OpenAsync(location, options);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Lỗi", $"Không thể mở bản đồ chỉ đường: {ex.Message}", "OK");
+        }
     }
 
 

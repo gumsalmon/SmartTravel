@@ -53,10 +53,10 @@ namespace HeriStep.Shared.Models
         [NotMapped] public string? OwnerName { get; set; }
         [NotMapped] public double? Radius { get; set; }
         [NotMapped] public bool IsExpired { get; set; }
+        [NotMapped] public string? Description { get; set; }
+        [NotMapped] public string? TtsScript { get; set; } // 💡 CÁI SẾP ĐANG THIẾU ĐÂY!
 
-        [NotMapped]
-        public string? TtsScript { get; set; } // 💡 CÁI SẾP ĐANG THIẾU ĐÂY!
-
+        // 💡 NGĂN VÒNG LẶP JSON
         [JsonIgnore]
         public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     }

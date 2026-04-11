@@ -14,15 +14,7 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        // First launch: show LanguagePage to pick language
-        bool hasSelectedLanguage = Microsoft.Maui.Storage.Preferences.Default.Get("has_selected_language", false);
-
-        if (!hasSelectedLanguage)
-        {
-            return new Window(new HeriStep.Client.Views.LanguagePage());
-        }
-
-        // Normal launch: go straight to the main app shell
-        return new Window(new AppShell());
+        var loadingPage = activationState?.Context.Services.GetService<LoadingPage>();
+        return new Window(loadingPage ?? new LoadingPage(new SubscriptionService()));
     }
 }

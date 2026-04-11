@@ -13,14 +13,16 @@ namespace HeriStep.Client.Views
         private Stall _stall;
         private bool _isTtsPlaying = false;
         private Action? _langChangedHandler;
+        private readonly AudioTranslationService _audioService;
 
-        public ShopDetailPage(Stall stall)
+        public ShopDetailPage(Stall stall, AudioTranslationService audioService)
         {
             Console.WriteLine("[CRITICAL_LOG] ShopDetailPage Constructor started...");
             try
             {
                 InitializeComponent();
                 _stall = stall;
+                _audioService = audioService;
 
                 if (stall != null)
                 {
@@ -84,68 +86,35 @@ namespace HeriStep.Client.Views
         private async void OnPlayIntroClicked(object sender, EventArgs e)
         {
             if (_isTtsPlaying) return;
-            if (_stall == null || _stall.Id == 0)
-            {
-                lblTtsStatus.Text = "⚠️ Chưa có thông tin sạp.";
-                return;
-            }
+            if (_stall == null) return;
 
             _isTtsPlaying = true;
             btnPlayIntro.IsEnabled = false;
-            btnPlayIntro.Text = "⏳  Đang tải...";
-            lblTtsStatus.Text = "🔊 Đang kết nối...";
+            btnPlayIntro.Text = "⏳ Processing...";
+            lblTtsStatus.Text = "🔊 Using Voice Aura...";
             lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#FF8C00");
 
             try
             {
-                string lang = L.CurrentLanguage;
-                string textToSpeak;
+                string textToSpeak = !string.IsNullOrWhiteSpace(_stall.Description)
+                    ? _stall.Description
+                    : BuildFallback();
 
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
-                var url = $"{AppConstants.BaseApiUrl}/api/Stalls/{_stall.Id}/tts/{lang}";
-                Console.WriteLine($"[LOG] Fetching TTS from: {url}");
+                await _audioService.SpeakAsync(textToSpeak);
 
-                var response = await client.GetAsync(url);
-                if (response.IsSuccessStatusCode)
-                {
-                    var data = await response.Content.ReadFromJsonAsync<TtsPayload>();
-                    textToSpeak = (!string.IsNullOrWhiteSpace(data?.Text))
-                        ? data!.Text
-                        : BuildFallback();
-                    Console.WriteLine($"[LOG] TTS text fetched OK ({textToSpeak.Length} chars).");
-                }
-                else
-                {
-                    Console.WriteLine($"[ERROR] TTS API returned {response.StatusCode}. Using fallback.");
-                    textToSpeak = BuildFallback();
-                }
-
-                var locales = await TextToSpeech.Default.GetLocalesAsync();
-                var locale = locales?.FirstOrDefault(l => l.Language.StartsWith(lang, StringComparison.OrdinalIgnoreCase));
-
-                lblTtsStatus.Text = "🔊 Đang phát...";
-                await TextToSpeech.Default.SpeakAsync(textToSpeak, new SpeechOptions
-                {
-                    Volume = 1.0f,
-                    Pitch  = 1.0f,
-                    Locale = locale
-                });
-
-                lblTtsStatus.Text = "✅ Phát xong.";
+                lblTtsStatus.Text = "✅ Success.";
                 lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
-                Console.WriteLine("[LOG] TTS playback complete.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] TTS OnPlayIntroClicked failed: {ex.Message}");
-                lblTtsStatus.Text = $"❌ Lỗi: {ex.Message}";
+                lblTtsStatus.Text = $"❌ Error: {ex.Message}";
                 lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
             }
             finally
             {
                 _isTtsPlaying = false;
                 btnPlayIntro.IsEnabled = true;
-                btnPlayIntro.Text = "🔊  Nghe Giới Thiệu";
+                btnPlayIntro.Text = "🔊  Listen Introduction";
             }
         }
 
@@ -164,7 +133,7 @@ namespace HeriStep.Client.Views
             };
         }
 
-        private class TtsPayload { public string Text { get; set; } = ""; }
+
 
         private async void OnOrderClicked(object sender, EventArgs e)
         {
@@ -174,6 +143,11 @@ namespace HeriStep.Client.Views
         private async void OnFeatureComingSoon(object sender, EventArgs e)
         {
             await DisplayAlert(L.Get("coming_soon"), L.Get("shop_feature_soon"), L.Get("ok"));
+        }
+
+        private async void OnBackButtonClicked(object sender, EventArgs e)
+        {
+            await Navigation.PopAsync();
         }
     }
 }
