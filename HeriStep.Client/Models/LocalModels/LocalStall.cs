@@ -22,5 +22,18 @@ namespace HeriStep.Client.Models.LocalModels
         public bool HasOwner { get; set; }
         
         public double RadiusMeter { get; set; }
+        
+        // Điểm đánh giá để sắp xếp Top 5 (ORDER BY Rating DESC)
+        public double Rating { get; set; } = 4.5;
+        
+        // Số lượt xem/ghé thăm
+        public int VisitCount { get; set; } = 0;
+
+        /// <summary>
+        /// Chế độ Khám Phá Tự Do: Đánh dấu quán đã được phát TTS một lần.
+        /// IsVisited = true → sẽ không đọc lại khi khách đứng yên trong khu vực.
+        /// Reset về false khi khởi động lại chế độ Khám Phá Tự Do.
+        /// </summary>
+        public bool IsVisited { get; set; } = false;
     }
 }

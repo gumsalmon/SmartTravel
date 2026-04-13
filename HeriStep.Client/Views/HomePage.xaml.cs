@@ -32,20 +32,33 @@ public partial class HomePage : ContentPage
         }
 #endif
 
-        // Always reload data (to pick up language changes, new stalls, etc.)
+        // Always reload data
         Console.WriteLine("[LOG] HomePage OnAppearing: reloading data...");
         await _viewModel.LoadPointsAsync();
 
-        // Subscribe to language changes — reload data when language switches
+        // Subscribe to language changes — refresh UI + reload data when language switches
         if (_langChangedHandler == null)
         {
             _langChangedHandler = async () =>
             {
-                Console.WriteLine("[LOG] Language changed, reloading data...");
-                await MainThread.InvokeOnMainThreadAsync(async () => await _viewModel.LoadPointsAsync());
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    ApplyLocalization();
+                    await _viewModel.LoadPointsAsync();
+                });
             };
             L.LanguageChanged += _langChangedHandler;
         }
+
+        ApplyLocalization();
+    }
+
+    private void ApplyLocalization()
+    {
+        lblTopTours.Text        = L.Get("main_top_tours_title");
+        lblTopShops.Text        = L.Get("main_top5_shops_title");
+        lblExploreAll.Text      = L.Get("main_explore_all");
+        searchEntry.Placeholder = L.Get("search_placeholder");
     }
 
     protected override void OnDisappearing()
@@ -58,8 +71,7 @@ public partial class HomePage : ContentPage
             _langChangedHandler = null;
         }
     }
-    // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
-    // Hàm này sẽ chạy khi User bấm vào nút Bản Đồ
+
     private async void OnMapButtonClicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new MapPage(_audioService));
@@ -69,10 +81,8 @@ public partial class HomePage : ContentPage
     {
         if (e.CurrentSelection.FirstOrDefault() is HeriStep.Shared.Models.Stall selectedStall)
         {
-            // Reset selection
             var cv = (CollectionView)sender;
             cv.SelectedItem = null;
-
             await Navigation.PushAsync(new ShopDetailPage(selectedStall, _audioService));
         }
     }
@@ -83,10 +93,7 @@ public partial class HomePage : ContentPage
         {
             var cv = (CollectionView)sender;
             cv.SelectedItem = null;
-
-            await DisplayAlert("Tour Khám Phá", $"Bạn đã chọn: {selectedTour.TourName}. Lịch trình chi tiết đang được phát triển.", "OK");
-            // Optionally, could go to MapPage to show all stalls on that tour.
-            await Navigation.PushAsync(new MapPage(_audioService));
+            await Navigation.PushAsync(new TourDetailPage(selectedTour));
         }
     }
 }

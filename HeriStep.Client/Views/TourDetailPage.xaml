@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.TourDetailPage"
+             x:Name="pageRoot"
+             Title="Chi Tiết Lộ Trình"
+             BackgroundColor="#F5F7FA">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="0">
+            <!-- Header Banner -->
+            <Grid HeightRequest="250">
+                <Image x:Name="imgTourBanner" 
+                       Aspect="AspectFill" 
+                       Source="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80" />
+                
+                <BoxView Color="Black" Opacity="0.4" />
+                
+                <VerticalStackLayout VerticalOptions="End" Padding="20" Spacing="8">
+                    <Label x:Name="lblTourTitle" 
+                           Text="Tour Name" 
+                           FontSize="24" 
+                           FontAttributes="Bold" 
+                           TextColor="White" 
+                           LineBreakMode="WordWrap"/>
+                    <Label x:Name="lblTourDesc" 
+                           Text="Description" 
+                           FontSize="14" 
+                           TextColor="#E0E0E0" 
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator x:Name="aiLoad" IsRunning="True" IsVisible="True" Color="#D32F2F" Margin="0, 30, 0, 0" HorizontalOptions="Center"/>
+
+            <VerticalStackLayout x:Name="vlContent" IsVisible="False" Padding="20" Spacing="15">
+                <Label x:Name="lblStallsTitle" 
+                       Text="Các Quán Ăn Trong Lộ Trình" 
+                       FontAttributes="Bold" 
+                       FontSize="18" 
+                       TextColor="#333" />
+
+                <!-- Stalls List -->
+                <VerticalStackLayout x:Name="vlStallsList" Spacing="15">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="White" Padding="15">
+                                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="15">
+                                    <Image Grid.Column="0" 
+                                           Source="{Binding ImageUrl}" 
+                                           WidthRequest="70" 
+                                           HeightRequest="70" 
+                                           Aspect="AspectFill" 
+                                           BackgroundColor="#E0E0E0">
+                                        <Image.Clip>
+                                            <RoundRectangleGeometry CornerRadius="10" Rect="0,0,70,70" />
+                                        </Image.Clip>
+                                    </Image>
+                                    
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="5">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" TextColor="Black" />
+                                        <Label Text="{Binding RadiusMeter, StringFormat='🏷️ Bán kính: {0}m'}" FontSize="12" TextColor="Gray" />
+                                        <HorizontalStackLayout Spacing="5">
+                                            <Label Text="⭐ 5.0" FontSize="12" TextColor="#FFA000" FontAttributes="Bold"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                    
+                                    <Button Grid.Column="2"
+                                            x:Name="btnNavigate"
+                                            Text="{Binding Path=NavigateBtnText, Source={x:Reference pageRoot}}"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            TextColor="White"
+                                            BackgroundColor="#1A73E8"
+                                            CornerRadius="10"
+                                            HeightRequest="36"
+                                            Padding="10,0"
+                                            VerticalOptions="Center"
+                                            CommandParameter="{Binding .}"
+                                            Clicked="OnNavigateClicked" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

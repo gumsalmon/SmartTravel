@@ -99,7 +99,9 @@ namespace HeriStep.Client.ViewModels
         }
 
         /// <summary>
-        /// Loads all stalls and tours from the API, applying the current language.
+        /// Loads all stalls and tours. Áp dụng kiến trúc Offline-first:
+        /// - Top5 Quán và Top10 Tour được load từ SQLite NGay Lập Tức (0 giây, không cần mạng)
+        /// - API được gọi background sau đó để cập nhật dữ liệu mới
         /// </summary>
         public async Task LoadPointsAsync()
         {
@@ -107,6 +109,17 @@ namespace HeriStep.Client.ViewModels
             IsBusy = true;
             try
             {
+                // =====================================================================
+                // Úu Tiên 1: OFFLINE-FIRST — Load Top5 + Top10 từ SQLite NGay Lập Tức
+                // ViewModel trực tiếp thực thi truy vấn SELECT từ CSDL SQLite nhúng sẵn
+                // đẩy thẳng lên UI Thread, không chờ API.
+                // =====================================================================
+                await LoadTop5FromSQLiteAsync();
+                await LoadTop10ToursFromSQLiteAsync();
+
+                // =====================================================================
+                // Úu Tiên 2: API HTTP — cập nhật dữ liệu đầy đủ và lưu vào SQLite cache
+                // =====================================================================
                 string lang = L.CurrentLanguage;
                 var url = $"/api/Stalls?lang={lang}";
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -150,7 +163,8 @@ namespace HeriStep.Client.ViewModels
                             Longitude = p.Longitude,
                             IsOpen = p.IsOpen,
                             HasOwner = p.OwnerId.HasValue,
-                            RadiusMeter = p.RadiusMeter
+                            RadiusMeter = p.RadiusMeter,
+                            Rating = 4.5 // Mặc định cho đến khi có dữ liệu thực tế từ API
                         });
                         await _localDb.SaveStallsAsync(cacheStalls);
                     } 
@@ -199,10 +213,104 @@ namespace HeriStep.Client.ViewModels
                 }
             }
 
-            // --- Load Top 5 Stalls from dedicated endpoint (real rating order) ---
+            // --- Background Refresh Top 5 từ API (sau khi đã hiển thị SQLite rồi) ---
+            _ = Task.Run(async () => await RefreshTop5FromApiAsync());
+
+            // --- Background Refresh Top 10 Tours từ API ---
+            _ = Task.Run(async () => await RefreshTop10ToursFromApiAsync());
+
+            IsBusy = false;
+        }
+
+        // ===================================================================
+        // OFFLINE-FIRST: Đọc truy vấn từ SQLite ngay lập tức (không gọi API)
+        // ===================================================================
+
+        /// <summary>
+        /// SELECT TOP 5 FROM StallCache ORDER BY Rating DESC
+        /// Hiển thị ngay 0 giây, không cần internet.
+        /// </summary>
+        private async Task LoadTop5FromSQLiteAsync()
+        {
             try
             {
-                Console.WriteLine("[LOG] Fetching Top5 stalls from /api/Stalls/top5...");
+                var top5Local = await _localDb.GetTop5StallsAsync();
+                if (top5Local != null && top5Local.Count > 0)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        TopRatedPoints.Clear();
+                        foreach (var ls in top5Local)
+                        {
+                            TopRatedPoints.Add(new Stall
+                            {
+                                Id = ls.Id,
+                                Name = ls.Name,
+                                Description = ls.Description,
+                                ImageUrl = string.IsNullOrEmpty(ls.ImageUrl)
+                                    ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=600"
+                                    : ls.ImageUrl,
+                                Latitude = ls.Latitude,
+                                Longitude = ls.Longitude,
+                                IsOpen = ls.IsOpen
+                            });
+                        }
+                        Console.WriteLine($"[OFFLINE-FIRST] Top5 từ SQLite: {top5Local.Count} quán — 0 giây.");
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[OFFLINE_DB] SQLite Top5 failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// SELECT * FROM TourCache WHERE IsActive=1 LIMIT 10
+        /// Hiển thị ngay 0 giây, không cần internet.
+        /// </summary>
+        private async Task LoadTop10ToursFromSQLiteAsync()
+        {
+            try
+            {
+                var top10Local = await _localDb.GetTop10ToursAsync();
+                if (top10Local != null && top10Local.Count > 0)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        TopTours.Clear();
+                        foreach (var lt in top10Local)
+                        {
+                            TopTours.Add(new Tour
+                            {
+                                Id = lt.Id,
+                                TourName = lt.TourName,
+                                ImageUrl = string.IsNullOrEmpty(lt.ImageUrl)
+                                    ? "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=600"
+                                    : lt.ImageUrl,
+                                StallCount = lt.StallCount,
+                                Visits = lt.Visits
+                            });
+                        }
+                        Console.WriteLine($"[OFFLINE-FIRST] Top10 Tours từ SQLite: {top10Local.Count} lộ trình — 0 giây.");
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[OFFLINE_DB] SQLite Top10Tours failed: {ex.Message}");
+            }
+        }
+
+        // ===================================================================
+        // BACKGROUND SYNC: Refresh từ API và cập nhật UI + SQLite cache
+        // ===================================================================
+
+        private async Task RefreshTop5FromApiAsync()
+        {
+            try
+            {
+                Console.WriteLine("[LOG] Background: Fetching Top5 stalls from /api/Stalls/top5...");
                 var top5Options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var top5Data = await _httpClient.GetFromJsonAsync<List<Stall>>("/api/Stalls/top5", top5Options);
                 if (top5Data != null)
@@ -218,39 +326,45 @@ namespace HeriStep.Client.ViewModels
                                 p.ImageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=600";
                             TopRatedPoints.Add(p);
                         }
-                        Console.WriteLine($"[LOG] Loaded {TopRatedPoints.Count} top-rated stalls OK.");
+                        Console.WriteLine($"[LOG] Background: Top5 API loaded {TopRatedPoints.Count} stalls.");
                     });
+
+                    // Cập nhật SQLite cache với dữ liệu mới nhất từ API (kèm Rating nếu có)
+                    try
+                    {
+                        var cacheStalls = top5Data.Select((p, i) => new HeriStep.Client.Models.LocalModels.LocalStall
+                        {
+                            Id = p.Id,
+                            Name = p.Name ?? "",
+                            Description = p.Description ?? "",
+                            ImageUrl = p.ImageUrl ?? "",
+                            Latitude = p.Latitude,
+                            Longitude = p.Longitude,
+                            IsOpen = p.IsOpen,
+                            HasOwner = p.OwnerId.HasValue,
+                            RadiusMeter = p.RadiusMeter,
+                            Rating = 5.0 - (i * 0.1) // Top5 sắp xếp từ cao xuống thấp
+                        });
+                        await _localDb.SaveStallsAsync(cacheStalls);
+                    }
+                    catch (Exception dbEx)
+                    {
+                        Console.WriteLine($"[OFFLINE_DB] Failed to cache top5 stalls: {dbEx.Message}");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[OFFLINE_DB] Fetching API top5 failed: {ex.Message}");
-                // OFFLINE FALLBACK FOR TOP 5
-                try
-                {
-                    if (_allPoints != null && _allPoints.Count > 0)
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(() =>
-                        {
-                            TopRatedPoints.Clear();
-                            foreach (var p in _allPoints.Take(5))
-                            {
-                                TopRatedPoints.Add(p);
-                            }
-                        });
-                        Console.WriteLine($"[OFFLINE_DB] Loaded {TopRatedPoints.Count} top-rated stalls from Local Cache fallback.");
-                    }
-                }
-                catch (Exception readEx)
-                {
-                    Console.WriteLine($"[OFFLINE_DB] Top 5 fallback failed: {readEx.Message}");
-                }
+                Console.WriteLine($"[OFFLINE_DB] Background Top5 API failed (offline?): {ex.Message}");
+                // Giữ nguyên dữ liệu SQLite đang hiển thị, không làm gì thêm
             }
+        }
 
-            // --- Load Top Tours ---
+        private async Task RefreshTop10ToursFromApiAsync()
+        {
             try
             {
-                Console.WriteLine("[LOG] Fetching top tours from /api/Tours/top10...");
+                Console.WriteLine("[LOG] Background: Fetching Top10 tours from /api/Tours/top10...");
                 var toursOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var toursData = await _httpClient.GetFromJsonAsync<List<Tour>>("/api/Tours/top10", toursOptions);
                 if (toursData != null)
@@ -266,7 +380,7 @@ namespace HeriStep.Client.ViewModels
                                 t.ImageUrl = $"{AppConstants.BaseApiUrl}/{t.ImageUrl.TrimStart('/')}";
                             TopTours.Add(t);
                         }
-                        Console.WriteLine($"[LOG] Loaded {TopTours.Count} tours OK.");
+                        Console.WriteLine($"[LOG] Background: Top10 Tours API loaded {TopTours.Count} tours.");
                     });
                     
                     // SAVE TO SQLITE
@@ -275,8 +389,11 @@ namespace HeriStep.Client.ViewModels
                         var cacheTours = toursData.Select(t => new HeriStep.Client.Models.LocalModels.LocalTour {
                             Id = t.Id,
                             TourName = t.TourName,
+                            Description = t.Description ?? "",
                             ImageUrl = t.ImageUrl ?? "",
-                            StallCount = t.StallCount
+                            StallCount = t.StallCount,
+                            Visits = t.Visits,
+                            IsActive = true
                         });
                         await _localDb.SaveToursAsync(cacheTours);
                     }
@@ -288,35 +405,9 @@ namespace HeriStep.Client.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[OFFLINE_DB] Fetching tours failed: {ex.Message}");
-                // OFFLINE FALLBACK
-                try 
-                {
-                    var offlineTours = await _localDb.GetToursAsync();
-                    if (offlineTours != null && offlineTours.Count > 0)
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            TopTours.Clear();
-                            foreach (var lt in offlineTours)
-                            {
-                                TopTours.Add(new Tour {
-                                    Id = lt.Id,
-                                    TourName = lt.TourName,
-                                    ImageUrl = lt.ImageUrl,
-                                    StallCount = lt.StallCount
-                                });
-                            }
-                            Console.WriteLine($"[OFFLINE_DB] Loaded {TopTours.Count} tours from SQLite.");
-                        });
-                    }
-                }
-                catch (Exception readEx)
-                {
-                    Console.WriteLine($"[OFFLINE_DB] Cannot read tours from SQLite: {readEx.Message}");
-                }
+                Console.WriteLine($"[OFFLINE_DB] Background Top10 Tours API failed (offline?): {ex.Message}");
+                // Giữ nguyên dữ liệu SQLite đang hiển thị, không làm gì thêm
             }
-            finally { IsBusy = false; }
         }
 
         // ═══════════════════════════════════════════
@@ -333,9 +424,10 @@ namespace HeriStep.Client.ViewModels
                 return;
             }
 
-            string searchKw = RemoveDiacritics(keyword).ToLower();
+            string searchKw = keyword.Trim();
+            var compareInfo = System.Globalization.CultureInfo.InvariantCulture.CompareInfo;
             var filtered = _allPoints
-                .Where(p => p.Name != null && RemoveDiacritics(p.Name).ToLower().Contains(searchKw))
+                .Where(p => p.Name != null && compareInfo.IndexOf(p.Name, searchKw, System.Globalization.CompareOptions.IgnoreNonSpace | System.Globalization.CompareOptions.IgnoreCase) >= 0)
                 .ToList();
 
             // Fallback: show all if filter returns empty (prevents blank screen)

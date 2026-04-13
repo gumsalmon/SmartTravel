@@ -26,6 +26,11 @@ public partial class MapPage : ContentPage
     private List<Stall> _allStalls = new();
     private bool _isTtsPlaying = false;
     private readonly AudioTranslationService _audioService;
+    private readonly LocalDatabaseService _localDb = new LocalDatabaseService();
+
+    // ═══ FREE EXPLORATION MODE ═══
+    private bool _isFreeExploreMode = false;
+    private CancellationTokenSource? _freeExploreCts;
 
 
     // ═══ DEMO MODE ═══
@@ -97,12 +102,11 @@ public partial class MapPage : ContentPage
     {
         base.OnAppearing();
         ClosePopup();
+        ApplyLocalization();
 
-        // ✅ FIX: Center map AFTER appearing so viewport is guaranteed to be initialized.
-        // Short delay lets the Mapsui surface finish layout before ZoomTo() is called.
         _ = Task.Run(async () =>
         {
-            await Task.Delay(250); // wait for render
+            await Task.Delay(250);
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 try { CenterOnVinhKhanh(); }
@@ -124,10 +128,21 @@ public partial class MapPage : ContentPage
         });
     }
 
+    private void ApplyLocalization()
+    {
+        // Map popup & banner labels (localized)
+        lblNearbyLabel.Text = L.Get("map_nearby_label");
+        btnGeofencePlayAudio.Text = L.Get("map_play_audio");
+        btnPlayAudio.Text = L.Get("map_play_audio");
+        btnNavigate.Text = L.Get("map_navigate");
+        btnViewDetail.Text = L.Get("map_detail");
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         _locationLoopCts?.Cancel();
+        StopFreeExplore();
     }
 
 
@@ -595,5 +610,136 @@ public partial class MapPage : ContentPage
             btnDemoMode.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#D35400");
         }
         else btnDemoMode.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#6B5B4E");
+    }
+
+    // ══════════════════════════════════════════════
+    // CHẾ ĐỘ KHÁM PHÁ TỰ DO (FREE EXPLORATION MODE)
+    // ══════════════════════════════════════════════
+    // Luồng theo sơ đồ sequence Hình 29:
+    // 1. Nạp TẤT CẢ tọa độ sạp từ SQLite vào RAM
+    // 2. Loop nền mỗi 5 giây: lấy GPS → Haversine → check <=20m
+    // 3. Nếu IsVisited=false → phát TTS → đánh cờ IsVisited=true
+    // ══════════════════════════════════════════════
+
+    private async void FreeExplore_Clicked(object sender, EventArgs e)
+    {
+        _isFreeExploreMode = !_isFreeExploreMode;
+
+        if (_isFreeExploreMode)
+        {
+            // Reset cờ IsVisited để bắt đầu phiên khám phá mới
+            await _localDb.ResetAllVisitedAsync();
+
+            btnFreeExplore.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+            freeExploreBanner.IsVisible = true;
+            lblFreeExploreStatus.Text = L.Get("map_free_explore_on");
+
+            StartFreeExploreLoop();
+        }
+        else
+        {
+            StopFreeExplore();
+        }
+    }
+
+    private void StartFreeExploreLoop()
+    {
+        _freeExploreCts?.Cancel();
+        _freeExploreCts = new CancellationTokenSource();
+        var token = _freeExploreCts.Token;
+
+        Task.Run(async () =>
+        {
+            // Bước 1: Nạp TẤT CẢ tọa độ sạp từ SQLite Local vào RAM
+            var allLocalStalls = await _localDb.GetStallsAsync();
+            Console.WriteLine($"[FREE_EXPLORE] Loaded {allLocalStalls.Count} stalls from SQLite into RAM.");
+
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    // Bước 2: Lấy GPS hiện tại mỗi 5 giây
+                    double lat = _lastUserLat;
+                    double lon = _lastUserLon;
+
+                    try
+                    {
+                        var loc = await Geolocation.Default.GetLastKnownLocationAsync();
+                        if (loc != null) { lat = loc.Latitude; lon = loc.Longitude; }
+                    }
+                    catch { }
+
+                    // Bước 3: Thuật toán Haversine — tìm sạp trong vùng <=20m chưa nghe
+                    var userLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lon);
+
+                    foreach (var ls in allLocalStalls)
+                    {
+                        if (ls.Latitude == 0 && ls.Longitude == 0) continue;
+                        if (ls.IsVisited) continue; // Đã nghe → bỏ qua
+
+                        var stallLoc = new Microsoft.Maui.Devices.Sensors.Location(ls.Latitude, ls.Longitude);
+                        double distMeters = Microsoft.Maui.Devices.Sensors.Location
+                            .CalculateDistance(userLoc, stallLoc, DistanceUnits.Kilometers) * 1000;
+
+                        double radius = ls.RadiusMeter > 5 ? Math.Min(ls.RadiusMeter, 20) : 20;
+
+                        if (distMeters <= radius)
+                        {
+                            Console.WriteLine($"[FREE_EXPLORE] Entered zone of '{ls.Name}' ({distMeters:F1}m). Playing TTS...");
+
+                            // Bước 4: Truy xuất kịch bản TtsScript theo ngôn ngữ đã chọn
+                            string script = !string.IsNullOrEmpty(ls.Description)
+                                ? ls.Description
+                                : BuildFallback(new Stall { Name = ls.Name }, L.CurrentLanguage);
+
+                            // Đánh cờ IsVisited = true TRƯỚC khi phát để tránh vòng lặp
+                            ls.IsVisited = true;
+                            await _localDb.MarkStallVisitedAsync(ls.Id);
+
+                            // Cập nhật banner
+                            await MainThread.InvokeOnMainThreadAsync(() =>
+                            {
+                                lblFreeExploreStatus.Text = $"🔊 {ls.Name}";
+                                lblNearbyStallName.Text = ls.Name;
+                                geofenceBanner.IsVisible = true;
+                                btnGeofencePlayAudio.IsEnabled = false;
+                            });
+
+                            // Bước 5: Phát TTS bằng giọng bản địa
+                            await _audioService.SpeakAsync(script);
+
+                            await MainThread.InvokeOnMainThreadAsync(() =>
+                            {
+                                lblFreeExploreStatus.Text = L.Get("map_free_explore_on");
+                                btnGeofencePlayAudio.IsEnabled = true;
+                            });
+
+                            break; // Chỉ phát 1 sạp mỗi lần quét
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FREE_EXPLORE] Loop error: {ex.Message}");
+                }
+
+                // Scan mỗi 5 giây theo sơ đồ sequence
+                try { await Task.Delay(5000, token); }
+                catch (TaskCanceledException) { break; }
+            }
+
+            Console.WriteLine("[FREE_EXPLORE] Loop stopped.");
+        }, token);
+    }
+
+    private void StopFreeExplore()
+    {
+        _isFreeExploreMode = false;
+        _freeExploreCts?.Cancel();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            freeExploreBanner.IsVisible = false;
+            btnFreeExplore.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+        });
     }
 }

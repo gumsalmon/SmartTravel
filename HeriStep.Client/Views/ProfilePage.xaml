@@ -12,7 +12,7 @@
             <Grid ColumnDefinitions="Auto, *, Auto">
                 <Button Text="←" FontSize="18" TextColor="#D35400" BackgroundColor="Transparent"
                         Padding="0" Grid.Column="0" Clicked="OnHomeClicked"/>
-                <Label Text="Profile" FontSize="18" FontAttributes="Bold"
+                <Label x:Name="lblProfileTitle" Text="Profile" FontSize="18" FontAttributes="Bold"
                        TextColor="#FDF5E6" HorizontalOptions="Center" VerticalOptions="Center"
                        Grid.Column="1"/>
                 <Border StrokeShape="RoundRectangle 20" HeightRequest="40" WidthRequest="40"
@@ -44,9 +44,9 @@
                 <Border StrokeShape="RoundRectangle 18" BackgroundColor="#242424"
                         Padding="14,16" StrokeThickness="0" Grid.Column="0" HorizontalOptions="Fill">
                     <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
-                        <Label Text="24" FontSize="22" FontAttributes="Bold" TextColor="#D35400"
+                        <Label Text="49" FontSize="22" FontAttributes="Bold" TextColor="#D35400"
                                HorizontalOptions="Center"/>
-                        <Label Text="Visited" FontSize="10" TextColor="#6B5B4E"
+                        <Label x:Name="lblStatVisited" Text="Visited" FontSize="10" TextColor="#6B5B4E"
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
@@ -55,7 +55,7 @@
                     <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
                         <Label Text="12" FontSize="22" FontAttributes="Bold" TextColor="#FFBF00"
                                HorizontalOptions="Center"/>
-                        <Label Text="Saved" FontSize="10" TextColor="#6B5B4E"
+                        <Label x:Name="lblStatSaved" Text="Saved" FontSize="10" TextColor="#6B5B4E"
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
@@ -64,7 +64,7 @@
                     <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
                         <Label Text="★ 4.8" FontSize="20" FontAttributes="Bold" TextColor="#D35400"
                                HorizontalOptions="Center"/>
-                        <Label Text="Rating" FontSize="10" TextColor="#6B5B4E"
+                        <Label x:Name="lblStatRating" Text="Rating" FontSize="10" TextColor="#6B5B4E"
                                HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
@@ -82,8 +82,8 @@
                         <Label Text="🌐" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Border>
                     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="14,0" Spacing="2">
-                        <Label Text="Change Language" FontSize="15" FontAttributes="Bold" TextColor="#FDF5E6"/>
-                        <Label Text="Tap to switch app language" FontSize="12" TextColor="#6B5B4E"/>
+                        <Label x:Name="lblChangeLang" Text="Change Language" FontSize="15" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                        <Label x:Name="lblChangeLangDesc" Text="Tap to switch app language" FontSize="12" TextColor="#6B5B4E"/>
                     </VerticalStackLayout>
                     <Label Text="›" FontSize="24" TextColor="#D35400" Grid.Column="2" VerticalOptions="Center"/>
                 </Grid>
@@ -103,8 +103,8 @@
                             <Label Text="🔖" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Border>
                         <VerticalStackLayout VerticalOptions="Center">
-                            <Label Text="Saved" FontSize="14" FontAttributes="Bold" TextColor="#FDF5E6"/>
-                            <Label Text="12 places" FontSize="11" TextColor="#6B5B4E"/>
+                            <Label x:Name="lblSaved" Text="Saved" FontSize="14" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                            <Label x:Name="lblSavedCount" Text="12 places" FontSize="11" TextColor="#6B5B4E"/>
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </Border>
@@ -120,8 +120,8 @@
                             <Label Text="🎧" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Border>
                         <VerticalStackLayout VerticalOptions="Center">
-                            <Label Text="Support" FontSize="14" FontAttributes="Bold" TextColor="#FDF5E6"/>
-                            <Label Text="24/7 Help" FontSize="11" TextColor="#6B5B4E"/>
+                            <Label x:Name="lblSupport" Text="Support" FontSize="14" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                            <Label x:Name="lblSupportDesc" Text="24/7 Help" FontSize="11" TextColor="#6B5B4E"/>
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </Border>
@@ -139,8 +139,8 @@
                         <Label Text="🔄" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Border>
                     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="14,0" Spacing="2">
-                        <Label Text="Thay đổi gói cước" FontSize="15" FontAttributes="Bold" TextColor="#FFCCCC"/>
-                        <Label Text="Chuyển sang màn hình chọn gói" FontSize="12" TextColor="#AA7777"/>
+                        <Label x:Name="lblChangePkg" Text="Thay đổi gói cước" FontSize="15" FontAttributes="Bold" TextColor="#FFCCCC"/>
+                        <Label x:Name="lblChangePkgDesc" Text="Chuyển sang màn hình chọn gói" FontSize="12" TextColor="#AA7777"/>
                     </VerticalStackLayout>
                     <Label Text="›" FontSize="24" TextColor="#FF4444" Grid.Column="2" VerticalOptions="Center"/>
                 </Grid>
@@ -149,9 +149,9 @@
             <!-- ══ RECENT HISTORY ══ -->
             <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="*, Auto">
-                    <Label Text="Recent History" FontSize="20" FontAttributes="Bold"
+                    <Label x:Name="lblRecentHistory" Text="Recent History" FontSize="20" FontAttributes="Bold"
                            TextColor="#FDF5E6" Grid.Column="0"/>
-                    <Label Text="View All" FontSize="13" FontAttributes="Bold"
+                    <Label x:Name="lblViewAll" Text="View All" FontSize="13" FontAttributes="Bold"
                            TextColor="#D35400" Grid.Column="1" VerticalOptions="Center">
                         <Label.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnViewAllHistoryTapped"/>

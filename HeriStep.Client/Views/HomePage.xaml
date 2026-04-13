@@ -19,7 +19,7 @@
                     </Label>
 
                     <Entry x:Name="searchEntry" 
-                           Placeholder="Tìm đồ ăn, tên quán..." 
+                           Placeholder="Tìm quán ăn, địa điểm..." 
                            BackgroundColor="Transparent" 
                            Grid.Column="1" Margin="10,0"
                            ReturnCommand="{Binding FilterCommand}"
@@ -27,10 +27,10 @@
 
                     <Picker Grid.Column="2" 
                             SelectedItem="{Binding SelectedManualLocation, Mode=TwoWay}"
-                            Title="📍 Vị trí" 
+                            Title="📍" 
                             TextColor="#1A73E8" TitleColor="#1A73E8" FontAttributes="Bold">
                         <Picker.Items>
-                            <x:String>Vị trí hiện tại (Auto)</x:String>
+                            <x:String>Auto GPS</x:String>
                             <x:String>Đầu đường Vĩnh Khánh</x:String>
                             <x:String>Cuối đường Vĩnh Khánh</x:String>
                         </Picker.Items>
@@ -136,7 +136,7 @@
             </Border>
 
             <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
-                <Label Grid.Column="0" Text="🔥 Top 10 Tours Khám Phá" FontAttributes="Bold" FontSize="18" TextColor="#D32F2F" VerticalOptions="Center" />
+                <Label x:Name="lblTopTours" Grid.Column="0" Text="🔥 Top 10 Tours Khám Phá" FontAttributes="Bold" FontSize="18" TextColor="#D32F2F" VerticalOptions="Center" />
             </Grid>
 
             <CollectionView ItemsSource="{Binding TopTours}" HeightRequest="190" SelectionMode="Single" SelectionChanged="OnTourSelected">
@@ -162,7 +162,7 @@
             </CollectionView>
 
             <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
-                <Label Grid.Column="0" Text="⭐ Top Quán 5 Sao" FontAttributes="Bold" FontSize="18" TextColor="#FFA000" VerticalOptions="Center" />
+                <Label x:Name="lblTopShops" Grid.Column="0" Text="⭐ Top Quán 5 Sao" FontAttributes="Bold" FontSize="18" TextColor="#FFA000" VerticalOptions="Center" />
             </Grid>
 
             <CollectionView ItemsSource="{Binding TopRatedPoints}" HeightRequest="220" SelectionMode="Single" SelectionChanged="OnShopSelected">
@@ -191,7 +191,7 @@
             </CollectionView>
 
             <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center" Margin="0,10,0,0">
-                <Label Grid.Column="0" Text="Khám phá tất cả" FontAttributes="Bold" FontSize="18" TextColor="Black" VerticalOptions="Center" />
+                <Label x:Name="lblExploreAll" Grid.Column="0" Text="Khám phá tất cả" FontAttributes="Bold" FontSize="18" TextColor="Black" VerticalOptions="Center" />
             </Grid>
 
             <CollectionView ItemsSource="{Binding Points}" HeightRequest="220" SelectionMode="Single" SelectionChanged="OnShopSelected">

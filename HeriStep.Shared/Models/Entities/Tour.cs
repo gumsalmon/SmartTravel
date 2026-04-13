@@ -29,6 +29,10 @@ namespace HeriStep.Shared.Models
         [NotMapped]
         public int StallCount { get; set; }
 
+        // Số lượt ghé thăm/xem tour (hiển thị trên UI)
+        [NotMapped]
+        public int Visits { get; set; }
+
         // 2. Xóa [NotMapped] và đổi thành virtual ICollection
         // Để EF Core biết đây là Navigation Property (Mối quan hệ 1 Tour - Nhiều Sạp)
         // và cho phép lệnh .Include(t => t.Stalls) hoạt động!

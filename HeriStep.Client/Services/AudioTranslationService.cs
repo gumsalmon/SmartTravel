@@ -30,10 +30,20 @@ namespace HeriStep.Client.Services
                 // 2. Setup TTS Options (Hardcoded Female Preference & National Locale)
                 var locales = await TextToSpeech.Default.GetLocalesAsync();
                 
-                // Find locale matching target language - prioritizing higher quality/primary country voices
+                // Mở rộng Locale mapping chuẩn (ưu tiên người bản xứ)
+                var nativeMappings = new Dictionary<string, string>
+                {
+                    { "zh", "CN" }, { "ko", "KR" }, { "ja", "JP" },
+                    { "vi", "VN" }, { "en", "US" }, { "fr", "FR" }
+                };
+
+                string preferredCountry = nativeMappings.ContainsKey(targetLang) ? nativeMappings[targetLang] : "";
+
+                // Find locale matching target language - ưu tiên quốc gia gốc
                 var locale = locales?
                     .Where(l => l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(l => l.Country) // Priority: US/GB for en, JP for ja, etc.
+                    .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
+                    .ThenByDescending(l => l.Country)
                     .FirstOrDefault();
 
                 if (locale != null)

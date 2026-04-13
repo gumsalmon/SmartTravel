@@ -56,7 +56,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="Views\TourDetailPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\SubscriptionPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\RenewalPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\MapPage.xaml">

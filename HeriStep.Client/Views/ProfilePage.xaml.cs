@@ -8,6 +8,7 @@ namespace HeriStep.Client.Views
     {
         private readonly SubscriptionService _subscriptionService;
         private readonly AudioTranslationService _audioService;
+        private Action? _langChangedHandler;
 
         public ProfilePage(SubscriptionService subscriptionService, AudioTranslationService audioService)
         {
@@ -19,21 +20,62 @@ namespace HeriStep.Client.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            lblDeviceId.Text = $"Mã máy: {_subscriptionService.GetDeviceId()}";
 
+            ApplyLocalization();
+
+            // Subscribe once to language changes
+            if (_langChangedHandler == null)
+            {
+                _langChangedHandler = () => MainThread.BeginInvokeOnMainThread(ApplyLocalization);
+                L.LanguageChanged += _langChangedHandler;
+            }
+
+            // Device ID
+            lblDeviceId.Text = $"{L.Get("profile_device")} {_subscriptionService.GetDeviceId()}";
+
+            // Subscription status
             var status = await _subscriptionService.CheckStatusAsync();
             if (status != null && status.Valid)
             {
                 var hrs = status.RemainingHours ?? 0;
-                var days = Math.Floor(hrs / 24);
-                var hours = Math.Floor(hrs % 24);
-                lblTimeRemaining.Text = $"Hạn sử dụng: CÒN LẠI {days} Ngày {hours} Giờ";
+                var days = (int)Math.Floor(hrs / 24);
+                var hours = (int)Math.Floor(hrs % 24);
+                lblTimeRemaining.Text = string.Format(L.Get("profile_expiry_ok"), days, hours);
+                lblTimeRemaining.TextColor = Colors.Gold;
             }
             else
             {
-                lblTimeRemaining.Text = "Hạn sử dụng: ĐÃ HẾT HẠN";
-                lblTimeRemaining.TextColor = Colors.Red;
+                lblTimeRemaining.Text = L.Get("profile_expiry_expired");
+                lblTimeRemaining.TextColor = Colors.IndianRed;
             }
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            if (_langChangedHandler != null)
+            {
+                L.LanguageChanged -= _langChangedHandler;
+                _langChangedHandler = null;
+            }
+        }
+
+        private void ApplyLocalization()
+        {
+            lblProfileTitle.Text      = L.Get("profile_title");
+            lblStatVisited.Text       = L.Get("profile_visited");
+            lblStatSaved.Text         = L.Get("profile_saved_lbl");
+            lblStatRating.Text        = L.Get("profile_rating");
+            lblChangeLang.Text        = L.Get("profile_change_lang");
+            lblChangeLangDesc.Text    = L.Get("profile_lang_desc");
+            lblSaved.Text             = L.Get("profile_saved_lbl");
+            lblSavedCount.Text        = "12 places";
+            lblSupport.Text           = L.Get("profile_support");
+            lblSupportDesc.Text       = L.Get("profile_support_24");
+            lblChangePkg.Text         = L.Get("profile_change_pkg");
+            lblChangePkgDesc.Text     = L.Get("profile_change_pkg_desc");
+            lblRecentHistory.Text     = L.Get("profile_history");
+            lblViewAll.Text           = L.Get("profile_view_all");
         }
 
         private async void OnHomeClicked(object sender, EventArgs e)
@@ -43,29 +85,27 @@ namespace HeriStep.Client.Views
 
         private async void OnSavedSpotsTapped(object sender, EventArgs e)
         {
-            await DisplayAlert("Thông báo", "Khu vực địa điểm đã lưu đang được cập nhật.", "OK");
+            await DisplayAlert(L.Get("notification"), "Khu vực địa điểm đã lưu đang được cập nhật.", L.Get("ok"));
         }
 
         private async void OnSupportTapped(object sender, EventArgs e)
         {
-            await DisplayAlert("Support", "Email: support@heristep.local\nHotline: 1800-HERISTEP", "OK");
+            await DisplayAlert("Support", "Email: support@heristep.local\nHotline: 1800-HERISTEP", L.Get("ok"));
         }
 
         private async void OnViewAllHistoryTapped(object sender, EventArgs e)
         {
-            await DisplayAlert("Visit History", "Full history view coming soon.", "OK");
+            await DisplayAlert(L.Get("profile_history"), "Full history view coming soon.", L.Get("ok"));
         }
 
         private async void OnChangePackageTapped(object sender, EventArgs e)
         {
-            var confirm = await DisplayAlert("Xác nhận", "Bạn có thực sự muốn đăng xuất để test lại chu trình đăng ký gói không?", "Đồng ý", "Hủy");
+            var confirm = await DisplayAlert(L.Get("notification"),
+                "Bạn có muốn vào trang Gia Hạn / Nâng cấp gói không?",
+                L.Get("ok"), L.Get("close"));
             if (confirm)
             {
-                // Cho phép reset hoàn toàn tài khoản và ngôn ngữ để kiểm tra Full UI Logic
-                Microsoft.Maui.Storage.Preferences.Default.Remove("device_uuid");
-                Microsoft.Maui.Storage.Preferences.Default.Remove("user_language");
-                
-                Application.Current.MainPage = new LoadingPage(new SubscriptionService());
+                Application.Current!.MainPage = new LanguageSelectionPage(_subscriptionService);
             }
         }
 
@@ -93,7 +133,6 @@ namespace HeriStep.Client.Views
 
         private async void OnChangeLanguageTapped(object sender, EventArgs e)
         {
-            // Push instead of replacing root — preserves AppShell + ViewModel + TTS state
             await Navigation.PushAsync(new LanguagePage(isChangeMode: true));
         }
     }

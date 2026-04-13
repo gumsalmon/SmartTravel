@@ -45,19 +45,75 @@ public class LoadingPage : ContentPage
 
         try 
         {
-            var status = await _subscriptionService.CheckStatusAsync();
-            
-            // Cần đảm bảo chạy trên UI thread nếu đổi MainPage
-            MainThread.BeginInvokeOnMainThread(() =>
+            // BƯỚC 1: Kiểm tra local cache trước (nhanh, không cần mạng)
+            var offlineExpiryStr = Microsoft.Maui.Storage.Preferences.Default.Get("sub_expires_at", "");
+            bool localExpired = true;
+
+            if (DateTime.TryParse(offlineExpiryStr, out DateTime localExpiry))
             {
-                if (status == null || !status.Valid)
-                {
-                    Application.Current.MainPage = new SubscriptionPage(_subscriptionService);
-                }
-                else
+                localExpired = localExpiry <= DateTime.UtcNow;
+            }
+
+            if (!localExpired)
+            {
+                // Local cache còn hạn → vào AppShell bình thường (không cần gọi API)
+                Console.WriteLine("[LOADING] Local cache còn hạn. Vào AppShell.");
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
                     Application.Current.MainPage = new AppShell();
+                });
+                return;
+            }
+
+            // BƯỚC 2: Local báo hết hạn → Double-check với Server để chống time-hack
+            // (User có thể chỉnh lùi giờ điện thoại để giả vờ còn hạn)
+            Console.WriteLine("[LOADING] Local expired. Gọi server double-check chống time-hack...");
+            var serverCheck = await _subscriptionService.CheckServerSubscriptionAsync();
+
+            if (serverCheck != null && !serverCheck.IsExpired)
+            {
+                // SERVER NÓI CÒN HẠN → Đây là time-hack (user chỉnh lùi giờ)
+                // Cập nhật lại local cache theo giờ server thực tế
+                Console.WriteLine("[TIME_HACK_DETECTED] Server nói còn hạn, nhưng local nói hết hạn. Cập nhật cache.");
+                if (serverCheck.ExpiryDate.HasValue)
+                {
+                    Microsoft.Maui.Storage.Preferences.Default.Set(
+                        "sub_expires_at", 
+                        serverCheck.ExpiryDate.Value.ToUniversalTime().ToString("o"));
                 }
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    Application.Current.MainPage = new AppShell();
+                });
+                return;
+            }
+
+            // BƯỚC 3: Nếu không có mạng (serverCheck == null) → Kiểm tra lần cuối qua API cũ
+            if (serverCheck == null)
+            {
+                Console.WriteLine("[LOADING] Server không trả lời. Kiểm tra API cũ...");
+                var status = await _subscriptionService.CheckStatusAsync();
+                
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (status != null && status.Valid)
+                    {
+                        Application.Current.MainPage = new AppShell();
+                    }
+                    else
+                    {
+                        // HẾT HẠN THỰC SỰ hoặc chưa đăng ký → Renewal/Subscription
+                        Application.Current.MainPage = new RenewalPage(_subscriptionService);
+                    }
+                });
+                return;
+            }
+
+            // BƯỚC 4: Server confirms expired → Chuyển sang RenewalPage (gia hạn)
+            Console.WriteLine("[LOADING] Server xác nhận hết hạn. Chuyển sang RenewalPage.");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                Application.Current.MainPage = new RenewalPage(_subscriptionService);
             });
         }
         catch (Exception ex)

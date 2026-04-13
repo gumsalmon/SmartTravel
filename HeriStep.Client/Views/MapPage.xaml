@@ -27,7 +27,7 @@
                 <BoxView Grid.Column="0" WidthRequest="9" HeightRequest="9"
                          Color="#D35400" CornerRadius="4.5" VerticalOptions="Center"/>
                 <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
-                    <Label Text="📍 Sạp gần bạn" FontSize="10" TextColor="#6B5B4E"/>
+                    <Label x:Name="lblNearbyLabel" Text="📍 Sạp gần bạn" FontSize="10" TextColor="#6B5B4E"/>
                     <Label x:Name="lblNearbyStallName" Text="" FontSize="14"
                            FontAttributes="Bold" TextColor="#FDF5E6" LineBreakMode="TailTruncation"/>
                 </VerticalStackLayout>
@@ -42,6 +42,19 @@
                     </Button.Shadow>
                 </Button>
             </Grid>
+        </Border>
+
+        <!-- ── FREE EXPLORATION STATUS BAR ── -->
+        <Border x:Name="freeExploreBanner" IsVisible="False"
+                VerticalOptions="Start" HorizontalOptions="Fill"
+                Margin="14,80,14,0"
+                BackgroundColor="#EE1A3300" StrokeThickness="1" Stroke="#22C55E"
+                StrokeShape="RoundRectangle 14" Padding="10,6">
+            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="#22C55E" VerticalOptions="Center"/>
+                <Label x:Name="lblFreeExploreStatus" Text="🧭 Đang khám phá tự do..."
+                       FontSize="12" FontAttributes="Bold" TextColor="#22C55E" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
         </Border>
 
         <!-- ── LEGEND PANEL ── -->
@@ -86,6 +99,17 @@
                 CornerRadius="24" WidthRequest="48" HeightRequest="48"
                 HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,148"
                 Clicked="DemoMode_Clicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
+            </Button.Shadow>
+        </Button>
+
+        <!-- Free Exploration Mode -->
+        <Button x:Name="btnFreeExplore" Text="🧭" FontSize="20"
+                BackgroundColor="#EE242424" BorderColor="#22C55E" BorderWidth="1"
+                CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,208"
+                Clicked="FreeExplore_Clicked">
             <Button.Shadow>
                 <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
             </Button.Shadow>

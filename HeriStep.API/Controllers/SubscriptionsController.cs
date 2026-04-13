@@ -92,17 +92,59 @@ namespace HeriStep.API.Controllers
         }
 
         /* ========================================================== */
-        /* 3. CHI TIẾT GÓI THEO DEVICE ID (Dùng cho App/Client)       */
+        /* 3. CHI TIẾT GÓI THEO DEVICE ID (Dùng cho App/Client để double-check chống time-hack) */
         /* ========================================================== */
         [HttpGet("device/{deviceId}")]
-        public async Task<ActionResult<Subscription>> GetByDeviceId(string deviceId)
+        public async Task<ActionResult> GetByDeviceId(string deviceId)
         {
+            // Tìm ticket trong TouristTickets (luồng App Client)
+            var ticket = await _context.TouristTickets
+                .Where(t => t.DeviceId == deviceId)
+                .OrderByDescending(t => t.ExpiryDate)
+                .FirstOrDefaultAsync();
+
+            var now = DateTime.Now;
+
+            if (ticket != null)
+            {
+                bool isExpired = ticket.ExpiryDate < now;
+                return Ok(new
+                {
+                    IsExpired = isExpired,
+                    IsActive = !isExpired,
+                    ServerTime = now,          // Server time — chống time-hack
+                    ExpiryDate = ticket.ExpiryDate,
+                    PackageId = ticket.PackageId
+                });
+            }
+
+            // Tìm trong Subscriptions (luồng Merchant/Stall Owner)
             var sub = await _context.Subscriptions
                 .FirstOrDefaultAsync(s => s.DeviceId == deviceId);
 
-            if (sub == null) return NotFound("Không tìm thấy thiết bị.");
+            if (sub != null)
+            {
+                bool isExpired = sub.IsActive != true ||
+                                 (sub.ExpiryDate.HasValue && sub.ExpiryDate.Value < now);
+                return Ok(new
+                {
+                    IsExpired = isExpired,
+                    IsActive = !isExpired,
+                    ServerTime = now,
+                    ExpiryDate = sub.ExpiryDate,
+                    PackageId = (int?)null
+                });
+            }
 
-            return Ok(sub);
+            // Thiết bị chưa đăng ký
+            return Ok(new
+            {
+                IsExpired = true,
+                IsActive = false,
+                ServerTime = now,
+                ExpiryDate = (DateTime?)null,
+                PackageId = (int?)null
+            });
         }
     }
 }

@@ -49,6 +49,7 @@ public static class MauiProgram
         // ═══ PAGES ═══
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<SubscriptionPage>();
+        builder.Services.AddTransient<RenewalPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ProfilePage>();

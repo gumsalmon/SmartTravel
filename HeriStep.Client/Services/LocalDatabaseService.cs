@@ -37,6 +37,20 @@ namespace HeriStep.Client.Services
             return await _db.Table<LocalStall>().ToListAsync();
         }
 
+        /// <summary>
+        /// Tính năng: Xem Top 5 Quán (Luồng Offline-first)
+        /// Truy vấn trực tiếp SQLite — không gọi API HTTP.
+        /// SELECT TOP 5 FROM StallCache ORDER BY Rating DESC
+        /// </summary>
+        public async Task<List<LocalStall>> GetTop5StallsAsync()
+        {
+            await InitAsync();
+            return await _db.Table<LocalStall>()
+                            .OrderByDescending(s => s.Rating)
+                            .Take(5)
+                            .ToListAsync();
+        }
+
         public async Task SaveStallsAsync(IEnumerable<LocalStall> stalls)
         {
             await InitAsync();
@@ -58,6 +72,20 @@ namespace HeriStep.Client.Services
             return await _db.Table<LocalTour>().ToListAsync();
         }
 
+        /// <summary>
+        /// Tính năng: Xem Top 10 Tour du lịch (Luồng Offline-first)
+        /// SELECT * FROM TourCache WHERE IsActive=1 LIMIT 10
+        /// Không gọi API — render trực tiếp từ SQLite nội bộ.
+        /// </summary>
+        public async Task<List<LocalTour>> GetTop10ToursAsync()
+        {
+            await InitAsync();
+            return await _db.Table<LocalTour>()
+                            .Where(t => t.IsActive)
+                            .Take(10)
+                            .ToListAsync();
+        }
+
         public async Task SaveToursAsync(IEnumerable<LocalTour> tours)
         {
             await InitAsync();
@@ -66,6 +94,45 @@ namespace HeriStep.Client.Services
             {
                 await _db.InsertOrReplaceAsync(tour);
             }
+        }
+
+        #endregion
+
+        #region Free Exploration Mode
+
+        /// <summary>
+        /// Đánh dấu một quán đã được phát TTS (IsVisited = true).
+        /// Chống vòng lặp đọc lại theo sơ đồ sequence.
+        /// </summary>
+        public async Task MarkStallVisitedAsync(int stallId)
+        {
+            await InitAsync();
+            var stall = await _db.Table<LocalStall>().Where(s => s.Id == stallId).FirstOrDefaultAsync();
+            if (stall != null)
+            {
+                stall.IsVisited = true;
+                await _db.UpdateAsync(stall);
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra xem quán đã được phát TTS chưa.
+        /// </summary>
+        public async Task<bool> IsStallVisitedAsync(int stallId)
+        {
+            await InitAsync();
+            var stall = await _db.Table<LocalStall>().Where(s => s.Id == stallId).FirstOrDefaultAsync();
+            return stall?.IsVisited ?? false;
+        }
+
+        /// <summary>
+        /// Reset toàn bộ cờ IsVisited = false.
+        /// Gọi khi User bật lại chế độ Khám Phá Tự Do (bắt đầu lại phiên mới).
+        /// </summary>
+        public async Task ResetAllVisitedAsync()
+        {
+            await InitAsync();
+            await _db.ExecuteAsync("UPDATE StallCache SET IsVisited = 0");
         }
 
         #endregion

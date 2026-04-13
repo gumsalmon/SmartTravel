@@ -22,6 +22,19 @@ namespace HeriStep.Client.Services
         public bool IsPaid { get; set; }
     }
 
+    /// <summary>
+    /// Response từ GET /api/Subscriptions/device/{deviceId}
+    /// Dùng để double-check chống time-hack: So sánh giờ server với giờ thiết bị
+    /// </summary>
+    public class ServerSubscriptionCheckResponse
+    {
+        public bool IsExpired { get; set; }
+        public DateTime ServerTime { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public bool IsActive { get; set; }
+        public int? PackageId { get; set; }
+    }
+
     public class SubscriptionService
     {
         private readonly HttpClient _http;
@@ -126,6 +139,26 @@ namespace HeriStep.Client.Services
             catch (Exception)
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Double-check với Server để chống time-hack (User chỉnh lùi giờ điện thoại).
+        /// Gọi GET /api/Subscriptions/device/{deviceId} để lấy giờ thực tế từ server.
+        /// </summary>
+        public async Task<ServerSubscriptionCheckResponse?> CheckServerSubscriptionAsync()
+        {
+            try
+            {
+                var deviceId = GetDeviceId();
+                var response = await _http.GetFromJsonAsync<ServerSubscriptionCheckResponse>(
+                    $"/api/Subscriptions/device/{deviceId}");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TIME_HACK_CHECK] Server check failed (offline?): {ex.Message}");
+                return null; // null = không kết nối được, bỏ qua check
             }
         }
     }
