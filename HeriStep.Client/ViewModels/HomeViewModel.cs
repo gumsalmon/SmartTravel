@@ -17,6 +17,9 @@ namespace HeriStep.Client.ViewModels
         private bool _isBusy;
         private List<Stall> _allPoints = new();
 
+        /// <summary>All stalls — includes every stall for real-time search.</summary>
+        public IReadOnlyList<Stall> AllPoints => _allPoints;
+
         public bool IsBusy
         {
             get => _isBusy;

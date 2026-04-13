@@ -63,19 +63,25 @@ namespace HeriStep.Client.Views
         private void ApplyLocalization()
         {
             lblProfileTitle.Text      = L.Get("profile_title");
+            lblProfileDisplayName.Text= L.Get("profile_display_name");
             lblStatVisited.Text       = L.Get("profile_visited");
             lblStatSaved.Text         = L.Get("profile_saved_lbl");
             lblStatRating.Text        = L.Get("profile_rating");
             lblChangeLang.Text        = L.Get("profile_change_lang");
             lblChangeLangDesc.Text    = L.Get("profile_lang_desc");
             lblSaved.Text             = L.Get("profile_saved_lbl");
-            lblSavedCount.Text        = "12 places";
+            lblSavedCount.Text        = L.Get("profile_saved_count");
             lblSupport.Text           = L.Get("profile_support");
             lblSupportDesc.Text       = L.Get("profile_support_24");
-            lblChangePkg.Text         = L.Get("profile_change_pkg");
-            lblChangePkgDesc.Text     = L.Get("profile_change_pkg_desc");
+            lblChangePkg.Text         = L.Get("profile_logout");
+            lblChangePkgDesc.Text     = L.Get("profile_logout_desc");
             lblRecentHistory.Text     = L.Get("profile_history");
             lblViewAll.Text           = L.Get("profile_view_all");
+            // History items
+            lblHistoryItem1.Text      = L.Get("profile_history_item1");
+            lblHistoryTag1.Text       = L.Get("profile_history_tag1");
+            lblHistoryItem2.Text      = L.Get("profile_history_item2");
+            lblHistoryTag2.Text       = L.Get("profile_history_tag2");
         }
 
         private async void OnHomeClicked(object sender, EventArgs e)
@@ -100,12 +106,20 @@ namespace HeriStep.Client.Views
 
         private async void OnChangePackageTapped(object sender, EventArgs e)
         {
-            var confirm = await DisplayAlert(L.Get("notification"),
-                "Bạn có muốn vào trang Gia Hạn / Nâng cấp gói không?",
+            var confirm = await DisplayAlert(
+                L.Get("notification"),
+                L.Get("profile_logout_confirm"),
                 L.Get("ok"), L.Get("close"));
+
             if (confirm)
             {
-                Application.Current!.MainPage = new LanguageSelectionPage(_subscriptionService);
+                // 🗑️ Xóa dữ liệu đăng ký cũ để buộc app quay về trang QR
+                Preferences.Default.Remove("device_ticket_id");
+                Preferences.Default.Remove("ticket_expiry");
+                Preferences.Default.Remove("jwt_token");
+
+                // 🔄 Chuyển về trang chọn gói (SubscriptionPage) để quét lại QR
+                Application.Current!.MainPage = new NavigationPage(new SubscriptionPage(_subscriptionService));
             }
         }
 

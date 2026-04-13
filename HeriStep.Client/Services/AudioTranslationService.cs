@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Devices;
@@ -9,28 +10,34 @@ namespace HeriStep.Client.Services
 {
     public class AudioTranslationService
     {
-        private bool _isBusy = false;
+        // Dùng CancellationToken để huỷ TTS đang phát trước khi bắt đầu cái mới
+        private CancellationTokenSource? _cts;
 
         public async Task SpeakAsync(string originalText)
         {
-            if (_isBusy) return;
             if (string.IsNullOrWhiteSpace(originalText)) return;
 
-            _isBusy = true;
+            // Huỷ giọng đọc đang chạy (nếu có) để tránh rè/xếp hàng
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
             try
             {
                 string targetLang = L.CurrentLanguage;
                 Console.WriteLine($"[VOICE_SERVICE] Target Language: {targetLang}");
 
                 // 1. Auto-Translate
-                Console.WriteLine($"[VOICE_SERVICE] Translating text: {originalText.Substring(0, Math.Min(20, originalText.Length))}...");
                 string translatedText = await TranslationService.TranslateTextAsync(originalText, targetLang);
-                Console.WriteLine($"[VOICE_SERVICE] Translation complete: {translatedText.Substring(0, Math.Min(20, translatedText.Length))}...");
+                Console.WriteLine($"[VOICE_SERVICE] Translation: {translatedText.Substring(0, Math.Min(30, translatedText.Length))}...");
 
-                // 2. Setup TTS Options (Hardcoded Female Preference & National Locale)
+                // Nếu bị huỷ trong lúc dịch thì bỏ qua
+                if (token.IsCancellationRequested) return;
+
+                // 2. Setup TTS Options
                 var locales = await TextToSpeech.Default.GetLocalesAsync();
-                
-                // Mở rộng Locale mapping chuẩn (ưu tiên người bản xứ)
+
                 var nativeMappings = new Dictionary<string, string>
                 {
                     { "zh", "CN" }, { "ko", "KR" }, { "ja", "JP" },
@@ -39,50 +46,49 @@ namespace HeriStep.Client.Services
 
                 string preferredCountry = nativeMappings.ContainsKey(targetLang) ? nativeMappings[targetLang] : "";
 
-                // Find locale matching target language - ưu tiên quốc gia gốc
                 var locale = locales?
                     .Where(l => l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
                     .ThenByDescending(l => l.Country)
                     .FirstOrDefault();
 
-                if (locale != null)
-                {
-                    Console.WriteLine($"[VOICE_SERVICE] NATIVE DETECTED: Found matching voice for {targetLang.ToUpper()} -> {locale.Name} ({locale.Country})");
-                }
-                else
-                {
-                    Console.WriteLine($"[VOICE_SERVICE] WARNING: No native voice found for {targetLang.ToUpper()}, using system default.");
-                }
-
                 var options = new SpeechOptions
                 {
                     Locale = locale,
-                    Pitch = 1.2f, // Female preference
+                    Pitch = 1.0f,
                     Volume = 1.0f
                 };
 
-                // 3. Speak
-                string nationalityLabel = targetLang switch {
-                    "vi" => "người Việt Nam",
-                    "en" => "người Mỹ/Anh",
-                    "ja" => "người Nhật Bản",
-                    "ko" => "người Hàn Quốc",
-                    "fr" => "người Pháp",
-                    "zh" => "người Trung Quốc",
-                    _ => "bản ngữ"
-                };
-                Console.WriteLine($"[VOICE_SERVICE] ACTION: Đang phát âm thanh bằng giọng của {nationalityLabel}...");
-                await TextToSpeech.Default.SpeakAsync(translatedText, options);
+#if ANDROID
+                // 🔊 Ép tăng âm lượng media lên tối đa để nghe trên loa ngoài không cần tai nghe
+                try
+                {
+                    var audioManager = (Android.Media.AudioManager?)Android.App.Application.Context.GetSystemService(Android.Content.Context.AudioService);
+                    if (audioManager != null)
+                    {
+                        int maxVolume = audioManager.GetStreamMaxVolume(Android.Media.Stream.Music);
+                        audioManager.SetStreamVolume(Android.Media.Stream.Music, maxVolume, Android.Media.VolumeNotificationFlags.RemoveSoundAndVibrate);
+                        Console.WriteLine($"[VOICE_SERVICE] Android volume set to max ({maxVolume})");
+                    }
+                }
+                catch (Exception volEx)
+                {
+                    Console.WriteLine($"[VOICE_SERVICE] Volume set failed: {volEx.Message}");
+                }
+#endif
+
+                // 3. Speak với CancellationToken
+                Console.WriteLine($"[VOICE_SERVICE] Speaking...");
+                await TextToSpeech.Default.SpeakAsync(translatedText, options, token);
                 Console.WriteLine($"[VOICE_SERVICE] Speech completed.");
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"[VOICE_SERVICE] Speech cancelled (new request came in).");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[VOICE_SERVICE] Error: {ex.Message}");
-            }
-            finally
-            {
-                _isBusy = false;
             }
         }
     }

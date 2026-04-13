@@ -13,13 +13,15 @@ namespace HeriStep.API.Controllers
         private readonly HeriStepDbContext _context;
         private readonly string _bankName;
         private readonly string _soTaiKhoan;
+        private readonly string _accountName;
         private readonly string _pendingTicketsFile = "pending_tickets.json";
 
         public TicketsController(HeriStepDbContext context, IConfiguration config)
         {
             _context = context;
             _bankName = config["SePay:BankName"] ?? "MBBank";
-            _soTaiKhoan = config["SePay:BankAccount"] ?? "0366994409";
+            _soTaiKhoan = config["SePay:BankAccount"] ?? "0388764276";
+            _accountName = config["SePay:AccountName"] ?? "NGUYEN VAN B";
         }
 
         /// <summary>
@@ -152,7 +154,7 @@ namespace HeriStep.API.Controllers
             string vietQrBank = _bankName.ToLower().Contains("mb") ? "MB" : 
                                 _bankName.ToLower().Contains("techcombank") ? "TCB" : _bankName;
                                 
-            string originalQrUrl = $"https://img.vietqr.io/image/{vietQrBank}-{_soTaiKhoan}-compact2.png?amount={(int)package.Price}&addInfo=DH{tempId}&accountName=HERISTEP";
+            string originalQrUrl = $"https://img.vietqr.io/image/{vietQrBank}-{_soTaiKhoan}-compact2.png?amount={(int)package.Price}&addInfo=DH{tempId}&accountName={_accountName}";
             
             // Encode the URL so it can be passed via Query String
             string encodedUrl = Uri.EscapeDataString(originalQrUrl);

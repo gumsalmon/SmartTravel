@@ -8,35 +8,64 @@
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="15">
 
-            <Border StrokeShape="RoundRectangle 25" StrokeThickness="0" BackgroundColor="White" HeightRequest="50" Padding="15,0">
-                <Grid ColumnDefinitions="Auto, *, Auto" VerticalOptions="Center">
+            <!-- Search + Auto-Suggest Overlay -->
+            <Grid x:Name="searchContainer">
+                <!-- Search Box -->
+                <Border StrokeShape="RoundRectangle 25" StrokeThickness="0" BackgroundColor="White" HeightRequest="50" Padding="15,0">
+                    <Grid ColumnDefinitions="Auto, *, Auto" VerticalOptions="Center">
 
-                    <Label Text="🔍" FontSize="18" Grid.Column="0" VerticalOptions="Center">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding FilterCommand}" 
-                                                  CommandParameter="{Binding Text, Source={x:Reference searchEntry}}" />
-                        </Label.GestureRecognizers>
-                    </Label>
+                        <Label Text="🔍" FontSize="18" Grid.Column="0" VerticalOptions="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSearchIconTapped" />
+                            </Label.GestureRecognizers>
+                        </Label>
 
-                    <Entry x:Name="searchEntry" 
-                           Placeholder="Tìm quán ăn, địa điểm..." 
-                           BackgroundColor="Transparent" 
-                           Grid.Column="1" Margin="10,0"
-                           ReturnCommand="{Binding FilterCommand}"
-                           ReturnCommandParameter="{Binding Text, Source={x:Reference searchEntry}}" />
+                        <Entry x:Name="searchEntry" 
+                               Placeholder="搜索餐厅、地点..." 
+                               BackgroundColor="Transparent" 
+                               Grid.Column="1" Margin="10,0"
+                               TextChanged="OnSearchTextChanged" />
 
-                    <Picker Grid.Column="2" 
-                            SelectedItem="{Binding SelectedManualLocation, Mode=TwoWay}"
-                            Title="📍" 
-                            TextColor="#1A73E8" TitleColor="#1A73E8" FontAttributes="Bold">
-                        <Picker.Items>
-                            <x:String>Auto GPS</x:String>
-                            <x:String>Đầu đường Vĩnh Khánh</x:String>
-                            <x:String>Cuối đường Vĩnh Khánh</x:String>
-                        </Picker.Items>
-                    </Picker>
-                </Grid>
-            </Border>
+                        <Picker Grid.Column="2" 
+                                SelectedItem="{Binding SelectedManualLocation, Mode=TwoWay}"
+                                Title="📍" 
+                                TextColor="#1A73E8" TitleColor="#1A73E8" FontAttributes="Bold">
+                            <Picker.Items>
+                                <x:String>Auto GPS</x:String>
+                                <x:String>Đầu đường Vĩnh Khánh</x:String>
+                                <x:String>Cuối đường Vĩnh Khánh</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </Grid>
+                </Border>
+
+                <!-- Auto-Suggest Dropdown -->
+                <Border x:Name="suggestionPanel"
+                        IsVisible="False"
+                        StrokeShape="RoundRectangle 16"
+                        StrokeThickness="0"
+                        BackgroundColor="White"
+                        Margin="0,56,0,0"
+                        ZIndex="10">
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.15"/>
+                    </Border.Shadow>
+                    <CollectionView x:Name="suggestionList"
+                                    MaximumHeightRequest="220"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnSuggestionSelected">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="16,12" ColumnDefinitions="Auto,*">
+                                    <Label Text="🏪" FontSize="16" VerticalOptions="Center" Grid.Column="0" Margin="0,0,10,0"/>
+                                    <Label Text="{Binding Name}" FontSize="14" FontAttributes="Bold"
+                                           TextColor="#1C1C1C" VerticalOptions="Center" Grid.Column="1"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+            </Grid>
 
             <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="White" Padding="15">
                 <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*,*,*,*" RowSpacing="20" ColumnSpacing="10">
@@ -132,7 +161,7 @@
             </Border>
 
             <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" Padding="0" HeightRequest="130">
-                <Image Source="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=2070&amp;auto=format&amp;fit=crop" Aspect="AspectFill" />
+                <Image Source="https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&amp;w=2032&amp;auto=format&amp;fit=crop" Aspect="AspectFill" />
             </Border>
 
             <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
