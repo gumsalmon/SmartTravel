@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using HeriStep.Client.Services;
+using HeriStep.Client.ViewModels;
 using HeriStep.Shared.Models;
 using Microsoft.Maui.Controls;
 
@@ -14,6 +15,7 @@ namespace HeriStep.Client.Views
         private bool _isTtsPlaying = false;
         private Action? _langChangedHandler;
         private readonly AudioTranslationService _audioService;
+        private readonly ShopDetailViewModel _viewModel;
 
         public ShopDetailPage(Stall stall, AudioTranslationService audioService)
         {
@@ -23,6 +25,8 @@ namespace HeriStep.Client.Views
                 InitializeComponent();
                 _stall = stall;
                 _audioService = audioService;
+                _viewModel = new ShopDetailViewModel(new LocalDatabaseService());
+                BindingContext = _viewModel;
 
                 if (stall != null)
                 {
@@ -48,6 +52,7 @@ namespace HeriStep.Client.Views
                 ApplyLocalization();
                 _langChangedHandler = () => MainThread.BeginInvokeOnMainThread(ApplyLocalization);
                 L.LanguageChanged += _langChangedHandler;
+                _ = LoadMenuFromLocalDbAsync();
                 Console.WriteLine("[CRITICAL_LOG] ShopDetailPage Constructor finished successfully.");
             }
             catch (Exception ex)
@@ -59,6 +64,7 @@ namespace HeriStep.Client.Views
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
+            _viewModel?.Cleanup();
             // Unsubscribe so we don't leak the static event reference
             if (_langChangedHandler != null)
             {
@@ -72,15 +78,28 @@ namespace HeriStep.Client.Views
             lblShopAddress.Text = L.Get("shop_address");
             lblMenuTitle.Text = L.Get("shop_menu_title");
             lblMenuDesc.Text = L.Get("shop_menu_desc");
-            
-            lblDish1Desc.Text = L.Get("shop_dish1_desc");
-            lblDish2Desc.Text = L.Get("shop_dish2_desc");
-            lblDish3Desc.Text = L.Get("shop_dish3_desc");
-            
-            lblDish1Tag1.Text = L.Get("shop_tag_musttry");
-            lblDish1Tag2.Text = L.Get("shop_tag_spicy");
-            
-            btnOrder1.Text = "🛒  " + L.Get("shop_add_order");
+            if (!_isTtsPlaying)
+            {
+                btnPlayIntro.Text = "🔊  " + L.Get("map_listen").Replace("🔊", string.Empty).Trim();
+            }
+        }
+
+        private async Task LoadMenuFromLocalDbAsync()
+        {
+            try
+            {
+                if (_stall == null || _stall.Id <= 0)
+                {
+                    Console.WriteLine("[SHOP_DETAIL] Stall invalid, skip menu query.");
+                    return;
+                }
+
+                await _viewModel.LoadMenuItemsAsync(_stall.Id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SHOP_DETAIL] LoadMenuFromLocalDbAsync failed: {ex.Message}");
+            }
         }
 
         private async void OnPlayIntroClicked(object sender, EventArgs e)
@@ -90,7 +109,7 @@ namespace HeriStep.Client.Views
 
             _isTtsPlaying = true;
             btnPlayIntro.IsEnabled = false;
-            btnPlayIntro.Text = "⏳ Processing...";
+            btnPlayIntro.Text = "⏳ " + L.Get("notification");
             lblTtsStatus.Text = "🔊 Using Voice Aura...";
             lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#FF8C00");
 
@@ -115,7 +134,7 @@ namespace HeriStep.Client.Views
             {
                 _isTtsPlaying = false;
                 btnPlayIntro.IsEnabled = true;
-                btnPlayIntro.Text = "🔊  Listen Introduction";
+                btnPlayIntro.Text = "🔊  " + L.Get("map_listen").Replace("🔊", string.Empty).Trim();
             }
         }
 
@@ -133,14 +152,6 @@ namespace HeriStep.Client.Views
                 _    => $"Chào mừng bạn đến {name}! Hãy thưởng thức ẩm thực Vĩnh Khánh nhé."
             };
         }
-
-
-
-        private async void OnOrderClicked(object sender, EventArgs e)
-        {
-            await DisplayAlert(L.Get("notification"), L.Get("shop_order_alert"), L.Get("ok"));
-        }
-
         private async void OnFeatureComingSoon(object sender, EventArgs e)
         {
             await DisplayAlert(L.Get("coming_soon"), L.Get("shop_feature_soon"), L.Get("ok"));

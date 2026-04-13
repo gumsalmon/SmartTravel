@@ -311,7 +311,7 @@ public partial class MapPage : ContentPage
         else
         {
             lblNearbyStallName.Text = stall.Name;
-            btnGeofencePlayAudio.Text = "🔊 Phát Audio";
+            btnGeofencePlayAudio.Text = L.Get("map_play_audio");
             btnGeofencePlayAudio.IsEnabled = true;
             geofenceBanner.IsVisible = true;
         }
@@ -347,7 +347,7 @@ public partial class MapPage : ContentPage
             _isTtsPlaying = false;
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                btnGeofencePlayAudio.Text = "🔊 Play Audio";
+                btnGeofencePlayAudio.Text = L.Get("map_play_audio");
                 btnGeofencePlayAudio.IsEnabled = true;
             });
         }
@@ -677,36 +677,68 @@ public partial class MapPage : ContentPage
         _botTimer?.Stop();
         _botTimer = Application.Current!.Dispatcher.CreateTimer();
         _botTimer.Interval = TimeSpan.FromSeconds(1.5);
-        _botTimer.Tick += async (_, _) => await BotStepAsync();
+        _botTimer.Tick += async (_, _) =>
+        {
+            try
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () => await BotStepAsync());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BOT_TEST] Timer tick failed: {ex.Message}");
+            }
+        };
         _botTimer.Start();
     }
 
     private async Task BotStepAsync()
     {
-        if (!_isBotTestMode || _botTargetStall == null)
+        try
         {
-            return;
+            if (!_isBotTestMode || _botTargetStall == null)
+            {
+                return;
+            }
+
+            var current = new Microsoft.Maui.Devices.Sensors.Location(_lastUserLat, _lastUserLon);
+            var target = new Microsoft.Maui.Devices.Sensors.Location(_botTargetStall.Latitude, _botTargetStall.Longitude);
+            var distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(current, target, DistanceUnits.Kilometers) * 1000;
+            if (distanceMeters <= 1.0)
+            {
+                return;
+            }
+
+            var ratio = Math.Min(BotStepMeters / Math.Max(distanceMeters, 0.1), 1.0);
+            _lastUserLat = _lastUserLat + ((_botTargetStall.Latitude - _lastUserLat) * ratio);
+            _lastUserLon = _lastUserLon + ((_botTargetStall.Longitude - _lastUserLon) * ratio);
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    if (!_isPageActive) return;
+                    UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+                    CheckNearbyStalls(_lastUserLat, _lastUserLon);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[BOT_TEST] UI update failed: {ex.Message}");
+                }
+            });
+
+            try
+            {
+                await _botGeofenceEngine.InjectLocationAsync(_lastUserLat, _lastUserLon);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BOT_TEST] InjectLocation failed: {ex.Message}");
+            }
         }
-
-        var current = new Microsoft.Maui.Devices.Sensors.Location(_lastUserLat, _lastUserLon);
-        var target = new Microsoft.Maui.Devices.Sensors.Location(_botTargetStall.Latitude, _botTargetStall.Longitude);
-        var distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(current, target, DistanceUnits.Kilometers) * 1000;
-        if (distanceMeters <= 1.0)
+        catch (Exception ex)
         {
-            return;
+            Console.WriteLine($"[BOT_TEST] BotStepAsync failed: {ex.Message}");
         }
-
-        var ratio = Math.Min(BotStepMeters / Math.Max(distanceMeters, 0.1), 1.0);
-        _lastUserLat = _lastUserLat + ((_botTargetStall.Latitude - _lastUserLat) * ratio);
-        _lastUserLon = _lastUserLon + ((_botTargetStall.Longitude - _lastUserLon) * ratio);
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (!_isPageActive) return;
-            UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
-            CheckNearbyStalls(_lastUserLat, _lastUserLon);
-        });
-        await _botGeofenceEngine.InjectLocationAsync(_lastUserLat, _lastUserLon);
     }
 
     private void StopBotTest()

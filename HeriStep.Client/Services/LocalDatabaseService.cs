@@ -66,8 +66,74 @@ namespace HeriStep.Client.Services
 
         public async Task<List<LocalStall>> GetStallsAsync()
         {
-            await InitAsync();
-            return await _db.Table<LocalStall>().ToListAsync();
+            try
+            {
+                await InitAsync();
+                return await _db.Table<LocalStall>().ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOCAL_DB] GetStallsAsync failed: {ex.Message}");
+                return new List<LocalStall>();
+            }
+        }
+
+        public async Task<List<LocalMenuDish>> GetMenuItemsByStallIdAsync(int stallId)
+        {
+            try
+            {
+                await InitAsync();
+                if (stallId <= 0) return new List<LocalMenuDish>();
+
+                // Try dedicated local table first (if app has synced MenuItems)
+                try
+                {
+                    var menuItems = await _db.QueryAsync<LocalMenuDish>(
+                        @"SELECT Id,
+                                 StallId,
+                                 Name,
+                                 Description,
+                                 Price,
+                                 ImageUrl
+                          FROM MenuItems
+                          WHERE StallId = ?
+                          ORDER BY Id DESC",
+                        stallId);
+                    if (menuItems.Count > 0) return menuItems;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[LOCAL_DB] Query MenuItems failed: {ex.Message}");
+                }
+
+                // Fallback to Products/ProductTranslations schema if present in local DB
+                try
+                {
+                    var products = await _db.QueryAsync<LocalMenuDish>(
+                        @"SELECT p.id AS Id,
+                                 p.stall_id AS StallId,
+                                 COALESCE(pt.product_name, 'Món đặc trưng') AS Name,
+                                 COALESCE(pt.short_description, '') AS Description,
+                                 p.base_price AS Price,
+                                 COALESCE(p.image_url, '') AS ImageUrl
+                          FROM Products p
+                          LEFT JOIN ProductTranslations pt ON pt.product_id = p.id
+                          WHERE p.stall_id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
+                          ORDER BY p.is_signature DESC, p.id DESC",
+                        stallId);
+                    return products;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[LOCAL_DB] Query Products fallback failed: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOCAL_DB] GetMenuItemsByStallIdAsync failed: {ex.Message}");
+            }
+
+            return new List<LocalMenuDish>();
         }
 
         /// <summary>
@@ -285,6 +351,16 @@ namespace HeriStep.Client.Services
         public string StallName { get; set; } = string.Empty;
         public int VisitCount { get; set; }
         public DateTime LastVisitedAt { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+    }
+
+    public class LocalMenuDish
+    {
+        public int Id { get; set; }
+        public int StallId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
     }
 }

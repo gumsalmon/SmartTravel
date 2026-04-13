@@ -18,13 +18,20 @@ namespace HeriStep.Client.Services
             ["vi"] = "VN",
             ["en"] = "US",
             ["ja"] = "JP",
+            ["ja-jp"] = "JP",
             ["ko"] = "KR",
+            ["ko-kr"] = "KR",
             ["zh"] = "CN",
+            ["zh-hans"] = "CN",
             ["fr"] = "FR",
             ["es"] = "ES",
+            ["es-es"] = "ES",
             ["ru"] = "RU",
+            ["ru-ru"] = "RU",
             ["th"] = "TH",
-            ["de"] = "DE"
+            ["th-th"] = "TH",
+            ["de"] = "DE",
+            ["de-de"] = "DE"
         };
 
         public AudioTranslationService(HttpClient httpClient)
@@ -63,12 +70,24 @@ namespace HeriStep.Client.Services
 
             try
             {
-                string targetLang = string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode.Trim().ToLowerInvariant();
-                var locales = await TextToSpeech.Default.GetLocalesAsync();
+                string targetLang = NormalizeLanguageCode(string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode);
+                IEnumerable<Locale>? locales = null;
+                try
+                {
+                    locales = await TextToSpeech.Default.GetLocalesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[VOICE_SERVICE] GetLocales failed (offline/voice pack missing): {ex.Message}");
+                }
+
                 var preferredCountry = LocaleMap.TryGetValue(targetLang, out var mappedCountry) ? mappedCountry : string.Empty;
+                var languagePrefix = targetLang.Split('-')[0];
 
                 var locale = locales?
-                    .Where(l => l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase))
+                    .Where(l =>
+                        l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase) ||
+                        l.Language.StartsWith(languagePrefix, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefault();
 
@@ -105,8 +124,14 @@ namespace HeriStep.Client.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VOICE_SERVICE] Error: {ex.Message}");
+                Console.WriteLine($"[VOICE_SERVICE] Error (ignored to avoid crash): {ex.Message}");
             }
+        }
+
+        private static string NormalizeLanguageCode(string? langCode)
+        {
+            if (string.IsNullOrWhiteSpace(langCode)) return "vi";
+            return langCode.Trim().ToLowerInvariant();
         }
 
         private sealed class StallSpeechResponse

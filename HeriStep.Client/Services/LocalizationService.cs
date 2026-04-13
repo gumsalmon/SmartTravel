@@ -14,13 +14,16 @@ namespace HeriStep.Client.Services
 
         public static void Init()
         {
-            _currentLang = Preferences.Default.Get("user_language", "vi");
+            _currentLang = NormalizeLanguageCode(Preferences.Default.Get("user_language", "vi"));
+            ApplyCultureSafe(_currentLang);
         }
 
         public static void SetLanguage(string langCode)
         {
-            _currentLang = langCode;
-            Preferences.Default.Set("user_language", langCode);
+            var normalized = NormalizeLanguageCode(langCode);
+            _currentLang = normalized;
+            Preferences.Default.Set("user_language", normalized);
+            ApplyCultureSafe(normalized);
             LanguageChanged?.Invoke();
         }
 
@@ -31,6 +34,56 @@ namespace HeriStep.Client.Services
             if (Strings.TryGetValue("en", out var enDict) && enDict.TryGetValue(key, out var enVal))
                 return enVal;
             return key;
+        }
+
+        private static string NormalizeLanguageCode(string? langCode)
+        {
+            if (string.IsNullOrWhiteSpace(langCode))
+            {
+                return "vi";
+            }
+
+            var code = langCode.Trim().ToLowerInvariant();
+            return code switch
+            {
+                "zh-hans" => "zh",
+                "ja-jp" => "ja",
+                "ko-kr" => "ko",
+                "de-de" => "de",
+                "es-es" => "es",
+                "ru-ru" => "ru",
+                "th-th" => "th",
+                _ => code.Split('-')[0]
+            };
+        }
+
+        private static void ApplyCultureSafe(string normalizedLang)
+        {
+            try
+            {
+                var cultureCode = normalizedLang switch
+                {
+                    "zh" => "zh-Hans",
+                    "ja" => "ja-JP",
+                    "ko" => "ko-KR",
+                    "de" => "de-DE",
+                    "es" => "es-ES",
+                    "ru" => "ru-RU",
+                    "th" => "th-TH",
+                    "en" => "en-US",
+                    _ => "vi-VN"
+                };
+
+                var culture = System.Globalization.CultureInfo.GetCultureInfo(cultureCode);
+                System.Globalization.CultureInfo.CurrentCulture = culture;
+                System.Globalization.CultureInfo.CurrentUICulture = culture;
+                System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
+                System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOCALIZATION] ApplyCultureSafe failed: {ex.Message}");
+            }
         }
 
         private static readonly Dictionary<string, Dictionary<string, string>> Strings = new()

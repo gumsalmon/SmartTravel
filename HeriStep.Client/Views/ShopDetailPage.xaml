@@ -29,10 +29,10 @@
                     <Label x:Name="lblShopAddress" Text="534 Vinh Khanh, Ward 10" FontSize="14" TextColor="#B0A090" VerticalOptions="Center"/>
                 </HorizontalStackLayout>
 
-                <!-- TTS: Nghe Giới Thiệu from DB -->
+                <!-- TTS: localized text handled in code-behind -->
                 <HorizontalStackLayout Spacing="10" Margin="0,8,0,0" VerticalOptions="Center">
                     <Button x:Name="btnPlayIntro"
-                            Text="🔊  Nghe Giới Thiệu"
+                            Text="🔊"
                             CornerRadius="18"
                             BackgroundColor="Transparent"
                             BorderColor="#FF8C00"
@@ -59,64 +59,29 @@
                     <Label x:Name="lblMenuDesc" Text="Curated flavors from Saigon's most vibrant street food artery." FontSize="13" TextColor="#6B5B4E" LineHeight="1.4"/>
                 </VerticalStackLayout>
 
-                <!-- Dish 1 -->
-                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
-                    <VerticalStackLayout>
-                        <Image Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?q=80&amp;w=600" HeightRequest="150" Aspect="AspectFill"/>
-                        <VerticalStackLayout Padding="20" Spacing="10">
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Ốc Hương Rang Muối" FontSize="18" FontAttributes="Bold" TextColor="#FDF5E6" Grid.Column="0" LineHeight="1.1"/>
-                                <Label Text="185k" FontSize="16" FontAttributes="Bold" TextColor="#D35400" Grid.Column="1" VerticalOptions="Start"/>
-                            </Grid>
-                            <Label x:Name="lblDish1Desc" Text="Spotted Babylon snails roasted with chili salt. A perfect balance of sea sweetness and spicy crust." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
-                            <HorizontalStackLayout Spacing="8">
-                                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#3D1A00" Padding="10,4" StrokeThickness="0">
-                                    <Label x:Name="lblDish1Tag1" Text="MUST TRY" FontSize="9" FontAttributes="Bold" TextColor="#D35400"/>
-                                </Border>
-                                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#3A1010" Padding="10,4" StrokeThickness="0">
-                                    <Label x:Name="lblDish1Tag2" Text="SPICY" FontSize="9" FontAttributes="Bold" TextColor="#FF4444"/>
-                                </Border>
-                            </HorizontalStackLayout>
-                            
-                            <Button x:Name="btnOrder1" Text="🛒  Add to Order" CornerRadius="20" BackgroundColor="#D35400" TextColor="#FDF5E6" FontAttributes="Bold" HeightRequest="44" Margin="0,15,0,0" Clicked="OnOrderClicked"/>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Dish 2 -->
-                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
-                    <VerticalStackLayout>
-                        <Grid>
-                            <Image Source="https://images.unsplash.com/photo-1551187126-1070e17631cc?q=80&amp;w=600" HeightRequest="120" Aspect="AspectFill"/>
-                            <Border StrokeShape="RoundRectangle 12" BackgroundColor="#1C1C1C" Padding="8,4" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
-                                <Label Text="65k" TextColor="#D35400" FontSize="11" FontAttributes="Bold"/>
+                <CollectionView ItemsSource="{Binding MenuItems}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1" Margin="0,0,0,12">
+                                <VerticalStackLayout>
+                                    <Grid>
+                                        <Image Source="{Binding ImageUrl}" HeightRequest="130" Aspect="AspectFill"/>
+                                        <Border StrokeShape="RoundRectangle 12" BackgroundColor="#1C1C1C" Padding="8,4" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
+                                            <Label Text="{Binding PriceText}" TextColor="#D35400" FontSize="11" FontAttributes="Bold"/>
+                                        </Border>
+                                    </Grid>
+                                    <VerticalStackLayout Padding="15" Spacing="5">
+                                        <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                                        <Label Text="{Binding Description}" FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
                             </Border>
-                        </Grid>
-                        <VerticalStackLayout Padding="15" Spacing="5">
-                            <Label Text="Rau Muống Xào Tỏi" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6"/>
-                            <Label x:Name="lblDish2Desc" Text="Water spinach flash-fried with aromatic garlic." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Dish 3 -->
-                <Border StrokeShape="RoundRectangle 24" BackgroundColor="#242424" Padding="0" Stroke="#3A3A3A" StrokeThickness="1">
-                    <VerticalStackLayout>
-                        <Grid>
-                            <Image Source="https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&amp;w=600" HeightRequest="120" Aspect="AspectFill"/>
-                            <Border StrokeShape="RoundRectangle 12" BackgroundColor="#1C1C1C" Padding="8,4" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
-                                <Label Text="210k" TextColor="#D35400" FontSize="11" FontAttributes="Bold"/>
-                            </Border>
-                        </Grid>
-                        <VerticalStackLayout Padding="15" Spacing="5">
-                            <Label Text="Tôm Nướng Muối Ớt" FontSize="16" FontAttributes="Bold" TextColor="#FDF5E6"/>
-                            <Label x:Name="lblDish3Desc" Text="Tiger prawns grilled with spicy house-made chili salt." FontSize="12" TextColor="#B0A090" LineHeight="1.4"/>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-
-
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="{Binding MenuEmptyText}" TextColor="#6B5B4E" HorizontalTextAlignment="Center" Margin="0,8,0,0"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>

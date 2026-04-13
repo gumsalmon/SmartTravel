@@ -126,7 +126,7 @@ namespace HeriStep.Client.Views
                         ImageUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
                             ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600"
                             : item.ImageUrl,
-                        VisitLabel = $"Đã ghé {item.VisitCount} lượt"
+                        VisitLabel = $"{L.Get("profile_visited")}: {item.VisitCount}"
                     });
                 }
             }
@@ -142,29 +142,36 @@ namespace HeriStep.Client.Views
 
         private async void OnHistorySelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.CurrentSelection.FirstOrDefault() is not ProfileVisitItem visitItem)
+            try
             {
-                return;
+                if (e.CurrentSelection.FirstOrDefault() is not ProfileVisitItem visitItem)
+                {
+                    return;
+                }
+
+                ((CollectionView)sender).SelectedItem = null;
+
+                var localStalls = await _localDb.GetStallsAsync();
+                var matched = localStalls.FirstOrDefault(s => s.Id == visitItem.StallId);
+                var stall = new Stall
+                {
+                    Id = visitItem.StallId,
+                    Name = visitItem.StallName,
+                    ImageUrl = visitItem.ImageUrl,
+                    Description = matched?.Description,
+                    Latitude = matched?.Latitude ?? 0,
+                    Longitude = matched?.Longitude ?? 0,
+                    RadiusMeter = (int)(matched?.RadiusMeter ?? 20),
+                    IsOpen = matched?.IsOpen ?? true,
+                    TtsScript = matched?.TtsScript
+                };
+
+                await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall, _audioService));
             }
-
-            ((CollectionView)sender).SelectedItem = null;
-
-            var localStalls = await _localDb.GetStallsAsync();
-            var matched = localStalls.FirstOrDefault(s => s.Id == visitItem.StallId);
-            var stall = new Stall
+            catch (Exception ex)
             {
-                Id = visitItem.StallId,
-                Name = visitItem.StallName,
-                ImageUrl = visitItem.ImageUrl,
-                Description = matched?.Description,
-                Latitude = matched?.Latitude ?? 0,
-                Longitude = matched?.Longitude ?? 0,
-                RadiusMeter = (int)(matched?.RadiusMeter ?? 20),
-                IsOpen = matched?.IsOpen ?? true,
-                TtsScript = matched?.TtsScript
-            };
-
-            await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall, _audioService));
+                Console.WriteLine($"[PROFILE] OnHistorySelectionChanged failed: {ex.Message}");
+            }
         }
 
         private async void OnChangeLanguageTapped(object sender, EventArgs e)

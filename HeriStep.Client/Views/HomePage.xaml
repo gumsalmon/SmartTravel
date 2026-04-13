@@ -5,7 +5,7 @@
              Title="Trang Chủ"
              BackgroundColor="#F5F7FA">
 
-    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+    <RefreshView IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}" Command="{Binding RefreshCommand}">
         <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="15">
 

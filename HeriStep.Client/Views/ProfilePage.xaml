@@ -140,23 +140,21 @@
                     </Label>
                 </Grid>
 
-                <CollectionView x:Name="historyCollection" ItemsSource="{Binding RecentVisits}" SelectionMode="Single" SelectionChanged="OnHistorySelectionChanged">
+                <CollectionView x:Name="historyCollection" ItemsSource="{Binding RecentVisits}" SelectionMode="Single" SelectionChanged="OnHistorySelectionChanged" HeightRequest="180">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10"/>
+                    </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border StrokeShape="RoundRectangle 18" BackgroundColor="#242424"
-                                    Padding="14" StrokeThickness="0" Margin="0,0,0,10">
-                                <Grid ColumnDefinitions="56, *, Auto" ColumnSpacing="14">
-                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" HeightRequest="56" WidthRequest="56" Grid.Column="0">
-                                        <Image.Clip>
-                                            <EllipseGeometry Center="28,28" RadiusX="28" RadiusY="28"/>
-                                        </Image.Clip>
-                                    </Image>
-                                    <VerticalStackLayout VerticalOptions="Center" Grid.Column="1" Spacing="3">
-                                        <Label Text="{Binding StallName}" FontSize="14" FontAttributes="Bold" TextColor="#FDF5E6"/>
+                                    Padding="0" StrokeThickness="0" WidthRequest="160">
+                                <VerticalStackLayout Spacing="0">
+                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" HeightRequest="95" WidthRequest="160"/>
+                                    <VerticalStackLayout Padding="10,8" Spacing="2">
+                                        <Label Text="{Binding StallName}" FontSize="13" FontAttributes="Bold" TextColor="#FDF5E6" MaxLines="1" LineBreakMode="TailTruncation"/>
                                         <Label Text="{Binding VisitLabel}" FontSize="11" TextColor="#6B5B4E"/>
                                     </VerticalStackLayout>
-                                    <Label Text="›" FontSize="22" TextColor="#D35400" Grid.Column="2" VerticalOptions="Center"/>
-                                </Grid>
+                                </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>

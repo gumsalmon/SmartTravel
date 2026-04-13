@@ -543,11 +543,15 @@ namespace HeriStep.Client.ViewModels
         private async Task RefreshDataAsync()
         {
             if (IsRefreshing) return;
-            IsRefreshing = true;
             try
             {
-                await Task.Delay(1000);
+                IsRefreshing = true;
+                await Task.Delay(500);
                 await LoadPointsAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[HOME_VM] RefreshDataAsync failed: {ex.Message}");
             }
             finally
             {
