@@ -1,7 +1,11 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Net.Http.Json;
 using HeriStep.Shared.Models;
 using HeriStep.Client.Services;
+using System.Globalization;
+using System.Text;
 
 namespace HeriStep.Client.ViewModels
 {
@@ -15,7 +19,12 @@ namespace HeriStep.Client.ViewModels
         private readonly HttpClient _httpClient;
         private readonly GeofenceService _geofenceService;
         private bool _isBusy;
+        private bool _isRefreshing;
         private List<Stall> _allPoints = new();
+        private readonly IDispatcherTimer _syncTimer;
+        private bool _isSyncRunning;
+        private const string LastSyncKey = "last_sync_at_utc";
+        private string _searchPlaceholder = string.Empty;
 
         /// <summary>All stalls — includes every stall for real-time search.</summary>
         public IReadOnlyList<Stall> AllPoints => _allPoints;
@@ -24,6 +33,25 @@ namespace HeriStep.Client.ViewModels
         {
             get => _isBusy;
             set { if (_isBusy != value) { _isBusy = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsRefreshing
+        {
+            get => _isRefreshing;
+            set { if (_isRefreshing != value) { _isRefreshing = value; OnPropertyChanged(); } }
+        }
+
+        public string SearchPlaceholder
+        {
+            get => _searchPlaceholder;
+            private set
+            {
+                if (_searchPlaceholder != value)
+                {
+                    _searchPlaceholder = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>All stalls for the main list.</summary>
@@ -37,6 +65,7 @@ namespace HeriStep.Client.ViewModels
 
         public Command LoadDataCommand { get; set; }
         public Command<string> FilterCommand { get; set; }
+        public Command RefreshCommand { get; set; }
 
         private readonly HeriStep.Client.Services.Location.ILocationService _locationService;
         private readonly LocalDatabaseService _localDb;
@@ -61,8 +90,16 @@ namespace HeriStep.Client.ViewModels
 
             LoadDataCommand = new Command(async () => await LoadPointsAsync());
             FilterCommand = new Command<string>(FilterAndNavigate);
+            RefreshCommand = new Command(async () => await RefreshDataAsync());
+            SearchPlaceholder = L.Get("search_placeholder");
 
             StartBackgroundGpsLoop();
+            Connectivity.ConnectivityChanged += OnConnectivityChanged;
+            L.LanguageChanged += OnLanguageChanged;
+            _syncTimer = Application.Current!.Dispatcher.CreateTimer();
+            _syncTimer.Interval = TimeSpan.FromMinutes(5);
+            _syncTimer.Tick += async (_, _) => await Task.Run(PerformDeltaSyncAsync);
+            _syncTimer.Start();
         }
 
         /// <summary>
@@ -74,12 +111,11 @@ namespace HeriStep.Client.ViewModels
         {
             _geofenceService.StallEntered += async (stall) =>
             {
-                string message = !string.IsNullOrEmpty(stall.Description) 
-                    ? stall.Description 
-                    : $"Chào mừng bạn đến với {stall.Name}!";
+                var script = await _audioService.GetStallScriptAsync(stall.Id, L.CurrentLanguage)
+                             ?? stall.TtsScript
+                             ?? $"Chào mừng bạn đến với {stall.Name}!";
 
-                // Automation: Auto-translate and Speak in background
-                await _audioService.SpeakAsync(message);
+                await _audioService.SpeakAsync(script, L.CurrentLanguage);
             };
 
             Task.Run(async () =>
@@ -167,9 +203,11 @@ namespace HeriStep.Client.ViewModels
                             IsOpen = p.IsOpen,
                             HasOwner = p.OwnerId.HasValue,
                             RadiusMeter = p.RadiusMeter,
-                            Rating = 4.5 // Mặc định cho đến khi có dữ liệu thực tế từ API
+                            Rating = 4.5, // Mặc định cho đến khi có dữ liệu thực tế từ API
+                            TtsScript = p.TtsScript ?? p.Description ?? string.Empty
                         });
                         await _localDb.SaveStallsAsync(cacheStalls);
+                        Preferences.Default.Set(LastSyncKey, DateTime.UtcNow.ToString("O"));
                     } 
                     catch (Exception dbEx) 
                     {
@@ -200,7 +238,8 @@ namespace HeriStep.Client.ViewModels
                                     Longitude = ls.Longitude,
                                     IsOpen = ls.IsOpen,
                                     OwnerId = ls.HasOwner ? 1 : null,
-                                    RadiusMeter = (int)ls.RadiusMeter
+                                    RadiusMeter = (int)ls.RadiusMeter,
+                                    TtsScript = ls.TtsScript
                                 };
                                 Points.Add(p);
                                 _allPoints.Add(p);
@@ -430,11 +469,9 @@ namespace HeriStep.Client.ViewModels
             string searchKw = keyword.Trim();
             var compareInfo = System.Globalization.CultureInfo.InvariantCulture.CompareInfo;
             var filtered = _allPoints
-                .Where(p => p.Name != null && compareInfo.IndexOf(p.Name, searchKw, System.Globalization.CompareOptions.IgnoreNonSpace | System.Globalization.CompareOptions.IgnoreCase) >= 0)
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name) &&
+                            NormalizeSearch(p.Name).Contains(NormalizeSearch(searchKw), StringComparison.OrdinalIgnoreCase))
                 .ToList();
-
-            // Fallback: show all if filter returns empty (prevents blank screen)
-            if (filtered.Count == 0) filtered = _allPoints;
 
             await NavigateToPage(keyword, filtered);
         }
@@ -466,6 +503,132 @@ namespace HeriStep.Client.ViewModels
                 }
             }
             return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
+        }
+
+        private static string NormalizeSearch(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+            foreach (var c in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString()
+                .Normalize(NormalizationForm.FormC)
+                .Replace('đ', 'd')
+                .Replace('Đ', 'D')
+                .ToLowerInvariant();
+        }
+
+        public List<Stall> GetSearchSuggestions(string keyword, int take = 6)
+        {
+            if (string.IsNullOrWhiteSpace(keyword) || _allPoints.Count == 0)
+            {
+                return new List<Stall>();
+            }
+
+            var normalizedKeyword = NormalizeSearch(keyword);
+            return _allPoints
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name) &&
+                            NormalizeSearch(p.Name).Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase))
+                .Take(take)
+                .ToList();
+        }
+
+        private async Task RefreshDataAsync()
+        {
+            if (IsRefreshing) return;
+            IsRefreshing = true;
+            try
+            {
+                await Task.Delay(1000);
+                await LoadPointsAsync();
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
+
+        private void OnLanguageChanged()
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                SearchPlaceholder = L.Get("search_placeholder");
+            });
+        }
+
+        private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+        {
+            if (e.NetworkAccess == NetworkAccess.Internet)
+            {
+                await Task.Run(PerformDeltaSyncAsync);
+            }
+        }
+
+        private async Task PerformDeltaSyncAsync()
+        {
+            if (_isSyncRunning) return;
+            _isSyncRunning = true;
+            try
+            {
+                var lastSyncRaw = Preferences.Default.Get(LastSyncKey, string.Empty);
+                var lastSync = DateTime.TryParse(lastSyncRaw, out var parsed) ? parsed : DateTime.MinValue;
+                var encodedTime = Uri.EscapeDataString(lastSync.ToUniversalTime().ToString("O"));
+
+                var lang = L.CurrentLanguage;
+                var stalls = await _httpClient.GetFromJsonAsync<List<Stall>>($"/api/Stalls?lang={lang}&updatedAfter={encodedTime}");
+                if (stalls is { Count: > 0 })
+                {
+                    var cacheStalls = stalls.Select(p => new HeriStep.Client.Models.LocalModels.LocalStall
+                    {
+                        Id = p.Id,
+                        Name = p.Name ?? "Chưa có tên",
+                        Description = p.Description ?? p.Name ?? "",
+                        ImageUrl = p.ImageUrl ?? "",
+                        Latitude = p.Latitude,
+                        Longitude = p.Longitude,
+                        IsOpen = p.IsOpen,
+                        HasOwner = p.OwnerId.HasValue,
+                        RadiusMeter = p.RadiusMeter,
+                        Rating = 4.5,
+                        TtsScript = p.TtsScript ?? p.Description ?? string.Empty
+                    });
+                    await _localDb.SaveStallsAsync(cacheStalls);
+                }
+
+                var tours = await _httpClient.GetFromJsonAsync<List<Tour>>($"/api/Tours?updatedAfter={encodedTime}");
+                if (tours is { Count: > 0 })
+                {
+                    var cacheTours = tours.Select(t => new HeriStep.Client.Models.LocalModels.LocalTour
+                    {
+                        Id = t.Id,
+                        TourName = t.TourName,
+                        Description = t.Description ?? string.Empty,
+                        ImageUrl = t.ImageUrl ?? string.Empty,
+                        StallCount = t.StallCount,
+                        Visits = t.Visits,
+                        IsActive = true
+                    });
+                    await _localDb.SaveToursAsync(cacheTours);
+                }
+
+                Preferences.Default.Set(LastSyncKey, DateTime.UtcNow.ToString("O"));
+                await MainThread.InvokeOnMainThreadAsync(async () => await LoadPointsAsync());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SYNC] Delta sync failed: {ex.Message}");
+            }
+            finally
+            {
+                _isSyncRunning = false;
+            }
         }
     }
 }

@@ -26,6 +26,7 @@ namespace HeriStep.Client.Services
         // ── Dependencies ────────────────────────────────────────────────
         private readonly ILocationService    _locationService;
         private readonly LocalDatabaseService _db;
+        private readonly AudioTranslationService _audioService;
 
         // ── In-RAM stall state ──────────────────────────────────────────
         // Key = StallId, Value = stall snapshot với IsVisited được quản lý trên RAM
@@ -48,10 +49,11 @@ namespace HeriStep.Client.Services
         public bool IsRunning => _loopTask is { IsCompleted: false };
 
         // ───────────────────────────────────────────────────────────────
-        public GeofenceEngine(ILocationService locationService, LocalDatabaseService db)
+        public GeofenceEngine(ILocationService locationService, LocalDatabaseService db, AudioTranslationService audioService)
         {
             _locationService = locationService;
             _db              = db;
+            _audioService    = audioService;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -105,6 +107,19 @@ namespace HeriStep.Client.Services
             foreach (var key in _stallMap.Keys)
                 if (_stallMap.TryGetValue(key, out var state))
                     state.IsVisited = false;
+        }
+
+        /// <summary>
+        /// Inject tọa độ giả lập từ Map bot test để kích hoạt đúng pipeline geofence hiện tại.
+        /// </summary>
+        public async Task InjectLocationAsync(double latitude, double longitude)
+        {
+            if (_stallMap.Count == 0)
+            {
+                await LoadStallsIntoRamAsync();
+            }
+
+            await CheckProximityAsync(latitude, longitude, CancellationToken.None);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -245,24 +260,16 @@ namespace HeriStep.Client.Services
 
         private async Task SpeakAsync(LocalStall stall, CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(stall.TtsScript)) return;
-
             // Nếu TTS đang nói → xếp hàng chờ (không chen ngang)
             await _ttsSemaphore.WaitAsync(ct);
             try
             {
-                var settings = new SpeechOptions
-                {
-                    Locale = await GetBestLocaleAsync(),
-                    Volume = 1.0f,
-                    Pitch  = 1.0f,
-                };
+                var script = await _audioService.GetStallScriptAsync(stall.Id, L.CurrentLanguage)
+                            ?? stall.TtsScript;
+                if (string.IsNullOrWhiteSpace(script)) return;
 
-                Debug($"[GeofenceEngine] 🔊 TTS: \"{stall.TtsScript[..Math.Min(40, stall.TtsScript.Length)]}...\"");
-
-                // TextToSpeech.SpeakAsync đã chạy trên background thread nội bộ của MAUI
-                // — gọi trực tiếp từ đây là an toàn, không block UI
-                await TextToSpeech.Default.SpeakAsync(stall.TtsScript, settings, ct);
+                Debug($"[GeofenceEngine] 🔊 TTS: \"{script[..Math.Min(40, script.Length)]}...\"");
+                await _audioService.SpeakAsync(script, L.CurrentLanguage);
             }
             catch (OperationCanceledException)
             {
@@ -275,22 +282,6 @@ namespace HeriStep.Client.Services
             finally
             {
                 _ttsSemaphore.Release();
-            }
-        }
-
-        private static async Task<Locale?> GetBestLocaleAsync()
-        {
-            try
-            {
-                var locales = await TextToSpeech.Default.GetLocalesAsync();
-                // Ưu tiên tiếng Việt, fallback về null (dùng locale mặc định thiết bị)
-                return locales.FirstOrDefault(l =>
-                           l.Language.StartsWith("vi", StringComparison.OrdinalIgnoreCase))
-                       ?? locales.FirstOrDefault();
-            }
-            catch
-            {
-                return null;
             }
         }
 

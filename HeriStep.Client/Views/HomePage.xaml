@@ -5,7 +5,8 @@
              Title="Trang Chủ"
              BackgroundColor="#F5F7FA">
 
-    <ScrollView>
+    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+        <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="15">
 
             <!-- Search + Auto-Suggest Overlay -->
@@ -20,11 +21,11 @@
                             </Label.GestureRecognizers>
                         </Label>
 
-                        <Entry x:Name="searchEntry" 
-                               Placeholder="搜索餐厅、地点..." 
-                               BackgroundColor="Transparent" 
-                               Grid.Column="1" Margin="10,0"
-                               TextChanged="OnSearchTextChanged" />
+                        <SearchBar x:Name="searchEntry"
+                                   Placeholder="搜索餐厅、地点..."
+                                   BackgroundColor="Transparent"
+                                   Grid.Column="1" Margin="10,0"
+                                   TextChanged="OnSearchTextChanged" />
 
                         <Picker Grid.Column="2" 
                                 SelectedItem="{Binding SelectedManualLocation, Mode=TwoWay}"
@@ -249,4 +250,5 @@
 
         </VerticalStackLayout>
     </ScrollView>
+    </RefreshView>
 </ContentPage>

@@ -1,92 +1,59 @@
 using HeriStep.Client.Services;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
+using HeriStep.Shared.Models;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace HeriStep.Client.Views
 {
     public partial class LanguagePage : ContentPage
     {
-        // Savory Ember colors
-        private static readonly Color GlassNormal  = Color.FromArgb("#CC2A2A2A");
-        private static readonly Color GlassSelected = Color.FromArgb("#CC3D1A00");
-        private static readonly Color StrokeNormal  = Color.FromArgb("#40FFFFFF");
-        private static readonly Color StrokeSelected = Color.FromArgb("#D35400");
-
-        private string? _selectedLang;
+        private readonly LanguageCatalogService _languageCatalog = new();
         private readonly bool _isChangeMode;
-
-        // Map: language code → card Border
-        private Dictionary<string, Border> _cardMap = new();
+        private string? _selectedLang;
+        public ObservableCollection<Language> Languages { get; } = new();
 
         public LanguagePage(bool isChangeMode = false)
         {
             InitializeComponent();
             _isChangeMode = isChangeMode;
+            BindingContext = this;
+        }
 
-            // Build the code → card mapping after InitializeComponent
-            _cardMap = new Dictionary<string, Border>
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            if (Languages.Count == 0)
             {
-                ["vi"] = cardVI,
-                ["en"] = cardEN,
-                ["ja"] = cardJA,
-                ["ko"] = cardKO,
-                ["fr"] = cardFR,
-                ["de"] = cardDE,
-                ["zh"] = cardZH,
-                ["es"] = cardES,
-            };
-
-            // Pre-select current language when opened in change mode
-            if (_isChangeMode)
-            {
-                var current = L.CurrentLanguage;
-                if (_cardMap.TryGetValue(current, out var currentCard))
+                var items = await _languageCatalog.GetLanguagesAsync();
+                Languages.Clear();
+                foreach (var language in items)
                 {
-                    currentCard.BackgroundColor = GlassSelected;
-                    currentCard.Stroke = StrokeSelected;
-                    currentCard.StrokeThickness = 2;
-                    _selectedLang = current;
+                    Languages.Add(language);
+                }
+            }
+
+            if (_isChangeMode && !string.IsNullOrWhiteSpace(L.CurrentLanguage))
+            {
+                var current = Languages.FirstOrDefault(l => l.LangCode == L.CurrentLanguage);
+                if (current != null)
+                {
+                    languageCollection.SelectedItem = current;
+                    _selectedLang = current.LangCode;
                     btnGetStarted.IsEnabled = true;
                     btnGetStarted.Opacity = 1.0;
                 }
             }
         }
 
-        // ════════════════════════════════════════════
-        // CARD TAP HANDLER — highlight selected card
-        // ════════════════════════════════════════════
-
-        private void OnCardTapped(object sender, TappedEventArgs e)
+        private void OnLanguageSelected(object sender, SelectionChangedEventArgs e)
         {
-            var lang = e.Parameter as string;
-            if (string.IsNullOrEmpty(lang)) return;
-
-            _selectedLang = lang;
-
-            // Reset all cards to unselected style
-            foreach (var kvp in _cardMap)
+            if (e.CurrentSelection.FirstOrDefault() is Language language && !string.IsNullOrWhiteSpace(language.LangCode))
             {
-                kvp.Value.BackgroundColor = GlassNormal;
-                kvp.Value.Stroke = StrokeNormal;
-                kvp.Value.StrokeThickness = 1;
+                _selectedLang = language.LangCode;
+                btnGetStarted.IsEnabled = true;
+                btnGetStarted.Opacity = 1.0;
             }
-
-            // Apply selected style to tapped card
-            if (_cardMap.TryGetValue(lang, out var card))
-            {
-                card.BackgroundColor = GlassSelected;   // warm ember tint
-                card.Stroke = StrokeSelected;            // amber border
-                card.StrokeThickness = 2;
-            }
-
-            // Enable the GET STARTED button
-            btnGetStarted.IsEnabled = true;
-            btnGetStarted.Opacity = 1.0;
         }
-
-        // ════════════════════════════════════════════
-        // GET STARTED — persist & navigate to shell
-        // ════════════════════════════════════════════
 
         private async void OnGetStartedClicked(object sender, EventArgs e)
         {

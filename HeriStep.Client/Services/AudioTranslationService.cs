@@ -3,21 +3,59 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Media;
-using Microsoft.Maui.Devices;
-using HeriStep.Client.Services;
+using System.Net.Http.Json;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.Services
 {
     public class AudioTranslationService
     {
-        // Dùng CancellationToken để huỷ TTS đang phát trước khi bắt đầu cái mới
+        private readonly HttpClient _httpClient;
         private CancellationTokenSource? _cts;
 
-        public async Task SpeakAsync(string originalText)
+        private static readonly Dictionary<string, string> LocaleMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            if (string.IsNullOrWhiteSpace(originalText)) return;
+            ["vi"] = "VN",
+            ["en"] = "US",
+            ["ja"] = "JP",
+            ["ko"] = "KR",
+            ["zh"] = "CN",
+            ["fr"] = "FR",
+            ["es"] = "ES",
+            ["ru"] = "RU",
+            ["th"] = "TH",
+            ["de"] = "DE"
+        };
 
-            // Huỷ giọng đọc đang chạy (nếu có) để tránh rè/xếp hàng
+        public AudioTranslationService(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+            _httpClient.BaseAddress ??= new Uri($"{AppConstants.BaseApiUrl}/");
+        }
+
+        public async Task<string?> GetStallScriptAsync(int stallId, string? langCode = null)
+        {
+            var targetLang = string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode.Trim().ToLowerInvariant();
+            try
+            {
+                var response = await _httpClient.GetFromJsonAsync<StallSpeechResponse>($"api/Stalls/{stallId}/tts/{targetLang}");
+                if (!string.IsNullOrWhiteSpace(response?.Text))
+                {
+                    return response.Text;
+                }
+            }
+            catch
+            {
+                // ignore network errors and use caller fallback
+            }
+
+            return null;
+        }
+
+        public async Task SpeakAsync(string scriptText, string? langCode = null)
+        {
+            if (string.IsNullOrWhiteSpace(scriptText)) return;
+
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
@@ -25,31 +63,13 @@ namespace HeriStep.Client.Services
 
             try
             {
-                string targetLang = L.CurrentLanguage;
-                Console.WriteLine($"[VOICE_SERVICE] Target Language: {targetLang}");
-
-                // 1. Auto-Translate
-                string translatedText = await TranslationService.TranslateTextAsync(originalText, targetLang);
-                Console.WriteLine($"[VOICE_SERVICE] Translation: {translatedText.Substring(0, Math.Min(30, translatedText.Length))}...");
-
-                // Nếu bị huỷ trong lúc dịch thì bỏ qua
-                if (token.IsCancellationRequested) return;
-
-                // 2. Setup TTS Options
+                string targetLang = string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode.Trim().ToLowerInvariant();
                 var locales = await TextToSpeech.Default.GetLocalesAsync();
-
-                var nativeMappings = new Dictionary<string, string>
-                {
-                    { "zh", "CN" }, { "ko", "KR" }, { "ja", "JP" },
-                    { "vi", "VN" }, { "en", "US" }, { "fr", "FR" }
-                };
-
-                string preferredCountry = nativeMappings.ContainsKey(targetLang) ? nativeMappings[targetLang] : "";
+                var preferredCountry = LocaleMap.TryGetValue(targetLang, out var mappedCountry) ? mappedCountry : string.Empty;
 
                 var locale = locales?
                     .Where(l => l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
-                    .ThenByDescending(l => l.Country)
                     .FirstOrDefault();
 
                 var options = new SpeechOptions
@@ -77,19 +97,22 @@ namespace HeriStep.Client.Services
                 }
 #endif
 
-                // 3. Speak với CancellationToken
-                Console.WriteLine($"[VOICE_SERVICE] Speaking...");
-                await TextToSpeech.Default.SpeakAsync(translatedText, options, token);
-                Console.WriteLine($"[VOICE_SERVICE] Speech completed.");
+                await TextToSpeech.Default.SpeakAsync(scriptText, options, token);
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine($"[VOICE_SERVICE] Speech cancelled (new request came in).");
+                Console.WriteLine("[VOICE_SERVICE] Speech cancelled.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[VOICE_SERVICE] Error: {ex.Message}");
             }
+        }
+
+        private sealed class StallSpeechResponse
+        {
+            public string Text { get; set; } = string.Empty;
+            public string LangCode { get; set; } = string.Empty;
         }
     }
 }

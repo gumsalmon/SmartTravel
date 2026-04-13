@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SQLite;
 using HeriStep.Client.Models.LocalModels;
@@ -205,6 +206,39 @@ namespace HeriStep.Client.Services
         }
 
         /// <summary>
+        /// Tổng quan lượt ghé thực tế từ StallVisits.
+        /// </summary>
+        public async Task<ProfileVisitSummary> GetProfileVisitSummaryAsync()
+        {
+            await InitAsync();
+            var result = await _db.QueryAsync<ProfileVisitSummary>(
+                @"SELECT COUNT(*) AS TotalVisits,
+                         COUNT(DISTINCT StallId) AS UniqueStalls
+                  FROM StallVisits");
+            return result.FirstOrDefault() ?? new ProfileVisitSummary();
+        }
+
+        /// <summary>
+        /// Top quán đã ghé theo số lượt thực tế từ StallVisits.
+        /// </summary>
+        public async Task<List<RecentVisitedStall>> GetTopVisitedStallsAsync(int limit = 5)
+        {
+            await InitAsync();
+            return await _db.QueryAsync<RecentVisitedStall>(
+                @"SELECT v.StallId AS StallId,
+                         MAX(v.StallName) AS StallName,
+                         COUNT(*) AS VisitCount,
+                         MAX(v.VisitedAt) AS LastVisitedAt,
+                         COALESCE(MAX(s.ImageUrl), '') AS ImageUrl
+                  FROM StallVisits v
+                  LEFT JOIN StallCache s ON s.Id = v.StallId
+                  GROUP BY v.StallId
+                  ORDER BY VisitCount DESC, LastVisitedAt DESC
+                  LIMIT ?",
+                limit);
+        }
+
+        /// <summary>
         /// Xoá log cũ hơn N ngày (dọn dẹp định kỳ, gọi khi App khởi động).
         /// </summary>
         public async Task PurgeOldVisitsAsync(int olderThanDays = 90)
@@ -237,5 +271,20 @@ namespace HeriStep.Client.Services
     {
         public int Hour   { get; set; }   // 0–23
         public int Visits { get; set; }
+    }
+
+    public class ProfileVisitSummary
+    {
+        public int TotalVisits { get; set; }
+        public int UniqueStalls { get; set; }
+    }
+
+    public class RecentVisitedStall
+    {
+        public int StallId { get; set; }
+        public string StallName { get; set; } = string.Empty;
+        public int VisitCount { get; set; }
+        public DateTime LastVisitedAt { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }

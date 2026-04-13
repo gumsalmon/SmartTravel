@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using HeriStep.Shared.Models;
 using HeriStep.Client.Services;
+using HeriStep.Client.Services.Location;
 using System;
 using System.Threading;
 
@@ -26,7 +27,8 @@ public partial class MapPage : ContentPage
     private List<Stall> _allStalls = new();
     private bool _isTtsPlaying = false;
     private readonly AudioTranslationService _audioService;
-    private readonly LocalDatabaseService _localDb = new LocalDatabaseService();
+    private readonly LocalDatabaseService _localDb;
+    private readonly GeofenceEngine _botGeofenceEngine;
 
     // ═══ FREE EXPLORATION MODE ═══
     private bool _isFreeExploreMode = false;
@@ -51,6 +53,11 @@ public partial class MapPage : ContentPage
 
     // Mapsui 5: ZoomTo takes resolution (m/px), ~2.4 ≈ OSM zoom 16
     private const double StreetLevelResolution = 2.4;
+    private bool _isBotTestMode = false;
+    private IDispatcherTimer? _botTimer;
+    private Stall? _botTargetStall;
+    private const double BotStepMeters = 2.5;
+    private volatile bool _isPageActive;
 
     // ══════════════════════════════════════════════
     // Savory Ember — amber pin for matching stalls
@@ -60,10 +67,12 @@ public partial class MapPage : ContentPage
     private static readonly Mapsui.Styles.Color PinGrey      = new(107, 91,  78);
     private static readonly Mapsui.Styles.Color PinHighlight = new(255, 191,  0);   // #FFBF00
 
-    public MapPage(AudioTranslationService audioService)
+    public MapPage(AudioTranslationService audioService, LocalDatabaseService localDb, GeofenceEngine geofenceEngine)
     {
         InitializeComponent();
         _audioService = audioService;
+        _localDb = localDb;
+        _botGeofenceEngine = geofenceEngine;
 
         var map = new Mapsui.Map();
         map.Layers.Add(LocalProxyMapLayer.Create());
@@ -101,6 +110,7 @@ public partial class MapPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _isPageActive = true;
         ClosePopup();
         ApplyLocalization();
 
@@ -141,8 +151,10 @@ public partial class MapPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _isPageActive = false;
         _locationLoopCts?.Cancel();
         StopFreeExplore();
+        StopBotTest();
     }
 
 
@@ -230,6 +242,10 @@ public partial class MapPage : ContentPage
                         _lastUserLon = next.Longitude;
                         _demoPathIndex = (_demoPathIndex + 1) % _demoPath.Count;
                     }
+                    else if (_isBotTestMode)
+                    {
+                        // Bot đang điều khiển tọa độ giả lập, giữ nguyên _lastUserLat/_lastUserLon.
+                    }
                     else
                     {
                         var loc = await Geolocation.Default.GetLastKnownLocationAsync();
@@ -239,10 +255,14 @@ public partial class MapPage : ContentPage
                 catch { }
 
                 _userBearingDeg = (_userBearingDeg + 3) % 360;
-                UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (!_isPageActive) return;
+                    UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+                });
                 CheckNearbyStalls(_lastUserLat, _lastUserLon);
 
-                int delay = _isDemoMode ? 1000 : 2000;
+                int delay = (_isDemoMode || _isBotTestMode) ? 1000 : 2000;
                 try { await Task.Delay(delay, token); }
                 catch (TaskCanceledException) { break; }
             }
@@ -311,12 +331,15 @@ public partial class MapPage : ContentPage
         try
         {
             var lang = L.CurrentLanguage;
-            string textToSpeak = !string.IsNullOrEmpty(stall.Description) 
-                ? stall.Description 
-                : BuildFallback(stall, lang);
+            var textToSpeak = await _audioService.GetStallScriptAsync(stall.Id, lang);
+            if (string.IsNullOrWhiteSpace(textToSpeak))
+            {
+                textToSpeak = !string.IsNullOrWhiteSpace(stall.TtsScript)
+                    ? stall.TtsScript
+                    : BuildFallback(stall, lang);
+            }
 
-            // Forward to the automated service
-            await _audioService.SpeakAsync(textToSpeak);
+            await _audioService.SpeakAsync(textToSpeak, lang);
         }
         catch (Exception ex) { Console.WriteLine($"[VOICE_SERVICE] MapPage Error: {ex.Message}"); }
         finally
@@ -430,8 +453,9 @@ public partial class MapPage : ContentPage
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var lang = L.CurrentLanguage;
             var poiList = await client.GetFromJsonAsync<List<HeriStep.Shared.Models.DTOs.Responses.PointOfInterest>>(
-                $"{AppConstants.BaseApiUrl}/api/Stalls", options);
+                $"{AppConstants.BaseApiUrl}/api/Stalls?lang={lang}", options);
 
             if (poiList?.Count > 0)
             {
@@ -439,7 +463,7 @@ public partial class MapPage : ContentPage
                 {
                     Id = p.Id, Name = p.Name, Latitude = p.Latitude, Longitude = p.Longitude,
                     RadiusMeter = p.RadiusMeter, IsOpen = p.IsOpen, ImageUrl = p.ImageUrl,
-                    OwnerId = p.OwnerId, OwnerName = p.OwnerName
+                    OwnerId = p.OwnerId, OwnerName = p.OwnerName, TtsScript = p.TtsScript
                 }).ToList();
 
                 var old = mapView.Map?.Layers.FirstOrDefault(l => l.Name == "QuanOcLayer");
@@ -453,8 +477,7 @@ public partial class MapPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"[OFFLINE_DB] MapPage stalls fetch failed: {ex.Message}"); 
             try 
             {
-                var localDb = new LocalDatabaseService();
-                var offlineStalls = await localDb.GetStallsAsync();
+            var offlineStalls = await _localDb.GetStallsAsync();
                 if (offlineStalls != null && offlineStalls.Count > 0)
                 {
                     _allStalls = offlineStalls.Select(ls => new Stall {
@@ -612,6 +635,91 @@ public partial class MapPage : ContentPage
         else btnDemoMode.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#6B5B4E");
     }
 
+    private async void BotTest_Clicked(object sender, EventArgs e)
+    {
+        _isBotTestMode = !_isBotTestMode;
+        if (_isBotTestMode)
+        {
+            await StartBotTestAsync();
+        }
+        else
+        {
+            StopBotTest();
+        }
+    }
+
+    private async Task StartBotTestAsync()
+    {
+        if (_allStalls.Count == 0)
+        {
+            await LoadStallsAsync();
+        }
+
+        _botTargetStall = _allStalls
+            .Where(s => s.Latitude != 0 || s.Longitude != 0)
+            .OrderBy(s => Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(
+                new Microsoft.Maui.Devices.Sensors.Location(_lastUserLat, _lastUserLon),
+                new Microsoft.Maui.Devices.Sensors.Location(s.Latitude, s.Longitude),
+                DistanceUnits.Kilometers))
+            .FirstOrDefault();
+
+        if (_botTargetStall == null)
+        {
+            await DisplayAlert("Bot Test", "Không tìm thấy quán hợp lệ trong dữ liệu.", "OK");
+            _isBotTestMode = false;
+            return;
+        }
+
+        btnBotTest.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#FFBF00");
+        lblFreeExploreStatus.Text = $"🤖 Bot → {_botTargetStall.Name}";
+        freeExploreBanner.IsVisible = true;
+
+        _botTimer?.Stop();
+        _botTimer = Application.Current!.Dispatcher.CreateTimer();
+        _botTimer.Interval = TimeSpan.FromSeconds(1.5);
+        _botTimer.Tick += async (_, _) => await BotStepAsync();
+        _botTimer.Start();
+    }
+
+    private async Task BotStepAsync()
+    {
+        if (!_isBotTestMode || _botTargetStall == null)
+        {
+            return;
+        }
+
+        var current = new Microsoft.Maui.Devices.Sensors.Location(_lastUserLat, _lastUserLon);
+        var target = new Microsoft.Maui.Devices.Sensors.Location(_botTargetStall.Latitude, _botTargetStall.Longitude);
+        var distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(current, target, DistanceUnits.Kilometers) * 1000;
+        if (distanceMeters <= 1.0)
+        {
+            return;
+        }
+
+        var ratio = Math.Min(BotStepMeters / Math.Max(distanceMeters, 0.1), 1.0);
+        _lastUserLat = _lastUserLat + ((_botTargetStall.Latitude - _lastUserLat) * ratio);
+        _lastUserLon = _lastUserLon + ((_botTargetStall.Longitude - _lastUserLon) * ratio);
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!_isPageActive) return;
+            UpdateUserLocationOnMap(_lastUserLat, _lastUserLon, _userBearingDeg);
+            CheckNearbyStalls(_lastUserLat, _lastUserLon);
+        });
+        await _botGeofenceEngine.InjectLocationAsync(_lastUserLat, _lastUserLon);
+    }
+
+    private void StopBotTest()
+    {
+        _isBotTestMode = false;
+        if (_botTimer != null)
+        {
+            _botTimer.Stop();
+            _botTimer = null;
+        }
+        btnBotTest.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#6B5B4E");
+    }
+
     // ══════════════════════════════════════════════
     // CHẾ ĐỘ KHÁM PHÁ TỰ DO (FREE EXPLORATION MODE)
     // ══════════════════════════════════════════════
@@ -688,9 +796,9 @@ public partial class MapPage : ContentPage
                             Console.WriteLine($"[FREE_EXPLORE] Entered zone of '{ls.Name}' ({distMeters:F1}m). Playing TTS...");
 
                             // Bước 4: Truy xuất kịch bản TtsScript theo ngôn ngữ đã chọn
-                            string script = !string.IsNullOrEmpty(ls.Description)
-                                ? ls.Description
-                                : BuildFallback(new Stall { Name = ls.Name }, L.CurrentLanguage);
+                            string script = await _audioService.GetStallScriptAsync(ls.Id, L.CurrentLanguage)
+                                            ?? ls.TtsScript
+                                            ?? BuildFallback(new Stall { Name = ls.Name }, L.CurrentLanguage);
 
                             // Đánh cờ IsVisited = true TRƯỚC khi phát để tránh vòng lặp
                             ls.IsVisited = true;
@@ -706,7 +814,7 @@ public partial class MapPage : ContentPage
                             });
 
                             // Bước 5: Phát TTS bằng giọng bản địa
-                            await _audioService.SpeakAsync(script);
+                            await _audioService.SpeakAsync(script, L.CurrentLanguage);
 
                             await MainThread.InvokeOnMainThreadAsync(() =>
                             {
@@ -742,4 +850,5 @@ public partial class MapPage : ContentPage
             btnFreeExplore.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
         });
     }
+
 }

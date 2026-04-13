@@ -3,6 +3,8 @@ using HeriStep.Client.Services;
 using System.Linq;
 using System.Collections.Generic;
 using HeriStep.Shared.Models;
+using System.Globalization;
+using System.Text;
 
 namespace HeriStep.Client.Views;
 
@@ -10,13 +12,17 @@ public partial class HomePage : ContentPage
 {
     private readonly HomeViewModel _viewModel;
     private readonly AudioTranslationService _audioService;
+    private readonly LocalDatabaseService _localDb;
+    private readonly GeofenceEngine _geofenceEngine;
     private Action? _langChangedHandler;
 
-    public HomePage(HomeViewModel viewModel, AudioTranslationService audioService)
+    public HomePage(HomeViewModel viewModel, AudioTranslationService audioService, LocalDatabaseService localDb, GeofenceEngine geofenceEngine)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _audioService = audioService;
+        _localDb = localDb;
+        _geofenceEngine = geofenceEngine;
         BindingContext = _viewModel;
     }
 
@@ -97,13 +103,9 @@ public partial class HomePage : ContentPage
 
         // Search ALL stalls (including those not visible in filtered view)
         // Supports diacritics-insensitive matching: "oc" matches "Ốc", "oanh" matches "Oanh"
-        var compareInfo = System.Globalization.CultureInfo.InvariantCulture.CompareInfo;
         var suggestions = _viewModel.AllPoints
-            .Where(p => p.Name != null &&
-                        compareInfo.IndexOf(
-                            p.Name, keyword,
-                            System.Globalization.CompareOptions.IgnoreNonSpace |
-                            System.Globalization.CompareOptions.IgnoreCase) >= 0)
+            .Where(p => !string.IsNullOrWhiteSpace(p.Name) &&
+                        NormalizeSearch(p.Name).Contains(NormalizeSearch(keyword), StringComparison.OrdinalIgnoreCase))
             .Take(6)
             .ToList();
 
@@ -140,7 +142,7 @@ public partial class HomePage : ContentPage
     {
         // Hide suggestion panel before navigating
         suggestionPanel.IsVisible = false;
-        await Navigation.PushAsync(new MapPage(_audioService));
+        await Navigation.PushAsync(new MapPage(_audioService, _localDb, _geofenceEngine));
     }
 
     private async void OnShopSelected(object sender, SelectionChangedEventArgs e)
@@ -161,5 +163,25 @@ public partial class HomePage : ContentPage
             cv.SelectedItem = null;
             await Navigation.PushAsync(new TourDetailPage(selectedTour));
         }
+    }
+
+    private static string NormalizeSearch(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalized = text.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString()
+            .Normalize(NormalizationForm.FormC)
+            .Replace('đ', 'd')
+            .Replace('Đ', 'D')
+            .ToLowerInvariant();
     }
 }

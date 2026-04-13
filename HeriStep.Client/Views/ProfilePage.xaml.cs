@@ -1,6 +1,9 @@
 using System;
 using HeriStep.Client.Services;
 using HeriStep.Shared.Models;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HeriStep.Client.Views
 {
@@ -8,13 +11,16 @@ namespace HeriStep.Client.Views
     {
         private readonly SubscriptionService _subscriptionService;
         private readonly AudioTranslationService _audioService;
+        private readonly LocalDatabaseService _localDb = new();
         private Action? _langChangedHandler;
+        public ObservableCollection<ProfileVisitItem> RecentVisits { get; } = new();
 
         public ProfilePage(SubscriptionService subscriptionService, AudioTranslationService audioService)
         {
             InitializeComponent();
             _subscriptionService = subscriptionService;
             _audioService = audioService;
+            BindingContext = this;
         }
 
         protected override async void OnAppearing()
@@ -48,6 +54,8 @@ namespace HeriStep.Client.Views
                 lblTimeRemaining.Text = L.Get("profile_expiry_expired");
                 lblTimeRemaining.TextColor = Colors.IndianRed;
             }
+
+            await LoadVisitHistoryAsync();
         }
 
         protected override void OnDisappearing()
@@ -70,18 +78,11 @@ namespace HeriStep.Client.Views
             lblChangeLang.Text        = L.Get("profile_change_lang");
             lblChangeLangDesc.Text    = L.Get("profile_lang_desc");
             lblSaved.Text             = L.Get("profile_saved_lbl");
-            lblSavedCount.Text        = L.Get("profile_saved_count");
+            lblSavedCount.Text        = $"{RecentVisits.Count} {L.Get("profile_saved_lbl").ToLower()}";
             lblSupport.Text           = L.Get("profile_support");
             lblSupportDesc.Text       = L.Get("profile_support_24");
-            lblChangePkg.Text         = L.Get("profile_logout");
-            lblChangePkgDesc.Text     = L.Get("profile_logout_desc");
             lblRecentHistory.Text     = L.Get("profile_history");
             lblViewAll.Text           = L.Get("profile_view_all");
-            // History items
-            lblHistoryItem1.Text      = L.Get("profile_history_item1");
-            lblHistoryTag1.Text       = L.Get("profile_history_tag1");
-            lblHistoryItem2.Text      = L.Get("profile_history_item2");
-            lblHistoryTag2.Text       = L.Get("profile_history_tag2");
         }
 
         private async void OnHomeClicked(object sender, EventArgs e)
@@ -104,50 +105,80 @@ namespace HeriStep.Client.Views
             await DisplayAlert(L.Get("profile_history"), "Full history view coming soon.", L.Get("ok"));
         }
 
-        private async void OnChangePackageTapped(object sender, EventArgs e)
+        private async Task LoadVisitHistoryAsync()
         {
-            var confirm = await DisplayAlert(
-                L.Get("notification"),
-                L.Get("profile_logout_confirm"),
-                L.Get("ok"), L.Get("close"));
-
-            if (confirm)
+            try
             {
-                // 🗑️ Xóa dữ liệu đăng ký cũ để buộc app quay về trang QR
-                Preferences.Default.Remove("device_ticket_id");
-                Preferences.Default.Remove("ticket_expiry");
-                Preferences.Default.Remove("jwt_token");
+                var summary = await _localDb.GetProfileVisitSummaryAsync();
+                lblStatVisitedValue.Text = summary.TotalVisits.ToString();
+                lblStatSavedValue.Text = summary.UniqueStalls.ToString();
+                lblStatRatingValue.Text = summary.TotalVisits > 0 ? "★ 5.0" : "★ -";
 
-                // 🔄 Chuyển về trang chọn gói (SubscriptionPage) để quét lại QR
-                Application.Current!.MainPage = new NavigationPage(new SubscriptionPage(_subscriptionService));
+                var topVisited = await _localDb.GetTopVisitedStallsAsync(5);
+                RecentVisits.Clear();
+                foreach (var item in topVisited)
+                {
+                    RecentVisits.Add(new ProfileVisitItem
+                    {
+                        StallId = item.StallId,
+                        StallName = item.StallName,
+                        VisitCount = item.VisitCount,
+                        ImageUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                            ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600"
+                            : item.ImageUrl,
+                        VisitLabel = $"Đã ghé {item.VisitCount} lượt"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PROFILE] LoadVisitHistory failed: {ex.Message}");
+                RecentVisits.Clear();
+                lblStatVisitedValue.Text = "0";
+                lblStatSavedValue.Text = "0";
+                lblStatRatingValue.Text = "★ -";
             }
         }
 
-        private async void OnHistoryItem1Tapped(object sender, EventArgs e)
+        private async void OnHistorySelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var stall = new Stall
+            if (e.CurrentSelection.FirstOrDefault() is not ProfileVisitItem visitItem)
             {
-                Id = 11,
-                Name = "Oc Dao Vinh Khanh",
-                ImageUrl = "https://images.unsplash.com/photo-1544025162-8e658402afb0?w=600"
-            };
-            await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall, _audioService));
-        }
+                return;
+            }
 
-        private async void OnHistoryItem2Tapped(object sender, EventArgs e)
-        {
+            ((CollectionView)sender).SelectedItem = null;
+
+            var localStalls = await _localDb.GetStallsAsync();
+            var matched = localStalls.FirstOrDefault(s => s.Id == visitItem.StallId);
             var stall = new Stall
             {
-                Id = 12,
-                Name = "Mrs. Sau's Rolls",
-                ImageUrl = "https://images.unsplash.com/photo-1574484284002-952d92456975?w=600"
+                Id = visitItem.StallId,
+                Name = visitItem.StallName,
+                ImageUrl = visitItem.ImageUrl,
+                Description = matched?.Description,
+                Latitude = matched?.Latitude ?? 0,
+                Longitude = matched?.Longitude ?? 0,
+                RadiusMeter = (int)(matched?.RadiusMeter ?? 20),
+                IsOpen = matched?.IsOpen ?? true,
+                TtsScript = matched?.TtsScript
             };
+
             await Shell.Current.Navigation.PushAsync(new ShopDetailPage(stall, _audioService));
         }
 
         private async void OnChangeLanguageTapped(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new LanguagePage(isChangeMode: true));
+        }
+
+        public class ProfileVisitItem
+        {
+            public int StallId { get; set; }
+            public string StallName { get; set; } = string.Empty;
+            public int VisitCount { get; set; }
+            public string VisitLabel { get; set; } = string.Empty;
+            public string ImageUrl { get; set; } = string.Empty;
         }
     }
 }

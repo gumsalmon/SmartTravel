@@ -70,15 +70,39 @@
                                 StrokeShape="RoundRectangle 24" Padding="12,0" Margin="10,10,10,0" HeightRequest="48">
                             <Grid ColumnDefinitions="Auto, *">
                                 <Label Text="🔍" FontSize="18" Grid.Column="0" VerticalOptions="Center" Margin="6,0,8,0"/>
-                                <Entry x:Name="heroSearchEntry"
-                                       Placeholder="Tìm quán ăn, địa điểm..."
+                                <SearchBar x:Name="heroSearchEntry"
+                                       Placeholder="{Binding SearchPlaceholder}"
                                        PlaceholderColor="#6B5B4E"
                                        TextColor="#FDF5E6"
                                        BackgroundColor="Transparent"
                                        Grid.Column="1"
                                        VerticalOptions="Center"
-                                       Completed="OnHeroSearchCompleted"/>
+                                       TextChanged="OnHeroSearchTextChanged"
+                                       SearchButtonPressed="OnHeroSearchCompleted"/>
                             </Grid>
+                        </Border>
+
+                        <Border x:Name="heroSuggestionPanel"
+                                IsVisible="False"
+                                BackgroundColor="#EE242424"
+                                StrokeThickness="1"
+                                Stroke="#50D35400"
+                                StrokeShape="RoundRectangle 14"
+                                Margin="10,8,10,0"
+                                Padding="8">
+                            <CollectionView x:Name="heroSuggestionList"
+                                            SelectionMode="Single"
+                                            SelectionChanged="OnHeroSuggestionSelected"
+                                            MaximumHeightRequest="210">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="8,8" ColumnDefinitions="Auto,*">
+                                            <Label Text="🏪" Grid.Column="0" Margin="0,0,8,0"/>
+                                            <Label Text="{Binding Name}" Grid.Column="1" TextColor="#FDF5E6"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
                         </Border>
                     </VerticalStackLayout>
                 </Grid>

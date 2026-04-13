@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using HeriStep.Client.Views;
 using HeriStep.Client.Services;
+using HeriStep.Client.ViewModels;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 
@@ -10,16 +12,16 @@ namespace HeriStep.Client
     public partial class MainPage : ContentPage
     {
         private readonly AudioTranslationService _audioService;
+        private readonly HomeViewModel _homeViewModel;
+        private Action? _languageChangedHandler;
 
-        public MainPage(AudioTranslationService audioService)
+        public MainPage(AudioTranslationService audioService, HomeViewModel homeViewModel)
         {
             InitializeComponent();
             _audioService = audioService;
+            _homeViewModel = homeViewModel;
+            BindingContext = _homeViewModel;
             ApplyLocalization();
-            L.LanguageChanged += () => MainThread.BeginInvokeOnMainThread(() => 
-            {
-                ApplyLocalization();
-            });
         }
 
         private void ApplyLocalization()
@@ -41,10 +43,26 @@ namespace HeriStep.Client
             lblShop2Tags.Text = L.Get("main_shop2_tags");
         }
 
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            if (_languageChangedHandler != null)
+            {
+                L.LanguageChanged -= _languageChangedHandler;
+                _languageChangedHandler = null;
+            }
+        }
+
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            if (_languageChangedHandler == null)
+            {
+                _languageChangedHandler = () => MainThread.BeginInvokeOnMainThread(ApplyLocalization);
+                L.LanguageChanged += _languageChangedHandler;
+            }
             ApplyLocalization();
+            _ = _homeViewModel.LoadPointsAsync();
             // Pre-warm TTS
             _ = Task.Run(async () =>
             {
@@ -101,15 +119,43 @@ namespace HeriStep.Client
 
         private async void OnHeroSearchCompleted(object sender, EventArgs e)
         {
-            if (sender is Entry entry)
+            if (sender is SearchBar entry)
             {
                 string keyword = entry.Text;
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
-                    // Redirect to filter result page (search logic)
-                    await Shell.Current.Navigation.PushAsync(new FilterResultPage(keyword, new List<HeriStep.Shared.Models.Stall>(), _audioService));
+                    var result = _homeViewModel.GetSearchSuggestions(keyword, 20);
+                    await Shell.Current.Navigation.PushAsync(new FilterResultPage(keyword, result, _audioService));
                 }
             }
+        }
+
+        private void OnHeroSearchTextChanged(object sender, TextChangedEventArgs e)
+        {
+            var keyword = e.NewTextValue?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                heroSuggestionPanel.IsVisible = false;
+                heroSuggestionList.ItemsSource = null;
+                return;
+            }
+
+            var suggestions = _homeViewModel.GetSearchSuggestions(keyword, 8);
+            heroSuggestionList.ItemsSource = suggestions;
+            heroSuggestionPanel.IsVisible = suggestions.Count > 0;
+        }
+
+        private async void OnHeroSuggestionSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.CurrentSelection.FirstOrDefault() is not HeriStep.Shared.Models.Stall selectedStall)
+            {
+                return;
+            }
+
+            heroSuggestionPanel.IsVisible = false;
+            heroSearchEntry.Text = string.Empty;
+            heroSuggestionList.SelectedItem = null;
+            await Shell.Current.Navigation.PushAsync(new ShopDetailPage(selectedStall, _audioService));
         }
     }
 }

@@ -23,10 +23,12 @@ namespace HeriStep.API.Controllers
         // =======================================================
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls()
+        public async Task<ActionResult<IEnumerable<PointOfInterest>>> GetStalls([FromQuery] string? lang = "vi", [FromQuery] DateTime? updatedAfter = null)
         {
-            var query = from s in _context.Stalls
-                        where !s.IsDeleted
+            var langCode = string.IsNullOrWhiteSpace(lang) ? "vi" : lang.Trim().ToLowerInvariant();
+
+            var query = from s in _context.Stalls.AsNoTracking()
+                        where !s.IsDeleted && (!updatedAfter.HasValue || (s.UpdatedAt.HasValue && s.UpdatedAt > updatedAfter.Value))
                         join u in _context.Users on s.OwnerId equals u.Id into userGroup
                         from user in userGroup.DefaultIfEmpty()
                         select new PointOfInterest
@@ -40,10 +42,54 @@ namespace HeriStep.API.Controllers
                             ImageUrl = s.ImageUrl,
                             OwnerId = s.OwnerId,
                             OwnerName = user != null ? user.FullName : "Chưa có chủ",
-                            UpdatedAt = s.UpdatedAt
+                            UpdatedAt = s.UpdatedAt,
+                            TtsScript = _context.StallContents
+                                .Where(c => c.StallId == s.Id && !c.IsDeleted && c.IsActive == true)
+                                .OrderByDescending(c => c.LangCode == langCode)
+                                .ThenByDescending(c => c.LangCode == "vi")
+                                .ThenByDescending(c => c.UpdatedAt)
+                                .Select(c => c.TtsScript)
+                                .FirstOrDefault() ?? ""
                         };
 
             return await query.OrderByDescending(x => x.Id).ToListAsync();
+        }
+
+        [HttpGet("languages")]
+        public async Task<IActionResult> GetLanguages()
+        {
+            var languages = await _context.Languages
+                .AsNoTracking()
+                .Where(l => !l.IsDeleted)
+                .OrderBy(l => l.LangName)
+                .Select(l => new
+                {
+                    langCode = l.LangCode,
+                    langName = l.LangName,
+                    flagIconUrl = l.FlagIconUrl
+                })
+                .ToListAsync();
+
+            if (languages.Count > 0)
+            {
+                return Ok(languages);
+            }
+
+            var fallback = await _context.StallContents
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted && c.IsActive == true)
+                .Select(c => c.LangCode)
+                .Distinct()
+                .OrderBy(c => c)
+                .Select(c => new
+                {
+                    langCode = c,
+                    langName = c.ToUpper(),
+                    flagIconUrl = (string?)null
+                })
+                .ToListAsync();
+
+            return Ok(fallback);
         }
 
         [HttpGet("{id}")]
@@ -286,14 +332,26 @@ namespace HeriStep.API.Controllers
         [HttpGet("{id}/tts/{langCode}")]
         public async Task<IActionResult> GetStallTts(int id, string langCode)
         {
+            var normalizedLang = string.IsNullOrWhiteSpace(langCode) ? "vi" : langCode.Trim().ToLowerInvariant();
+
             var content = await _context.StallContents
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == langCode && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == normalizedLang && !c.IsDeleted && c.IsActive == true);
+
+            var actualLang = normalizedLang;
+
+            if (content == null || string.IsNullOrWhiteSpace(content.TtsScript))
+            {
+                content = await _context.StallContents
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.StallId == id && c.LangCode == "vi" && !c.IsDeleted && c.IsActive == true);
+                actualLang = "vi";
+            }
 
             if (content == null || string.IsNullOrWhiteSpace(content.TtsScript))
                 return NotFound(new { message = "Không tìm thấy TTS hoặc đang chờ dịch" });
 
-            return Ok(new { text = content.TtsScript });
+            return Ok(new { text = content.TtsScript, langCode = actualLang });
         }
 
         // =======================================================
@@ -505,6 +563,6 @@ namespace HeriStep.API.Controllers
         public class CreateStallPos { public double Latitude { get; set; } public double Longitude { get; set; } }
 
         // DTO nội bộ cho GetStalls (Để tránh gọi đè vào Shared.Models nếu bị xung đột)
-        public class PointOfInterest { public int Id { get; set; } public string? Name { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public int RadiusMeter { get; set; } public bool IsOpen { get; set; } public string? ImageUrl { get; set; } public int? OwnerId { get; set; } public string? OwnerName { get; set; } public DateTime? UpdatedAt { get; set; } }
+        public class PointOfInterest { public int Id { get; set; } public string? Name { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public int RadiusMeter { get; set; } public bool IsOpen { get; set; } public string? ImageUrl { get; set; } public int? OwnerId { get; set; } public string? OwnerName { get; set; } public string? TtsScript { get; set; } public DateTime? UpdatedAt { get; set; } }
     }
 }

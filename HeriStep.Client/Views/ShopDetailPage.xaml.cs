@@ -96,11 +96,12 @@ namespace HeriStep.Client.Views
 
             try
             {
-                string textToSpeak = !string.IsNullOrWhiteSpace(_stall.Description)
-                    ? _stall.Description
-                    : BuildFallback();
+                var lang = L.CurrentLanguage;
+                string textToSpeak = await _audioService.GetStallScriptAsync(_stall.Id, lang)
+                    ?? _stall.TtsScript
+                    ?? BuildFallback();
 
-                await _audioService.SpeakAsync(textToSpeak);
+                await _audioService.SpeakAsync(textToSpeak, lang);
 
                 lblTtsStatus.Text = "✅ Success.";
                 lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");

@@ -1,29 +1,76 @@
 using System;
 using Microsoft.Maui.Controls;
 using HeriStep.Client.Services;
+using HeriStep.Shared.Models;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace HeriStep.Client.Views
 {
     public partial class LanguageSelectionPage : ContentPage
     {
         private readonly SubscriptionService _subscriptionService;
+        private readonly LanguageCatalogService _languageCatalog = new();
+        public ObservableCollection<LanguageSelectionItem> Languages { get; } = new();
+
+        private static readonly Dictionary<string, string> FlagMap = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["vi"] = "🇻🇳",
+            ["en"] = "🇬🇧",
+            ["ja"] = "🇯🇵",
+            ["ko"] = "🇰🇷",
+            ["zh"] = "🇨🇳",
+            ["fr"] = "🇫🇷",
+            ["es"] = "🇪🇸",
+            ["ru"] = "🇷🇺",
+            ["th"] = "🇹🇭",
+            ["de"] = "🇩🇪"
+        };
 
         public LanguageSelectionPage(SubscriptionService subscriptionService)
         {
             InitializeComponent();
             _subscriptionService = subscriptionService;
+            BindingContext = this;
         }
 
-        private void OnLanguageSelected(object sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            if (sender is Button btn && btn.CommandParameter is string lang)
+            base.OnAppearing();
+            if (Languages.Count == 0)
+            {
+                var languages = await _languageCatalog.GetLanguagesAsync();
+                Languages.Clear();
+                foreach (var language in languages)
+                {
+                    Languages.Add(new LanguageSelectionItem
+                    {
+                        LangCode = language.LangCode,
+                        LangName = language.LangName,
+                        Flag = FlagMap.TryGetValue(language.LangCode, out var flag) ? flag : "🌐"
+                    });
+                }
+            }
+        }
+
+        private void OnLanguageSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.CurrentSelection.FirstOrDefault() is LanguageSelectionItem language && !string.IsNullOrWhiteSpace(language.LangCode))
             {
                 // Save selected language globally
-                L.SetLanguage(lang);
+                L.SetLanguage(language.LangCode);
 
                 // Move to LoadingPage to continue with Subscription Check
                 Application.Current.MainPage = new LoadingPage(_subscriptionService);
             }
+        }
+
+        public class LanguageSelectionItem
+        {
+            public string LangCode { get; set; } = string.Empty;
+            public string LangName { get; set; } = string.Empty;
+            public string Flag { get; set; } = "🌐";
         }
     }
 }

@@ -54,11 +54,12 @@
             public Task<IActionResult> GetTopHotTours() => GetTop10Tours();
 
             [HttpGet]
-            public async Task<IActionResult> GetTours()
+            public async Task<IActionResult> GetTours([FromQuery] DateTime? updatedAfter = null)
             {
                 var now = DateTime.Now;
 
                 var tours = await _context.Tours
+                    .Where(t => !updatedAfter.HasValue || (t.UpdatedAt.HasValue && t.UpdatedAt > updatedAfter.Value))
                     .Select(t => new {
                         Id = t.Id,
                         TourName = t.TourName,
@@ -66,6 +67,7 @@
                         IsActive = t.IsActive,
                         IsTopHot = t.IsTopHot,
                         ImageUrl = t.ImageUrl,
+                        UpdatedAt = t.UpdatedAt,
                         // 💡 TECH LEAD FIX: Lọc sạp đóng cửa/hết hạn
                         StallCount = _context.Stalls.Count(s => s.TourID == t.Id
                                                              && s.IsOpen == true

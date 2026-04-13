@@ -8,6 +8,8 @@ public partial class FilterResultPage : ContentPage
 {
     public string CategoryTitle { get; set; }
     public ObservableCollection<Stall> FilteredPoints { get; set; }
+    public bool IsEmptyResult => FilteredPoints.Count == 0;
+    public bool HasResults => !IsEmptyResult;
 
     private readonly AudioTranslationService _audioService;
 

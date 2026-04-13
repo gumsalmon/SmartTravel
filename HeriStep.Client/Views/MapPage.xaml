@@ -115,6 +115,16 @@
             </Button.Shadow>
         </Button>
 
+        <Button x:Name="btnBotTest" Text="🤖" FontSize="20"
+                BackgroundColor="#EE242424" BorderColor="#6B5B4E" BorderWidth="1"
+                CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,268"
+                Clicked="BotTest_Clicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
+            </Button.Shadow>
+        </Button>
+
         <!-- ── DARK OVERLAY ── -->
         <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.5" IsVisible="False">
             <BoxView.GestureRecognizers>
