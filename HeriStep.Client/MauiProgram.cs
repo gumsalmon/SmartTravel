@@ -37,6 +37,20 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocalDatabaseService>();
         builder.Services.AddSingleton<AudioTranslationService>();
 
+        // ═══ FREE DISCOVERY MODE ═══
+        // GeofenceEngine: singleton có thể sống suốt vòng đời App
+        builder.Services.AddSingleton<GeofenceEngine>();
+
+        // IFreeDiscoveryService: chỉ hỗ trợ Android (Foreground Service)
+#if ANDROID
+        builder.Services.AddSingleton<IFreeDiscoveryService,
+            HeriStep.Client.Platforms.Android.AndroidFreeDiscoveryService>();
+#else
+        // Windows (dev/testing): GPS loop chạy trực tiếp, không cần Foreground Service
+        builder.Services.AddSingleton<IFreeDiscoveryService,
+            FallbackFreeDiscoveryService>();
+#endif
+
 #if DEBUG
         builder.Services.AddSingleton<ILocationService, MockLocationService>();
 #else
@@ -45,6 +59,7 @@ public static class MauiProgram
 
         // ═══ VIEWMODELS ═══
         builder.Services.AddSingleton<HomeViewModel>();
+        builder.Services.AddSingleton<FreeDiscoveryViewModel>();
 
         // ═══ PAGES ═══
         builder.Services.AddTransient<LoadingPage>();
@@ -54,6 +69,7 @@ public static class MauiProgram
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
         builder.Services.AddTransient<HomePage>();
+        builder.Services.AddTransient<FreeDiscoveryPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

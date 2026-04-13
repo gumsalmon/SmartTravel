@@ -11,22 +11,54 @@ namespace HeriStep.Client.Services
     {
         private SQLiteAsyncConnection _db;
         private readonly string _dbPath;
+        private readonly SemaphoreSlim _initLock = new(1, 1);
 
         public LocalDatabaseService()
         {
-            _dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HeriStepOffline.db3");
+            _dbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "HeriStepOffline.db3");
         }
 
         public async Task InitAsync()
         {
-            if (_db != null)
-                return;
+            // Double-check lock để tránh race condition khi gọi đồng thời
+            if (_db != null) return;
 
-            _db = new SQLiteAsyncConnection(_dbPath);
+            await _initLock.WaitAsync();
+            try
+            {
+                if (_db != null) return;
 
-            // Create tables if they do not exist
-            await _db.CreateTableAsync<LocalStall>();
-            await _db.CreateTableAsync<LocalTour>();
+                _db = new SQLiteAsyncConnection(_dbPath,
+                    SQLiteOpenFlags.ReadWrite |
+                    SQLiteOpenFlags.Create   |
+                    SQLiteOpenFlags.SharedCache);
+
+                // WAL mode: đọc/ghi đồng thời không lock nhau
+                await _db.ExecuteAsync("PRAGMA journal_mode=WAL;");
+                await _db.ExecuteAsync("PRAGMA synchronous=NORMAL;");
+
+                await _db.CreateTableAsync<LocalStall>();
+                await _db.CreateTableAsync<LocalTour>();
+
+                // ─── BẢNG MỚI cho Heatmap ───────────────────────────────
+                await _db.CreateTableAsync<StallVisit>();
+
+                // Index tăng tốc GROUP BY StallId khi vẽ Heatmap
+                await _db.ExecuteAsync(
+                    "CREATE INDEX IF NOT EXISTS idx_stallvisits_stallid " +
+                    "ON StallVisits(StallId);");
+
+                // Index phân tích giờ cao điểm: GROUP BY strftime('%H', VisitedAt)
+                await _db.ExecuteAsync(
+                    "CREATE INDEX IF NOT EXISTS idx_stallvisits_visitedat " +
+                    "ON StallVisits(VisitedAt);");
+            }
+            finally
+            {
+                _initLock.Release();
+            }
         }
 
         #region Stall Operations
@@ -54,12 +86,8 @@ namespace HeriStep.Client.Services
         public async Task SaveStallsAsync(IEnumerable<LocalStall> stalls)
         {
             await InitAsync();
-            
-            // Replaces if ID already exists, otherwise inserts
             foreach (var stall in stalls)
-            {
                 await _db.InsertOrReplaceAsync(stall);
-            }
         }
 
         #endregion
@@ -75,7 +103,6 @@ namespace HeriStep.Client.Services
         /// <summary>
         /// Tính năng: Xem Top 10 Tour du lịch (Luồng Offline-first)
         /// SELECT * FROM TourCache WHERE IsActive=1 LIMIT 10
-        /// Không gọi API — render trực tiếp từ SQLite nội bộ.
         /// </summary>
         public async Task<List<LocalTour>> GetTop10ToursAsync()
         {
@@ -89,52 +116,126 @@ namespace HeriStep.Client.Services
         public async Task SaveToursAsync(IEnumerable<LocalTour> tours)
         {
             await InitAsync();
-            
             foreach (var tour in tours)
-            {
                 await _db.InsertOrReplaceAsync(tour);
-            }
         }
 
         #endregion
 
-        #region Free Exploration Mode
+        #region Free Exploration Mode — Legacy RAM helpers (kept for compat)
 
         /// <summary>
-        /// Đánh dấu một quán đã được phát TTS (IsVisited = true).
-        /// Chống vòng lặp đọc lại theo sơ đồ sequence.
+        /// [DEPRECATED — dùng GeofenceEngine.ResetVisitedFlags() thay thế]
+        /// Reset toàn bộ cờ IsVisited = 0 trong DB.
+        /// Giờ chỉ cần gọi khi muốn đồng bộ DB ↔ RAM sau restart app.
         /// </summary>
-        public async Task MarkStallVisitedAsync(int stallId)
+        public Task ResetAllVisitedAsync()
         {
-            await InitAsync();
-            var stall = await _db.Table<LocalStall>().Where(s => s.Id == stallId).FirstOrDefaultAsync();
-            if (stall != null)
-            {
-                stall.IsVisited = true;
-                await _db.UpdateAsync(stall);
-            }
+            // IsVisited is no longer stored in DB ([SQLite.Ignore]), no-op
+            return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Kiểm tra xem quán đã được phát TTS chưa.
-        /// </summary>
-        public async Task<bool> IsStallVisitedAsync(int stallId)
+        public Task MarkStallVisitedAsync(int stallId)
         {
-            await InitAsync();
-            var stall = await _db.Table<LocalStall>().Where(s => s.Id == stallId).FirstOrDefaultAsync();
-            return stall?.IsVisited ?? false;
-        }
-
-        /// <summary>
-        /// Reset toàn bộ cờ IsVisited = false.
-        /// Gọi khi User bật lại chế độ Khám Phá Tự Do (bắt đầu lại phiên mới).
-        /// </summary>
-        public async Task ResetAllVisitedAsync()
-        {
-            await InitAsync();
-            await _db.ExecuteAsync("UPDATE StallCache SET IsVisited = 0");
+            // IsVisited is no longer stored in DB ([SQLite.Ignore]), no-op
+            return Task.CompletedTask;
         }
 
         #endregion
+
+        #region StallVisit (Heatmap Log)
+
+        /// <summary>
+        /// INSERT một lượt ghé thăm mới. Gọi từ GeofenceEngine qua Task.Run.
+        /// Không bao giờ UPDATE StallCache — dữ liệu gốc được bảo vệ hoàn toàn.
+        /// </summary>
+        public async Task InsertStallVisitAsync(StallVisit visit)
+        {
+            await InitAsync();
+            await _db.InsertAsync(visit);
+        }
+
+        /// <summary>
+        /// Dữ liệu Heatmap: đếm lượt ghé thăm theo từng sạp.
+        /// SELECT StallId, StallName, COUNT(*) as VisitCount
+        /// FROM StallVisits GROUP BY StallId ORDER BY VisitCount DESC
+        /// </summary>
+        public async Task<List<HeatmapEntry>> GetHeatmapDataAsync()
+        {
+            await InitAsync();
+            return await _db.QueryAsync<HeatmapEntry>(
+                @"SELECT StallId,
+                         StallName,
+                         COUNT(*)                           AS VisitCount,
+                         MIN(VisitedAt)                     AS FirstVisit,
+                         MAX(VisitedAt)                     AS LastVisit,
+                         AVG(DistanceMeters)                AS AvgDistanceMeters
+                  FROM   StallVisits
+                  GROUP  BY StallId
+                  ORDER  BY VisitCount DESC");
+        }
+
+        /// <summary>
+        /// Phân tích giờ cao điểm: đếm lượt ghé theo khung giờ (0-23).
+        /// SELECT strftime('%H', VisitedAt) as Hour, COUNT(*) as Visits
+        /// </summary>
+        public async Task<List<HourlyVisitEntry>> GetPeakHoursAsync(int stallId)
+        {
+            await InitAsync();
+            return await _db.QueryAsync<HourlyVisitEntry>(
+                @"SELECT CAST(strftime('%H', VisitedAt) AS INTEGER) AS Hour,
+                         COUNT(*) AS Visits
+                  FROM   StallVisits
+                  WHERE  StallId = ?
+                  GROUP  BY Hour
+                  ORDER  BY Hour",
+                stallId);
+        }
+
+        /// <summary>
+        /// Lịch sử ghé thăm trong một phiên (để debug / review).
+        /// </summary>
+        public async Task<List<StallVisit>> GetVisitsBySessionAsync(string sessionId)
+        {
+            await InitAsync();
+            return await _db.Table<StallVisit>()
+                            .Where(v => v.SessionId == sessionId)
+                            .OrderByDescending(v => v.VisitedAt)
+                            .ToListAsync();
+        }
+
+        /// <summary>
+        /// Xoá log cũ hơn N ngày (dọn dẹp định kỳ, gọi khi App khởi động).
+        /// </summary>
+        public async Task PurgeOldVisitsAsync(int olderThanDays = 90)
+        {
+            await InitAsync();
+            var cutoff = DateTime.UtcNow.AddDays(-olderThanDays)
+                                        .ToString("yyyy-MM-dd HH:mm:ss");
+            await _db.ExecuteAsync(
+                "DELETE FROM StallVisits WHERE VisitedAt < ?", cutoff);
+        }
+
+        #endregion
+    }
+
+    // ── Query result DTOs (không map vào bảng, chỉ dùng cho Query<>) ──
+
+    /// <summary>Kết quả aggregate cho bản đồ Heatmap.</summary>
+    public class HeatmapEntry
+    {
+        public int      StallId            { get; set; }
+        public string   StallName          { get; set; } = string.Empty;
+        public int      VisitCount         { get; set; }
+        public DateTime FirstVisit         { get; set; }
+        public DateTime LastVisit          { get; set; }
+        public double   AvgDistanceMeters  { get; set; }
+    }
+
+    /// <summary>Kết quả phân tích giờ cao điểm.</summary>
+    public class HourlyVisitEntry
+    {
+        public int Hour   { get; set; }   // 0–23
+        public int Visits { get; set; }
     }
 }

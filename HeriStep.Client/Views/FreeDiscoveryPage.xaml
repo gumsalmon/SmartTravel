@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="HeriStep.Client.Views.FreeDiscoveryPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:HeriStep.Client.ViewModels"
+    x:DataType="vm:FreeDiscoveryViewModel"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#0F1117">
+
+    <Grid RowDefinitions="*, Auto">
+
+        <!-- ══════════════════ MAIN AREA ══════════════════ -->
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="24,52,24,24" Spacing="20">
+
+                <!-- Header -->
+                <Label
+                    Text="🗺️ Khám Phá Tự Do"
+                    FontSize="28"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    HorizontalTextAlignment="Center" />
+
+                <Label
+                    Text="Đi dạo quanh chợ — loa sẽ tự phát khi bạn đến gần sạp hàng"
+                    FontSize="14"
+                    TextColor="#8B8FA8"
+                    HorizontalTextAlignment="Center" />
+
+                <!-- ── Status Card ── -->
+                <Frame
+                    BackgroundColor="#1C1F2E"
+                    CornerRadius="16"
+                    BorderColor="#2A2D3E"
+                    Padding="20"
+                    HasShadow="False">
+                    <VerticalStackLayout Spacing="10">
+
+                        <!-- Pulse indicator -->
+                        <Grid HorizontalOptions="Center">
+                            <Ellipse
+                                HeightRequest="64" WidthRequest="64"
+                                Fill="#1E3A5F"
+                                IsVisible="{Binding IsRunning}" />
+                            <Ellipse
+                                HeightRequest="44" WidthRequest="44"
+                                Fill="#2563EB"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsRunning}" />
+                            <Ellipse
+                                HeightRequest="44" WidthRequest="44"
+                                Fill="#374151"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsRunning, Converter={StaticResource InvertBool}}" />
+                            <Label
+                                Text="📡"
+                                FontSize="20"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsRunning}" />
+                            <Label
+                                Text="💤"
+                                FontSize="20"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsRunning, Converter={StaticResource InvertBool}}" />
+                        </Grid>
+
+                        <Label
+                            Text="{Binding StatusText}"
+                            FontSize="15"
+                            TextColor="#E2E8F0"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap" />
+
+                        <!-- Visit counter -->
+                        <Frame
+                            BackgroundColor="#111827"
+                            CornerRadius="10"
+                            Padding="12,8"
+                            BorderColor="#1F2937"
+                            IsVisible="{Binding IsRunning}">
+                            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                                <Label Text="🏪" FontSize="16" VerticalOptions="Center" />
+                                <Label
+                                    TextColor="#60A5FA"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    VerticalOptions="Center">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="Đã ghé thăm: {0} sạp">
+                                            <Binding Path="VisitedCount" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                            </HorizontalStackLayout>
+                        </Frame>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ── Stall Trigger Card (hiện khi pass geofence) ── -->
+                <Frame
+                    BackgroundColor="#1A3A5C"
+                    CornerRadius="16"
+                    BorderColor="#2563EB"
+                    Padding="20"
+                    HasShadow="False"
+                    IsVisible="{Binding ShowStallCard}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label
+                            Text="📍 Bạn đang ở gần"
+                            FontSize="13"
+                            TextColor="#93C5FD" />
+                        <Label
+                            Text="{Binding StallNameText}"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            TextColor="White"
+                            LineBreakMode="WordWrap" />
+                        <Label
+                            Text="🔊 Đang phát giới thiệu..."
+                            FontSize="12"
+                            TextColor="#60A5FA" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ── Tips ── -->
+                <Frame
+                    BackgroundColor="#1C1F2E"
+                    CornerRadius="12"
+                    BorderColor="#2A2D3E"
+                    Padding="16"
+                    IsVisible="{Binding IsRunning, Converter={StaticResource InvertBool}}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="💡 Mẹo sử dụng" FontSize="14" FontAttributes="Bold" TextColor="#FBBF24" />
+                        <Label Text="• Đút điện thoại vào túi — loa vẫn tự động phát" FontSize="13" TextColor="#9CA3AF" />
+                        <Label Text="• Bán kính kích hoạt: 20 mét xung quanh mỗi sạp" FontSize="13" TextColor="#9CA3AF" />
+                        <Label Text="• Mỗi sạp chỉ phát 1 lần/phiên. Nhấn Reset để nghe lại" FontSize="13" TextColor="#9CA3AF" />
+                    </VerticalStackLayout>
+                </Frame>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ══════════════════ BOTTOM CONTROLS ══════════════════ -->
+        <VerticalStackLayout
+            Grid.Row="1"
+            Padding="24,12,24,32"
+            Spacing="12"
+            BackgroundColor="#0F1117">
+
+            <!-- Start / Stop button -->
+            <Button
+                x:Name="BtnToggle"
+                Text="{Binding IsRunning, Converter={StaticResource BoolToStartStop}}"
+                Command="{Binding ToggleDiscoveryCommand}"
+                BackgroundColor="{Binding IsRunning, Converter={StaticResource BoolToBtnColor}}"
+                TextColor="White"
+                FontSize="16"
+                FontAttributes="Bold"
+                HeightRequest="56"
+                CornerRadius="14" />
+
+            <!-- Reset button (chỉ hiện khi đang chạy) -->
+            <Button
+                Text="🔄 Reset — Nghe lại tất cả"
+                Command="{Binding ResetSessionCommand}"
+                BackgroundColor="#1C1F2E"
+                TextColor="#9CA3AF"
+                FontSize="14"
+                HeightRequest="44"
+                CornerRadius="12"
+                BorderColor="#2A2D3E"
+                BorderWidth="1"
+                IsVisible="{Binding IsRunning}" />
+
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

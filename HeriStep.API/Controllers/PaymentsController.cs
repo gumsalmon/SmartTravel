@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using System.Text.Json;
-using System.Collections.Concurrent; // 💡 Bắt buộc phải có cái này để dùng RAM
+using System.Collections.Concurrent;
 
 namespace HeriStep.API.Controllers
 {
@@ -15,11 +15,10 @@ namespace HeriStep.API.Controllers
         private readonly HeriStepDbContext _context;
         private readonly string _bankName;
         private readonly string _soTaiKhoan;
-        private readonly string _pendingFile = "pending_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (ĐĂNG KÝ MỚI)
-        private readonly string _extraStallFile = "pending_extra_stalls.json"; // Ổ CỨNG LƯU TRỮ TẠM (MUA THÊM SẠP)
-        private readonly string _pendingTicketsFile = "pending_tickets.json"; // Ổ CỨNG LUG TRỮ VÉ DU LICH
+        private readonly string _pendingFile = "pending_stalls.json";
+        private readonly string _extraStallFile = "pending_extra_stalls.json";
+        private readonly string _pendingTicketsFile = "pending_tickets.json";
 
-        // 💡 BỘ NHỚ TẠM (RAM) ĐỂ LƯU CÁC ĐƠN VỪA THANH TOÁN XONG
         private static readonly ConcurrentDictionary<string, bool> _paidOrders = new();
 
         public PaymentsController(HeriStepDbContext context, IConfiguration config)
@@ -30,7 +29,7 @@ namespace HeriStep.API.Controllers
         }
 
         // =======================================================
-        // HÀM HỖ TRỢ: ĐỌC GHI FILE TẠM (CHỐNG MẤT DỮ LIỆU)
+        // HÀM HỖ TRỢ ĐỌC GHI FILE TẠM
         // =======================================================
         private void SavePendingToDisk(string id, RegisterMerchantDto req)
         {
@@ -86,7 +85,7 @@ namespace HeriStep.API.Controllers
         }
 
         // =======================================================
-        // 💡 API CHECK TRẠNG THÁI (CHO FRONTEND TỰ ĐỘNG HỎI THĂM)
+        // API CHECK TRẠNG THÁI 
         // =======================================================
         [HttpGet("check-status/{orderId}")]
         public IActionResult CheckStatus(string orderId)
@@ -94,14 +93,13 @@ namespace HeriStep.API.Controllers
             bool isPaid = _paidOrders.ContainsKey(orderId);
             if (isPaid)
             {
-                // Khi Frontend đã hỏi và biết là thành công, ta xóa khỏi RAM cho nhẹ máy
                 _paidOrders.TryRemove(orderId, out _);
             }
             return Ok(new { isPaid });
         }
 
         // =======================================================
-        // 1. ĐĂNG KÝ MERCHANT MỚI (CHƯA CÓ TÀI KHOẢN)
+        // 1. ĐĂNG KÝ MERCHANT MỚI 
         // =======================================================
         [HttpPost("register-new-merchant")]
         public async Task<IActionResult> RegisterNewMerchant([FromBody] RegisterMerchantDto req)
@@ -115,12 +113,11 @@ namespace HeriStep.API.Controllers
             string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng tạm DH{tempId} cho SĐT: {req.Phone}\n");
 
-            // 💡 Trả về thêm orderId để Frontend gọi check-status
             return Ok(new { qrUrl = qrUrl, orderId = tempId });
         }
 
         // =======================================================
-        // 2. MUA THÊM SẠP (ĐÃ CÓ TÀI KHOẢN)
+        // 2. MUA THÊM SẠP
         // =======================================================
         [HttpPost("buy-extra-stall")]
         public async Task<IActionResult> BuyExtraStall([FromBody] AddStallDto req)
@@ -134,7 +131,6 @@ namespace HeriStep.API.Controllers
             string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{tempId}";
             Console.WriteLine($"\n[FILE] Đã treo đơn hàng mua sạp phụ DH{tempId} cho Chủ sạp ID: {req.OwnerId}\n");
 
-            // 💡 Trả về thêm orderId để Frontend gọi check-status
             return Ok(new { qrUrl = qrUrl, orderId = tempId });
         }
 
@@ -145,19 +141,62 @@ namespace HeriStep.API.Controllers
         public IActionResult GetRenewalQr(int stallId)
         {
             string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount=2000&des=DH{stallId}";
-            // 💡 Trả về thêm orderId (chính là stallId) để Frontend gọi check-status
             return Ok(new { qrUrl = qrUrl, orderId = stallId.ToString() });
         }
 
         // =======================================================
-        // 4. WEBHOOK XỬ LÝ THANH TOÁN (TRÁI TIM HỆ THỐNG)
+        // 5. MUA VÉ DU LỊCH TỪ APP KHÁCH (ĐA GÓI CƯỚC - ĐỒNG GIÁ 2K)
+        // =======================================================
+        [HttpPost("buy-tourist-ticket")]
+        public IActionResult BuyTouristTicket([FromBody] PendingTicketDto req)
+        {
+            if (string.IsNullOrEmpty(req.DeviceId))
+                return BadRequest(new { message = "Thiếu thông tin thiết bị (DeviceId)!" });
+
+            // 🔥 FIX CỨNG: Gói nào cũng thu 2000đ để Test Demo Đồ án
+            decimal giaTienGiaoDich = 2000;
+            int thoiGianVe = 24;
+
+            // Vẫn giữ Switch-Case để cấp đúng thời hạn (Duration) của vé cho khách
+            switch (req.PackageId)
+            {
+                case 1:
+                    thoiGianVe = 24; // Gói 1: Hạn 24 giờ
+                    break;
+                case 2:
+                    thoiGianVe = 72; // Gói 2: Hạn 3 ngày
+                    break;
+                default:
+                    thoiGianVe = 24; // Mặc định 24h
+                    break;
+            }
+
+            req.Price = giaTienGiaoDich;
+            req.DurationHours = thoiGianVe;
+
+            string tempId = "9" + new Random().Next(100, 999).ToString() + DateTime.Now.Second;
+
+            var dict = System.IO.File.Exists(_pendingTicketsFile)
+                ? JsonSerializer.Deserialize<Dictionary<string, PendingTicketDto>>(System.IO.File.ReadAllText(_pendingTicketsFile)) ?? new()
+                : new();
+            dict[tempId] = req;
+            System.IO.File.WriteAllText(_pendingTicketsFile, JsonSerializer.Serialize(dict));
+
+            string qrUrl = $"https://qr.sepay.vn/img?bank={_bankName}&acc={_soTaiKhoan}&amount={giaTienGiaoDich}&des=DH{tempId}";
+            Console.WriteLine($"\n[FILE] Đơn vé DH{tempId} | Thiết bị: {req.DeviceId} | Package: {req.PackageId} | Mức giá Test: {giaTienGiaoDich}\n");
+
+            return Ok(new { qrUrl = qrUrl, orderId = tempId });
+        }
+
+        // =======================================================
+        // 4. WEBHOOK XỬ LÝ THANH TOÁN
         // =======================================================
         [HttpPost("sepay-webhook")]
         public async Task<IActionResult> SePayWebhook([FromBody] SePayWebhookData data)
         {
             try
             {
-                if (data == null || data.transferType?.ToLower() != "in" || data.transferAmount < 2000)
+                if (data == null || data.transferType?.ToLower() != "in")
                     return Ok(new { success = true });
 
                 string fullText = $"{data.code} {data.content}".ToUpper();
@@ -171,6 +210,8 @@ namespace HeriStep.API.Controllers
                     var pendingNew = ExtractPendingFromDisk(idValue);
                     if (pendingNew != null)
                     {
+                        if (data.transferAmount < 2000) return Ok(new { success = true });
+
                         Console.WriteLine($"=> [WEBHOOK] Tiền về! Đang tạo tài khoản cho SĐT: {pendingNew.Phone}");
                         using var transaction = await _context.Database.BeginTransactionAsync();
                         try
@@ -218,22 +259,23 @@ namespace HeriStep.API.Controllers
                             await transaction.CommitAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã tạo User {newUser.Id} và Sạp {newStall.Id}!");
 
-                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG ĐỂ BÊN WEB TỰ ĐỘNG CHUYỂN TRANG
                             _paidOrders.TryAdd(idValue, true);
                         }
                         catch (Exception ex)
                         {
                             await transaction.RollbackAsync();
-                            SavePendingToDisk(idValue, pendingNew); // Bị lỗi thì cất lại vào file để tí thử lại
+                            SavePendingToDisk(idValue, pendingNew);
                             Console.WriteLine($"[LỖI TẠO DB] {ex.Message}");
                         }
                         return Ok(new { success = true });
                     }
 
-                    // 🟡 TRƯỜNG HỢP 2: MUA THÊM SẠP CHO MERCHANT HIỆN TẠI (FRANCHISE)
+                    // 🟡 TRƯỜNG HỢP 2: MUA THÊM SẠP CHO MERCHANT HIỆN TẠI
                     var pendingExtra = ExtractExtraStallFromDisk(idValue);
                     if (pendingExtra != null)
                     {
+                        if (data.transferAmount < 2000) return Ok(new { success = true });
+
                         Console.WriteLine($"=> [WEBHOOK] Tiền về! Đang tạo thêm sạp cho Chủ sạp ID: {pendingExtra.OwnerId}");
                         using var transaction = await _context.Database.BeginTransactionAsync();
                         try
@@ -271,21 +313,22 @@ namespace HeriStep.API.Controllers
                             await transaction.CommitAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã tạo thêm Sạp phụ {extraStall.Id} cho User {pendingExtra.OwnerId}!");
 
-                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG
                             _paidOrders.TryAdd(idValue, true);
                         }
                         catch (Exception ex)
                         {
                             await transaction.RollbackAsync();
-                            SaveExtraStallToDisk(idValue, pendingExtra); // Treo lại
+                            SaveExtraStallToDisk(idValue, pendingExtra);
                             Console.WriteLine($"[LỖI TẠO DB] {ex.Message}");
                         }
                         return Ok(new { success = true });
                     }
 
-                    // 🔵 TRƯỜNG HỢP 3: GIA HẠN SẠP CŨ (Đã có trong DB)
+                    // 🔵 TRƯỜNG HỢP 3: GIA HẠN SẠP CŨ 
                     if (int.TryParse(idValue, out int existingStallId))
                     {
+                        if (data.transferAmount < 2000) return Ok(new { success = true });
+
                         var stall = await _context.Stalls.FindAsync(existingStallId);
                         if (stall != null)
                         {
@@ -301,21 +344,27 @@ namespace HeriStep.API.Controllers
                             await _context.SaveChangesAsync();
                             Console.WriteLine($"🎉 [THÀNH CÔNG] Đã gia hạn sạp {existingStallId} thành công!");
 
-                            // 💡 BÁO CHO RAM BIẾT LÀ ĐÃ XONG
                             _paidOrders.TryAdd(idValue, true);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[CẢNH BÁO] Không tìm thấy mã DH{idValue} ở các trường hợp Sạp cũ.");
+                            return Ok(new { success = true });
                         }
                     }
 
-                    // 🟣 TRƯỜNG HỢP 4: MUA VÉ DU LỊCH BẰNG APP CLIENT (Bắt đầu bằng số 9)
+                    // 🟣 TRƯỜNG HỢP 4: MUA VÉ DU LỊCH BẰNG APP CLIENT 
                     if (idValue.StartsWith("9"))
                     {
                         var pendingTicket = ExtractPendingTicketFromDisk(idValue);
                         if (pendingTicket != null)
                         {
+                            // 💡 Vì giá đã bị ép cứng 2000đ lúc sinh đơn, nên chỗ này nó sẽ so sánh khách có chuyển đủ 2000đ hay không.
+                            if (data.transferAmount < pendingTicket.Price)
+                            {
+                                Console.WriteLine($"[CẢNH BÁO] Đơn DH{idValue} chuyển THIẾU TIỀN! Yêu cầu: {pendingTicket.Price}, Thực tế: {data.transferAmount}");
+                                var dict = System.IO.File.Exists(_pendingTicketsFile) ? JsonSerializer.Deserialize<Dictionary<string, PendingTicketDto>>(System.IO.File.ReadAllText(_pendingTicketsFile)) ?? new() : new();
+                                dict[idValue] = pendingTicket;
+                                System.IO.File.WriteAllText(_pendingTicketsFile, JsonSerializer.Serialize(dict));
+                                return Ok(new { success = true });
+                            }
+
                             Console.WriteLine($"=> [WEBHOOK] Tiền mua vé đã về! Kích hoạt vé cho thiết bị: {pendingTicket.DeviceId}");
                             using var transaction = await _context.Database.BeginTransactionAsync();
                             try
@@ -334,14 +383,13 @@ namespace HeriStep.API.Controllers
                                 _context.TouristTickets.Add(newTicket);
                                 await _context.SaveChangesAsync();
                                 await transaction.CommitAsync();
-                                
+
                                 Console.WriteLine($"🎉 [THÀNH CÔNG] Đã cấp Mã vé {ticketCode} cho App Client!");
                                 _paidOrders.TryAdd(idValue, true);
                             }
                             catch (Exception ex)
                             {
                                 await transaction.RollbackAsync();
-                                // Trả lại ổ cứng để lưu vết
                                 var dict = System.IO.File.Exists(_pendingTicketsFile) ? JsonSerializer.Deserialize<Dictionary<string, PendingTicketDto>>(System.IO.File.ReadAllText(_pendingTicketsFile)) ?? new() : new();
                                 dict[idValue] = pendingTicket;
                                 System.IO.File.WriteAllText(_pendingTicketsFile, JsonSerializer.Serialize(dict));
@@ -351,6 +399,7 @@ namespace HeriStep.API.Controllers
                         }
                     }
                 }
+
                 return Ok(new { success = true });
             }
             catch (Exception ex)
@@ -359,9 +408,14 @@ namespace HeriStep.API.Controllers
                 return Ok(new { success = false });
             }
         }
-    }
+    } // <-- Đã xóa cái ngoặc nhọn gây họa ở đây!
 
+    // =======================================================
+    // CÁC LỚP DTO 
+    // =======================================================
     public class RegisterMerchantDto { public string FullName { get; set; } = ""; public string Phone { get; set; } = ""; public string Password { get; set; } = ""; public string StallName { get; set; } = ""; public double Latitude { get; set; } public double Longitude { get; set; } }
     public class AddStallDto { public int OwnerId { get; set; } public string StallName { get; set; } = ""; public double Latitude { get; set; } public double Longitude { get; set; } }
     public class SePayWebhookData { public string? transferType { get; set; } public decimal transferAmount { get; set; } public string? code { get; set; } public string? content { get; set; } }
+
+ 
 }

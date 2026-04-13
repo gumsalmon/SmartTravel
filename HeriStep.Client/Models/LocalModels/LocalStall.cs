@@ -30,10 +30,20 @@ namespace HeriStep.Client.Models.LocalModels
         public int VisitCount { get; set; } = 0;
 
         /// <summary>
+        /// Kịch bản âm thanh TTS cho chế độ Khám Phá Tự Do.
+        /// VD: "Chào mừng bạn đến với sạp Bánh Mì Hội An! Hôm nay chúng tôi có..."
+        /// Nếu để trống → GeofenceEngine sẽ bỏ qua, không phát âm thanh.
+        /// </summary>
+        [MaxLength(1000)]
+        public string TtsScript { get; set; } = string.Empty;
+
+        /// <summary>
         /// Chế độ Khám Phá Tự Do: Đánh dấu quán đã được phát TTS một lần.
         /// IsVisited = true → sẽ không đọc lại khi khách đứng yên trong khu vực.
+        /// Trường này KHÔNG LƯU vào DB — chỉ tồn tại trên RAM trong session.
         /// Reset về false khi khởi động lại chế độ Khám Phá Tự Do.
         /// </summary>
+        [SQLite.Ignore]
         public bool IsVisited { get; set; } = false;
     }
 }
