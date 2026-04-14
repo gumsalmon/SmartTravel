@@ -6,6 +6,7 @@
 }
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
     <!-- HÀNG 1: KPI CARDS (DỮ LIỆU TỪ API) -->
@@ -123,6 +124,22 @@
             </div>
         </div>
     </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="fw-bold m-0 text-dark">
+                        <i class="bi bi-bar-chart-line me-2 text-primary"></i>Thống kê thời gian trải nghiệm trung bình theo Sạp
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="listenTimeChart" height="110"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 
@@ -210,7 +227,11 @@
                 dataLabels: { enabled: false }, // Tắt mấy cái % hiện đè lên biểu đồ
                 tooltip: { y: { formatter: (val) => val.toLocaleString() + " đ" } }
             }).render();
+
+            if (window.initDashboardCharts) {
+                window.initDashboardCharts();
+            }
         });
+
     </script>
-}
 }

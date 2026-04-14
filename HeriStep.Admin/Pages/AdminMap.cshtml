@@ -7,6 +7,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <style>
     #vinhKhanhMap {
@@ -15,10 +16,35 @@
         border-radius: 10px;
         z-index: 1; /* Để popup không bị che */
     }
+    .map-control-panel {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
 </style>
 
 <div class="container-fluid mt-4 px-4">
     <h2 class="fw-bold text-danger mb-3">🗺️ Quản lý Bản đồ Sạp (Admin)</h2>
+
+    <div class="map-control-panel shadow-sm mb-3 d-flex flex-column flex-lg-row justify-content-between gap-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="fw-semibold text-muted">Lớp phủ:</span>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="toggleHeatmap">
+                <label class="form-check-label" for="toggleHeatmap">Hiện bản đồ nhiệt (Heatmap)</label>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <input type="text" id="deviceIdInput" class="form-control form-control-sm" style="width: 220px;" placeholder="Nhập Device ID">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="loadDeviceIdsBtn">Lấy danh sách ID gần đây</button>
+            <select id="deviceIdSelect" class="form-select form-select-sm" style="width: 220px;" disabled>
+                <option value="">-- Chọn Device ID --</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-warning text-white" id="drawRouteBtn">Vẽ Tuyến Đi</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearRouteBtn">Xóa Tuyến</button>
+        </div>
+    </div>
 
     <div id="vinhKhanhMap" class="shadow-sm border border-2 border-danger"></div>
 </div>
@@ -30,6 +56,13 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap - HeriStep Project'
     }).addTo(map);
+
+    var stallLayerGroup = L.layerGroup().addTo(map);
+    var heatLayer = null;
+    var routePolyline = null;
+    var routeStartMarker = null;
+    var routeEndMarker = null;
+    var baseApiUrl = 'http://localhost:5297';
 
     var greenIcon = new L.Icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -50,10 +83,11 @@
         try {
             const response = await fetch('http://127.0.0.1:5297/api/Stalls/admin-map');
             const stallsData = await response.json();
+            stallLayerGroup.clearLayers();
 
             stallsData.forEach(stall => {
                 let isOwned = stall.ownerId !== null;
-                let marker = L.marker([stall.lat, stall.lng], { icon: isOwned ? redIcon : greenIcon }).addTo(map);
+                let marker = L.marker([stall.lat, stall.lng], { icon: isOwned ? redIcon : greenIcon }).addTo(stallLayerGroup);
 
                 if (isOwned) {
                     marker.bindPopup(`
@@ -83,6 +117,104 @@
             console.error("Lỗi tải bản đồ:", error);
             // Thêm cảnh báo nếu rớt mạng
             alert("Không thể kết nối API tải bản đồ. Nhớ chạy Project Backend nha sếp!");
+        }
+    }
+
+    async function loadHeatmapData() {
+        try {
+            const response = await fetch(`${baseApiUrl}/api/analytics/heatmap`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const rows = await response.json();
+            const heatPoints = (rows || [])
+                .map(x => [Number(x.lat ?? x.latitude), Number(x.lng ?? x.longitude), 0.9])
+                .filter(p => !Number.isNaN(p[0]) && !Number.isNaN(p[1]));
+
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+            }
+
+            heatLayer = L.heatLayer(heatPoints, {
+                blur: 15,
+                maxZoom: 17,
+                radius: 25
+            }).addTo(map);
+        } catch (error) {
+            console.error("[AdminMap] Heatmap load failed:", error);
+        }
+    }
+
+    function clearRouteOverlay() {
+        if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+        if (routeStartMarker) { map.removeLayer(routeStartMarker); routeStartMarker = null; }
+        if (routeEndMarker) { map.removeLayer(routeEndMarker); routeEndMarker = null; }
+    }
+
+    async function drawRouteByDeviceId() {
+        const deviceId = document.getElementById("deviceIdInput").value.trim();
+        if (!deviceId) return;
+
+        try {
+            const response = await fetch(`${baseApiUrl}/api/analytics/route/${encodeURIComponent(deviceId)}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const rows = await response.json();
+            const points = (rows || [])
+                .map(x => [Number(x.lat ?? x.latitude), Number(x.lng ?? x.longitude)])
+                .filter(p => !Number.isNaN(p[0]) && !Number.isNaN(p[1]));
+
+            clearRouteOverlay();
+            if (points.length < 2) {
+                console.error("[AdminMap] Route data is insufficient for", deviceId);
+                return;
+            }
+
+            routePolyline = L.polyline(points, {
+                color: "#FF5722",
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+            routeStartMarker = L.marker(points[0]).addTo(map).bindPopup("Điểm Bắt Đầu");
+            routeEndMarker = L.marker(points[points.length - 1]).addTo(map).bindPopup("Điểm Kết Thúc");
+            map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+        } catch (error) {
+            console.error("[AdminMap] Draw route failed:", error);
+        }
+    }
+
+    async function applyHeatmapToggle(isEnabled) {
+        if (isEnabled) {
+            await loadHeatmapData();
+            return;
+        }
+
+        if (heatLayer) {
+            map.removeLayer(heatLayer);
+            heatLayer = null;
+        }
+    }
+
+    async function loadRecentDeviceIds() {
+        try {
+            const response = await fetch(`${baseApiUrl}/api/analytics/device-ids-recent?take=30`);
+            const rows = await response.json();
+            if (!response.ok) {
+                throw new Error(rows?.detail || rows?.message || `HTTP ${response.status}`);
+            }
+
+            const select = document.getElementById("deviceIdSelect");
+            select.innerHTML = '<option value="">-- Chọn Device ID --</option>';
+
+            (rows || []).forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item.deviceId;
+                opt.textContent = `${item.deviceId} (last: ${item.lastSeen || "n/a"})`;
+                select.appendChild(opt);
+            });
+
+            select.disabled = (rows || []).length === 0;
+        } catch (error) {
+            console.error("[AdminMap] Load device IDs failed:", error);
+            alert("Không thể lấy danh sách Device ID gần đây.");
         }
     }
 
@@ -126,6 +258,19 @@
             `)
             .openOn(map);
     });
+
+    document.getElementById("toggleHeatmap").addEventListener("change", async (e) => {
+        await applyHeatmapToggle(e.target.checked);
+    });
+    document.getElementById("loadDeviceIdsBtn").addEventListener("click", loadRecentDeviceIds);
+    document.getElementById("deviceIdSelect").addEventListener("change", async (e) => {
+        const selected = e.target.value;
+        if (!selected) return;
+        document.getElementById("deviceIdInput").value = selected;
+        await drawRouteByDeviceId();
+    });
+    document.getElementById("drawRouteBtn").addEventListener("click", drawRouteByDeviceId);
+    document.getElementById("clearRouteBtn").addEventListener("click", clearRouteOverlay);
 
     // Khởi chạy
     loadMapData();

@@ -11,6 +11,9 @@ using HeriStep.Client.Services;
 using HeriStep.Client.Services.Location;
 using System;
 using System.Threading;
+using System.Diagnostics;
+using System.Net.Http.Json;
+using LocalVisitModel = HeriStep.Client.Models.LocalModels.StallVisit;
 
 namespace HeriStep.Client.Views;
 
@@ -30,6 +33,7 @@ public partial class MapPage : ContentPage
     private readonly AudioTranslationService _audioService;
     private readonly LocalDatabaseService _localDb;
     private readonly GeofenceEngine _botGeofenceEngine;
+    private readonly LocationTrackingService _trackingService;
 
     // ═══ FREE EXPLORATION MODE ═══
     private bool _isFreeExploreMode = false;
@@ -68,12 +72,13 @@ public partial class MapPage : ContentPage
     private static readonly Mapsui.Styles.Color PinGrey      = new(107, 91,  78);
     private static readonly Mapsui.Styles.Color PinHighlight = new(255, 191,  0);   // #FFBF00
 
-    public MapPage(AudioTranslationService audioService, LocalDatabaseService localDb, GeofenceEngine geofenceEngine)
+    public MapPage(AudioTranslationService audioService, LocalDatabaseService localDb, GeofenceEngine geofenceEngine, LocationTrackingService trackingService)
     {
         InitializeComponent();
         _audioService = audioService;
         _localDb = localDb;
         _botGeofenceEngine = geofenceEngine;
+        _trackingService = trackingService;
 
         var map = new Mapsui.Map();
         map.Layers.Add(LocalProxyMapLayer.Create());
@@ -115,6 +120,23 @@ public partial class MapPage : ContentPage
         ClosePopup();
         ApplyLocalization();
 
+        try
+        {
+            var permission = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+            if (permission == PermissionStatus.Granted)
+            {
+                await _trackingService.StartAsync();
+            }
+            else
+            {
+                Console.WriteLine("[TRACKING] Location permission denied, tracking skipped.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TRACKING] Start tracking failed: {ex.Message}");
+        }
+
         _ = Task.Run(async () =>
         {
             await Task.Delay(250);
@@ -148,6 +170,11 @@ public partial class MapPage : ContentPage
         _locationLoopCts?.Cancel();
         StopFreeExplore();
         StopBotTest();
+        _ = Task.Run(async () =>
+        {
+            try { await _trackingService.StopAsync(); }
+            catch (Exception ex) { Console.WriteLine($"[TRACKING] Stop tracking failed: {ex.Message}"); }
+        });
     }
 
 
@@ -324,6 +351,7 @@ public partial class MapPage : ContentPage
     {
         if (_isTtsPlaying) return;
         _isTtsPlaying = true;
+        var watch = Stopwatch.StartNew();
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -344,6 +372,9 @@ public partial class MapPage : ContentPage
 
             await _audioService.SpeakAsync(textToSpeak, lang);
             Console.WriteLine($"[VOICE_SERVICE] MapPage SpeakAsync triggered for {stall.Name} (Lang: {lang})");
+            watch.Stop();
+            await SaveListenDurationToLocalAsync(stall, watch.Elapsed);
+            await SyncListenDurationAsync(stall.Id, watch.Elapsed);
         }
         catch (Exception ex) { Console.WriteLine($"[VOICE_SERVICE] MapPage Error speaking for {stall.Name}: {ex.Message}"); }
         finally
@@ -887,6 +918,67 @@ public partial class MapPage : ContentPage
             freeExploreBanner.IsVisible = false;
             btnFreeExplore.BorderColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
         });
+    }
+
+    private async Task SyncListenDurationAsync(int stallId, TimeSpan duration)
+    {
+        try
+        {
+            if (stallId <= 0) return;
+
+            using var client = new HttpClient { BaseAddress = new Uri($"{AppConstants.BaseApiUrl}/") };
+            var payload = new
+            {
+                id = Guid.NewGuid(),
+                stallId,
+                deviceId = GetTrackingDeviceId(),
+                visitedAt = DateTime.UtcNow,
+                listenDurationSeconds = Math.Max(0, (int)duration.TotalSeconds)
+            };
+
+            await client.PostAsJsonAsync("api/analytics/stall-visit", payload);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ANALYTICS_SYNC] SyncListenDurationAsync failed: {ex.Message}");
+        }
+    }
+
+    private static string GetTrackingDeviceId()
+    {
+        try
+        {
+            var id = Preferences.Default.Get("tracking_device_id", string.Empty);
+            return string.IsNullOrWhiteSpace(id) ? $"UNKNOWN_{Guid.NewGuid():N}" : id;
+        }
+        catch
+        {
+            return $"UNKNOWN_{Guid.NewGuid():N}";
+        }
+    }
+
+    private async Task SaveListenDurationToLocalAsync(Stall stall, TimeSpan duration)
+    {
+        try
+        {
+            var localVisit = new LocalVisitModel
+            {
+                StallId = stall.Id,
+                StallName = stall.Name ?? string.Empty,
+                DeviceLat = _lastUserLat,
+                DeviceLng = _lastUserLon,
+                DistanceMeters = 0,
+                VisitedAt = DateTime.UtcNow,
+                SessionId = "map-tts",
+                ListenDurationSeconds = Math.Max(0, (int)duration.TotalSeconds)
+            };
+
+            await _localDb.InsertStallVisitAsync(localVisit);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ANALYTICS_SYNC] SaveListenDurationToLocalAsync failed: {ex.Message}");
+        }
     }
 
 }

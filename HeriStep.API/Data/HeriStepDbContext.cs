@@ -21,6 +21,7 @@ namespace HeriStep.API.Data
         public DbSet<TicketPackage> TicketPackages { get; set; }
         public DbSet<TouristTicket> TouristTickets { get; set; }
         public DbSet<SubscriptionTransaction> SubscriptionTransactions { get; set; }
+        public DbSet<TouristTrajectory> TouristTrajectories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -131,9 +132,21 @@ namespace HeriStep.API.Data
                 entity.Property(v => v.DeviceId).HasColumnName("device_id");
                 entity.Property(v => v.VisitedAt).HasColumnName("visited_at");
                 entity.Property(v => v.CreatedAtServer).HasColumnName("created_at_server");
+                entity.Property(v => v.ListenDurationSeconds).HasColumnName("listen_duration_seconds");
             });
 
-            // 9. Cấu hình bảng TicketPackages
+            // 9. Cấu hình bảng TouristTrajectories
+            modelBuilder.Entity<TouristTrajectory>(entity =>
+            {
+                entity.ToTable("TouristTrajectories");
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.DeviceId).HasColumnName("device_id");
+                entity.Property(t => t.Latitude).HasColumnName("latitude");
+                entity.Property(t => t.Longitude).HasColumnName("longitude");
+                entity.Property(t => t.RecordedAt).HasColumnName("recorded_at");
+            });
+
+            // 10. Cấu hình bảng TicketPackages
             modelBuilder.Entity<TicketPackage>(entity =>
             {
                 entity.ToTable("TicketPackages");
@@ -145,7 +158,7 @@ namespace HeriStep.API.Data
                 entity.Property(t => t.UpdatedAt).HasColumnName("updated_at");
             });
 
-            // 10. Cấu hình bảng TouristTickets
+            // 11. Cấu hình bảng TouristTickets
             modelBuilder.Entity<TouristTicket>(entity =>
             {
                 entity.ToTable("TouristTickets");
@@ -160,7 +173,7 @@ namespace HeriStep.API.Data
                 entity.Ignore(t => t.PackageName);
             });
 
-            // 11. Cấu hình bảng ProductTranslations (Có Trigger)
+            // 12. Cấu hình bảng ProductTranslations (Có Trigger)
             modelBuilder.Entity<ProductTranslation>(entity =>
             {
                 entity.ToTable("ProductTranslations", tb => tb.HasTrigger("TRG_UpdateTranslationTime"));
@@ -175,7 +188,7 @@ namespace HeriStep.API.Data
 
             });
 
-            // 12. Seeding User Admin mặc định
+            // 13. Seeding User Admin mặc định
             modelBuilder.Entity<User>().HasData(
                 new User { Id = 1, Username = "admin", PasswordHash = "$2a$11$n/A1qU55YyC7o2s1K0kC1O/0wA1oHh5X2w3E1z8e7H7A9R2lX4m", FullName = "System Admin", Role = "Admin", IsDeleted = false }
             );

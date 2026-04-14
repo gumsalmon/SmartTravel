@@ -36,6 +36,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<SubscriptionService>();
         builder.Services.AddSingleton<LocalDatabaseService>();
         builder.Services.AddSingleton<AudioTranslationService>();
+        builder.Services.AddSingleton<LocationTrackingService>();
 
         // ═══ FREE DISCOVERY MODE ═══
         // GeofenceEngine: singleton có thể sống suốt vòng đời App
