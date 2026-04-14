@@ -188,7 +188,34 @@ CREATE TABLE ProductTranslations (
     CONSTRAINT UQ_Prod_Lang UNIQUE (product_id, lang_code)
 );
 GO
+-- 1. Cập nhật bảng StallVisits: Thêm cột để lưu thời gian nghe audio
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('StallVisits') AND name = 'listen_duration_seconds')
+BEGIN
+    ALTER TABLE StallVisits 
+    ADD listen_duration_seconds INT DEFAULT 0;
+    PRINT N'Đã thêm cột listen_duration_seconds vào bảng StallVisits.';
+END
+GO
 
+-- 2. Tạo bảng TouristTrajectories: Lưu vết chân người dùng (Dùng cho Heatmap & Tuyến đi)
+IF OBJECT_ID('TouristTrajectories', 'U') IS NULL
+BEGIN
+    CREATE TABLE TouristTrajectories (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        device_id NVARCHAR(255) NOT NULL, -- Định danh ẩn danh của thiết bị
+        latitude FLOAT NOT NULL,
+        longitude FLOAT NOT NULL,
+        recorded_at DATETIME DEFAULT GETDATE(),
+        
+        -- Ràng buộc với bảng vé để đảm bảo dữ liệu hợp lệ (tùy chọn)
+        -- CONSTRAINT FK_Trajectories_Tickets FOREIGN KEY (device_id) REFERENCES TouristTickets(device_id) ON DELETE CASCADE
+    );
+
+    -- Tạo Index để Admin truy vấn Heatmap và Route theo thời gian cực nhanh
+    CREATE NONCLUSTERED INDEX IX_Trajectory_Device_Time ON TouristTrajectories(device_id, recorded_at);
+    PRINT N'Đã tạo bảng TouristTrajectories và Index thành công.';
+END
+GO
 -- ==========================================
 -- PHẦN 4: TẠO TRIGGER CẬP NHẬT THỜI GIAN (DELTA SYNC)
 -- ==========================================
