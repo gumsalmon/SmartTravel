@@ -127,15 +127,7 @@ public partial class MapPage : ContentPage
         await LoadStallsAsync();
         StartUserLocationLoop();
 
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await TextToSpeech.Default.GetLocalesAsync();
-                await TextToSpeech.Default.SpeakAsync("", new SpeechOptions { Volume = 0 });
-            }
-            catch { }
-        });
+        _ = _audioService.WarmUpAsync();
     }
 
     private void ApplyLocalization()
@@ -340,8 +332,9 @@ public partial class MapPage : ContentPage
             }
 
             await _audioService.SpeakAsync(textToSpeak, lang);
+            Console.WriteLine($"[VOICE_SERVICE] MapPage SpeakAsync triggered for {stall.Name} (Lang: {lang})");
         }
-        catch (Exception ex) { Console.WriteLine($"[VOICE_SERVICE] MapPage Error: {ex.Message}"); }
+        catch (Exception ex) { Console.WriteLine($"[VOICE_SERVICE] MapPage Error speaking for {stall.Name}: {ex.Message}"); }
         finally
         {
             _isTtsPlaying = false;
@@ -379,6 +372,7 @@ public partial class MapPage : ContentPage
         "es" => $"¡Bienvenido a {stall.Name}! Ven a disfrutar de la mejor comida.",
         "de" => $"Willkommen bei {stall.Name}! Genießen Sie das beste Straßenessen.",
         "th" => $"ยินดีต้อนรับสู่ {stall.Name}!",
+        "ru" => $"Добро пожаловать в {stall.Name}! Приходите насладиться лучшей уличной едой.",
         _    => $"Chào mừng bạn đến với {stall.Name}! Hãy thưởng thức ẩm thực Vĩnh Khánh."
     };
 

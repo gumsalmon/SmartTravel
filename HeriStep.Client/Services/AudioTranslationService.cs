@@ -5,13 +5,21 @@ using System.Threading.Tasks;
 using Microsoft.Maui.Media;
 using System.Net.Http.Json;
 using HeriStep.Shared.Models;
+using Microsoft.Maui.Networking;
+using System.Collections.Generic;
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using System.Diagnostics;
 
 namespace HeriStep.Client.Services
 {
     public class AudioTranslationService
     {
         private readonly HttpClient _httpClient;
+        private readonly LocalDatabaseService _localDb;
         private CancellationTokenSource? _cts;
+        private IEnumerable<Locale>? _cachedLocales;
+        private static bool _isWarmedUp = false;
 
         private static readonly Dictionary<string, string> LocaleMap = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -23,26 +31,42 @@ namespace HeriStep.Client.Services
             ["ko-kr"] = "KR",
             ["zh"] = "CN",
             ["zh-hans"] = "CN",
-            ["fr"] = "FR",
-            ["es"] = "ES",
-            ["es-es"] = "ES",
-            ["ru"] = "RU",
-            ["ru-ru"] = "RU",
-            ["th"] = "TH",
-            ["th-th"] = "TH",
-            ["de"] = "DE",
-            ["de-de"] = "DE"
+            ["fr"] = "FR", ["fr-fr"] = "FR", ["fr-ca"] = "CA",
+            ["es"] = "ES", ["es-es"] = "ES", ["es-mx"] = "MX",
+            ["ru"] = "RU", ["ru-ru"] = "RU",
+            ["th"] = "TH", ["th-th"] = "TH",
+            ["de"] = "DE", ["de-de"] = "DE", ["de-at"] = "AT"
         };
 
-        public AudioTranslationService(HttpClient httpClient)
+        public AudioTranslationService(HttpClient httpClient, LocalDatabaseService localDb)
         {
             _httpClient = httpClient;
+            _localDb = localDb;
             _httpClient.BaseAddress ??= new Uri($"{AppConstants.BaseApiUrl}/");
         }
 
         public async Task<string?> GetStallScriptAsync(int stallId, string? langCode = null)
         {
             var targetLang = string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode.Trim().ToLowerInvariant();
+
+            // 1. Kiểm tra kết nối mạng trước
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                var lastSynced = L.LastSyncedAudioLanguage;
+                if (NormalizeLanguageCode(targetLang) != NormalizeLanguageCode(lastSynced))
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        var toastText = $"Mất kết nối. Đang sử dụng âm thanh {lastSynced.ToUpper()}...";
+                        await Toast.Make(toastText, ToastDuration.Long).Show();
+                    });
+                }
+                
+                Console.WriteLine($"[VOICE_SERVICE] Device is offline. Fetching script for stall {stallId} from Local DB.");
+                return await GetLocalfallbackScriptAsync(stallId, targetLang);
+            }
+
+            // 2. Nếu có mạng, thử gọi API Server
             try
             {
                 var response = await _httpClient.GetFromJsonAsync<StallSpeechResponse>($"api/Stalls/{stallId}/tts/{targetLang}");
@@ -51,81 +75,165 @@ namespace HeriStep.Client.Services
                     return response.Text;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore network errors and use caller fallback
+                Console.WriteLine($"[VOICE_SERVICE] API fetch failed: {ex.Message}. Falling back to Local DB.");
             }
 
-            return null;
+            // 3. Fallback cuối cùng nếu API lỗi hoặc không có text
+            return await GetLocalfallbackScriptAsync(stallId, targetLang);
         }
+
+        private async Task<string?> GetLocalfallbackScriptAsync(int stallId, string targetLang)
+        {
+            try
+            {
+                var stall = await _localDb.GetStallByIdAsync(stallId);
+                
+                // 💡 CHỈ trả về TtsScript nếu ngôn ngữ đích là tiếng Việt (vì text trong DB là tiếng Việt)
+                // Nếu là ngôn ngữ khác, trả về null để lớp trên dùng câu chào mặc định.
+                if (NormalizeLanguageCode(targetLang) == "vi")
+                {
+                    return stall?.TtsScript;
+                }
+                
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task WarmUpAsync()
+        {
+            if (_isWarmedUp) return;
+            
+            try
+            {
+                // 💡 CHỐT: Lấy danh sách giọng đọc trên MainThread là cách an toàn nhất
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    _cachedLocales = await TextToSpeech.Default.GetLocalesAsync();
+                    // 💡 Phát dấu cách thay vì chuỗi rỗng để khởi động engine an toàn trên Android
+                    await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 });
+                });
+                
+                _isWarmedUp = true;
+                Console.WriteLine("[VOICE_SERVICE] Engine warmed up on MainThread.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VOICE_SERVICE] Warm-up failed: {ex.Message}");
+            }
+        }
+
+        private bool _isFirstSpeak = true;
 
         public async Task SpeakAsync(string scriptText, string? langCode = null)
         {
             if (string.IsNullOrWhiteSpace(scriptText)) return;
+
+            // 💡 Ensure we have locales before speaking
+            if (_cachedLocales == null)
+            {
+                try
+                {
+                    _cachedLocales = await MainThread.InvokeOnMainThreadAsync(async () => 
+                        await TextToSpeech.Default.GetLocalesAsync());
+                }
+                catch { /* fallback to default */ }
+            }
+
+            if (_isFirstSpeak)
+            {
+                await Task.Delay(100);
+                _isFirstSpeak = false;
+            }
 
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
 
-            try
+            // 💡 CHỐT: Chỉ chạy trên MainThread để đảm bảo tính ổn định của TTS Engine
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                string targetLang = NormalizeLanguageCode(string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode);
-                IEnumerable<Locale>? locales = null;
                 try
                 {
-                    locales = await TextToSpeech.Default.GetLocalesAsync();
+                    string targetLang = NormalizeLanguageCode(string.IsNullOrWhiteSpace(langCode) ? L.CurrentLanguage : langCode);
+                    
+                    if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                    {
+                        targetLang = NormalizeLanguageCode(L.LastSyncedAudioLanguage);
+                    }
+                    
+                    IEnumerable<Locale>? locales = _cachedLocales;
+                    var preferredCountry = LocaleMap.TryGetValue(targetLang, out var mappedCountry) ? mappedCountry : string.Empty;
+                    var languagePrefix = targetLang.Split('-')[0];
+
+                    var locale = locales?
+                        .Where(l =>
+                            l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase) ||
+                            l.Language.StartsWith(languagePrefix, StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefault();
+
+                    var options = new SpeechOptions
+                    {
+                        Locale = locale,
+                        Pitch = 1.0f,
+                        Volume = 1.0f // Sử dụng volume phần mềm 100% thay vì ép cứng volume hệ thống
+                    };
+
+                    Console.WriteLine($"[VOICE_SERVICE] Chuẩn bị phát: '{scriptText}' ({targetLang})");
+
+#if ANDROID
+                    try
+                    {
+                        var audioManager = (Android.Media.AudioManager?)Android.App.Application.Context.GetSystemService(Android.Content.Context.AudioService);
+                        if (audioManager != null)
+                        {
+                            // Chỉ reset nếu máy đang bị kẹt ở chế độ không bình thường (In-Call/Communication)
+                            if (audioManager.Mode != Android.Media.Mode.Normal)
+                            {
+                                Debug.WriteLine("[VOICE_SERVICE] Resetting Audio Mode to Normal...");
+                                audioManager.Mode = Android.Media.Mode.Normal;
+                                await Task.Delay(200); // Đợi ngắn để phần cứng ổn định
+                            }
+                        }
+                    }
+                    catch (Exception volEx)
+                    {
+                        Debug.WriteLine($"[VOICE_SERVICE] Audio Reset Ignored: {volEx.Message}");
+                    }
+#endif
+
+                    try
+                    {
+                        // 🚀 Phát âm thanh (Sử dụng lệnh await trực tiếp, không dùng Timeout thủ công để tránh phát lặp)
+                        await TextToSpeech.Default.SpeakAsync(scriptText, options, token);
+                        Debug.WriteLine($"[VOICE_SERVICE] SpeakAsync hoàn tất: {targetLang}");
+                    }
+                    catch (Exception speakEx)
+                    {
+                        if (token.IsCancellationRequested) return;
+
+                        Debug.WriteLine($"[VOICE_SERVICE] Lỗi Locale cụ thể: {speakEx.Message}. Thử giọng mặc định...");
+                        
+                        // 🔄 FALLBACK: Chỉ gọi khi lệnh trên thực sự thất bại hoàn toàn
+                        await TextToSpeech.Default.SpeakAsync(scriptText, new SpeechOptions { Volume = 1.0f }, token);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.WriteLine("[VOICE_SERVICE] Speech đã bị hủy bởi người dùng.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[VOICE_SERVICE] GetLocales failed (offline/voice pack missing): {ex.Message}");
+                    Debug.WriteLine($"[VOICE_SERVICE] Lỗi nghiêm trọng: {ex.Message}");
                 }
-
-                var preferredCountry = LocaleMap.TryGetValue(targetLang, out var mappedCountry) ? mappedCountry : string.Empty;
-                var languagePrefix = targetLang.Split('-')[0];
-
-                var locale = locales?
-                    .Where(l =>
-                        l.Language.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase) ||
-                        l.Language.StartsWith(languagePrefix, StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(l => l.Country.Equals(preferredCountry, StringComparison.OrdinalIgnoreCase))
-                    .FirstOrDefault();
-
-                var options = new SpeechOptions
-                {
-                    Locale = locale,
-                    Pitch = 1.0f,
-                    Volume = 1.0f
-                };
-
-#if ANDROID
-                // 🔊 Ép tăng âm lượng media lên tối đa để nghe trên loa ngoài không cần tai nghe
-                try
-                {
-                    var audioManager = (Android.Media.AudioManager?)Android.App.Application.Context.GetSystemService(Android.Content.Context.AudioService);
-                    if (audioManager != null)
-                    {
-                        int maxVolume = audioManager.GetStreamMaxVolume(Android.Media.Stream.Music);
-                        audioManager.SetStreamVolume(Android.Media.Stream.Music, maxVolume, Android.Media.VolumeNotificationFlags.RemoveSoundAndVibrate);
-                        Console.WriteLine($"[VOICE_SERVICE] Android volume set to max ({maxVolume})");
-                    }
-                }
-                catch (Exception volEx)
-                {
-                    Console.WriteLine($"[VOICE_SERVICE] Volume set failed: {volEx.Message}");
-                }
-#endif
-
-                await TextToSpeech.Default.SpeakAsync(scriptText, options, token);
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("[VOICE_SERVICE] Speech cancelled.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[VOICE_SERVICE] Error (ignored to avoid crash): {ex.Message}");
-            }
+            });
         }
 
         private static string NormalizeLanguageCode(string? langCode)

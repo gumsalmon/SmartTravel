@@ -111,11 +111,16 @@ namespace HeriStep.Client.ViewModels
         {
             _geofenceService.StallEntered += async (stall) =>
             {
-                var script = await _audioService.GetStallScriptAsync(stall.Id, L.CurrentLanguage)
-                             ?? stall.TtsScript
-                             ?? $"Chào mừng bạn đến với {stall.Name}!";
+                var lang = L.CurrentLanguage;
+                var script = await _audioService.GetStallScriptAsync(stall.Id, lang);
+                
+                // 💡 Nếu không lấy được script (do chưa dịch hoặc offline), sử dụng câu chào mặc định theo ngôn ngữ
+                if (string.IsNullOrWhiteSpace(script))
+                {
+                    script = string.Format(L.Get("audio_welcome_stall"), stall.Name);
+                }
 
-                await _audioService.SpeakAsync(script, L.CurrentLanguage);
+                await _audioService.SpeakAsync(script, lang);
             };
 
             Task.Run(async () =>
@@ -208,6 +213,7 @@ namespace HeriStep.Client.ViewModels
                         });
                         await _localDb.SaveStallsAsync(cacheStalls);
                         Preferences.Default.Set(LastSyncKey, DateTime.UtcNow.ToString("O"));
+                        Preferences.Default.Set("last_synced_audio_lang", lang);
                     } 
                     catch (Exception dbEx) 
                     {
@@ -623,6 +629,7 @@ namespace HeriStep.Client.ViewModels
                 }
 
                 Preferences.Default.Set(LastSyncKey, DateTime.UtcNow.ToString("O"));
+                Preferences.Default.Set("last_synced_audio_lang", lang);
                 await MainThread.InvokeOnMainThreadAsync(async () => await LoadPointsAsync());
             }
             catch (Exception ex)

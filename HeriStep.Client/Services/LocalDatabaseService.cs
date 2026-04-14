@@ -78,6 +78,20 @@ namespace HeriStep.Client.Services
             }
         }
 
+        public async Task<LocalStall?> GetStallByIdAsync(int id)
+        {
+            try
+            {
+                await InitAsync();
+                return await _db.Table<LocalStall>().FirstOrDefaultAsync(s => s.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOCAL_DB] GetStallByIdAsync failed: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<List<LocalMenuDish>> GetMenuItemsByStallIdAsync(int stallId)
         {
             try

@@ -13,7 +13,15 @@ namespace HeriStep.Client.Views
         private readonly AudioTranslationService _audioService;
         private readonly LocalDatabaseService _localDb = new();
         private Action? _langChangedHandler;
+        private string _noHistoryText = string.Empty;
+
         public ObservableCollection<ProfileVisitItem> RecentVisits { get; } = new();
+
+        public string NoHistoryText
+        {
+            get => _noHistoryText;
+            set { _noHistoryText = value; OnPropertyChanged(); }
+        }
 
         public ProfilePage(SubscriptionService subscriptionService, AudioTranslationService audioService)
         {
@@ -83,6 +91,7 @@ namespace HeriStep.Client.Views
             lblSupportDesc.Text       = L.Get("profile_support_24");
             lblRecentHistory.Text     = L.Get("profile_history");
             lblViewAll.Text           = L.Get("profile_view_all");
+            NoHistoryText             = L.Get("profile_no_history");
         }
 
         private async void OnHomeClicked(object sender, EventArgs e)

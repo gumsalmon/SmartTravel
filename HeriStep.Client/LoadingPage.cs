@@ -8,10 +8,12 @@ namespace HeriStep.Client;
 public class LoadingPage : ContentPage
 {
     private readonly SubscriptionService _subscriptionService;
+    private readonly AudioTranslationService _audioService;
 
-    public LoadingPage(SubscriptionService subscriptionService)
+    public LoadingPage(SubscriptionService subscriptionService, AudioTranslationService audioService)
     {
         _subscriptionService = subscriptionService;
+        _audioService = audioService;
         BackgroundColor = Color.FromArgb("#121212");
         Content = new VerticalStackLayout
         {
@@ -28,6 +30,7 @@ public class LoadingPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _ = _audioService.WarmUpAsync(); // Không đợi (non-blocking) nhưng bắt đầu chạy ngay
         await CheckSubscription();
     }
 
@@ -38,7 +41,7 @@ public class LoadingPage : ContentPage
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                Application.Current.MainPage = new LanguageSelectionPage(_subscriptionService);
+                Application.Current.MainPage = new LanguageSelectionPage(_subscriptionService, _audioService);
             });
             return;
         }

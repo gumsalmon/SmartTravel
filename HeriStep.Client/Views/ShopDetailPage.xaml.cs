@@ -116,9 +116,15 @@ namespace HeriStep.Client.Views
             try
             {
                 var lang = L.CurrentLanguage;
-                string textToSpeak = await _audioService.GetStallScriptAsync(_stall.Id, lang)
-                    ?? _stall.TtsScript
-                    ?? BuildFallback();
+                lblTtsStatus.Text = "⏳ Loading Voice...";
+                
+                string? textToSpeak = await _audioService.GetStallScriptAsync(_stall.Id, lang);
+                
+                // 💡 Nếu không lấy được script (do chưa dịch hoặc offline), sử dụng câu chào mặc định theo ngôn ngữ
+                if (string.IsNullOrWhiteSpace(textToSpeak))
+                {
+                    textToSpeak = string.Format(L.Get("audio_welcome_stall"), _stall.Name);
+                }
 
                 await _audioService.SpeakAsync(textToSpeak, lang);
 
@@ -127,8 +133,11 @@ namespace HeriStep.Client.Views
             }
             catch (Exception ex)
             {
-                lblTtsStatus.Text = $"❌ Error: {ex.Message}";
+                Console.WriteLine($"[SHOP_DETAIL] TTS Error: {ex.Message}");
+                lblTtsStatus.Text = "❌ Audio Unavailable";
                 lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
+                
+                await DisplayAlert(L.Get("error"), "Không thể phát âm thanh. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.", L.Get("ok"));
             }
             finally
             {

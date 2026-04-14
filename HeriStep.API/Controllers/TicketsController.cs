@@ -21,7 +21,7 @@ namespace HeriStep.API.Controllers
             _context = context;
             _bankName = config["SePay:BankName"] ?? "MBBank";
             _soTaiKhoan = config["SePay:BankAccount"] ?? "0388764276";
-            _accountName = config["SePay:AccountName"] ?? "NGUYEN VAN B";
+            _accountName = config["SePay:AccountName"] ?? "NGO DUC HUY";
         }
 
         /// <summary>

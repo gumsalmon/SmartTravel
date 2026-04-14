@@ -11,6 +11,7 @@ namespace HeriStep.Client.Views
     public partial class LanguageSelectionPage : ContentPage
     {
         private readonly SubscriptionService _subscriptionService;
+        private readonly AudioTranslationService _audioService;
         private readonly LanguageCatalogService _languageCatalog = new();
         public ObservableCollection<LanguageSelectionItem> Languages { get; } = new();
 
@@ -28,10 +29,11 @@ namespace HeriStep.Client.Views
             ["de"] = "🇩🇪"
         };
 
-        public LanguageSelectionPage(SubscriptionService subscriptionService)
+        public LanguageSelectionPage(SubscriptionService subscriptionService, AudioTranslationService audioService)
         {
             InitializeComponent();
             _subscriptionService = subscriptionService;
+            _audioService = audioService;
             BindingContext = this;
         }
 
@@ -54,15 +56,49 @@ namespace HeriStep.Client.Views
             }
         }
 
-        private void OnLanguageSelected(object sender, SelectionChangedEventArgs e)
+        private bool _isBusy;
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set { _isBusy = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNotBusy)); }
+        }
+        public bool IsNotBusy => !IsBusy;
+
+        private async void OnLanguageSelected(object sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.FirstOrDefault() is LanguageSelectionItem language && !string.IsNullOrWhiteSpace(language.LangCode))
             {
-                // Save selected language globally
-                L.SetLanguage(language.LangCode);
+                if (IsBusy) return;
+                IsBusy = true;
 
-                // Move to LoadingPage to continue with Subscription Check
-                Application.Current.MainPage = new LoadingPage(_subscriptionService);
+                try
+                {
+                    // 1. Chạy logic đổi ngôn ngữ trên Background Thread để không block UI
+                    string targetLang = language.LangCode;
+                    await Task.Run(() =>
+                    {
+                        Console.WriteLine($"[LANG_SWITCH] Starting switch to {targetLang} on Background Thread...");
+                        L.SetLanguage(targetLang);
+                        Console.WriteLine($"[LANG_SWITCH] SetLanguage completed successfully.");
+                    });
+
+                    // 2. Quay lại UI Thread để chuyển trang
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        Console.WriteLine($"[LANG_SWITCH] Navigating to LoadingPage...");
+                        Application.Current.MainPage = new LoadingPage(_subscriptionService, _audioService);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // 3. Try-Catch để tránh văng app khi có lỗi bất ngờ
+                    Console.WriteLine($"[LANG_SWITCH] FATAL ERROR during language change: {ex.Message}");
+                    await DisplayAlert("Lỗi", "Không thể chuyển đổi ngôn ngữ. Vui lòng thử lại sau.", "OK");
+                }
+                finally
+                {
+                    IsBusy = false;
+                }
             }
         }
 
