@@ -1,13 +1,19 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using System.Diagnostics;
 using HeriStep.Client.Services;
+using HeriStep.Shared.Models;
 
 namespace HeriStep.Client.ViewModels;
 
 public class ShopDetailViewModel : INotifyPropertyChanged
 {
     private readonly LocalDatabaseService _localDb;
+    private readonly AudioTranslationService _audioService;
+    private readonly Stopwatch _stopwatch = new();
+    private readonly Stall _currentStall;
 
     public ObservableCollection<MenuDisplayItem> MenuItems { get; } = new();
 
@@ -25,11 +31,80 @@ public class ShopDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    public ShopDetailViewModel(LocalDatabaseService localDb)
+    private bool _isTtsPlaying;
+    public ICommand PlayAudioCommand { get; }
+
+    public ShopDetailViewModel(LocalDatabaseService localDb, AudioTranslationService audioService, Stall stall)
     {
         _localDb = localDb;
+        _audioService = audioService;
+        _currentStall = stall;
         ApplyLocalization();
         L.LanguageChanged += OnLanguageChanged;
+
+        PlayAudioCommand = new Command(async () => await PlayAudioAsync());
+    }
+
+    private async Task PlayAudioAsync()
+    {
+        if (_isTtsPlaying || _currentStall == null) return;
+        _isTtsPlaying = true;
+        _stopwatch.Restart();
+
+        try
+        {
+            var lang = L.CurrentLanguage;
+            string? textToSpeak = await _audioService.GetStallScriptAsync(_currentStall.Id, lang);
+            if (string.IsNullOrWhiteSpace(textToSpeak))
+            {
+                textToSpeak = string.Format(L.Get("audio_welcome_stall"), _currentStall.Name);
+            }
+            await _audioService.SpeakAsync(textToSpeak, lang);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SHOP_DETAIL_VM] PlayAudio Error: {ex.Message}");
+        }
+        finally
+        {
+            _isTtsPlaying = false;
+            StopAndSaveDuration();
+        }
+    }
+
+    private void StopAndSaveDuration()
+    {
+        if (_stopwatch.IsRunning)
+        {
+            _stopwatch.Stop();
+        }
+
+        try
+        {
+            int elapsed = (int)_stopwatch.Elapsed.TotalSeconds;
+            if (elapsed > 0 && _currentStall != null)
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _localDb.UpdateLatestStallVisitDurationAsync(_currentStall.Id, elapsed);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[SHOP_DETAIL_VM] Failed to save duration: {ex.Message}");
+                    }
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SHOP_DETAIL_VM] StopAndSaveDuration Error: {ex.Message}");
+        }
+        finally
+        {
+            _stopwatch.Reset();
+        }
     }
 
     private void OnLanguageChanged()
@@ -78,6 +153,7 @@ public class ShopDetailViewModel : INotifyPropertyChanged
     public void Cleanup()
     {
         L.LanguageChanged -= OnLanguageChanged;
+        StopAndSaveDuration();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

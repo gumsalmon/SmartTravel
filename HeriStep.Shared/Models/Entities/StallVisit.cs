@@ -10,5 +10,6 @@ namespace HeriStep.Shared.Models
         public DateTime VisitedAt { get; set; } = DateTime.Now;
         [Column("created_at_server")]
         public DateTime CreatedAtServer { get; set; } = DateTime.Now;
+        public int ListenDurationSeconds { get; set; } = 0;
     }
 }

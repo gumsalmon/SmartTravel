@@ -42,6 +42,7 @@
                             FontSize="13"
                             HeightRequest="40"
                             HorizontalOptions="FillAndExpand"
+                            Command="{Binding PlayAudioCommand}"
                             Clicked="OnPlayIntroClicked"/>
                 </HorizontalStackLayout>
                 <Label x:Name="lblTtsStatus"

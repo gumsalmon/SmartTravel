@@ -16,6 +16,7 @@ namespace HeriStep.Client.Views;
 
 public partial class MapPage : ContentPage
 {
+    private bool isPopupOpen = false;
     // ═══ STATE ═══
     private Stall _currentSelectedShop = new Stall();
     private Stall? _nearestStall = null;
@@ -289,7 +290,17 @@ public partial class MapPage : ContentPage
         if (nearest?.Id != _nearestStall?.Id)
         {
             _nearestStall = nearest;
-            MainThread.BeginInvokeOnMainThread(() => UpdateGeofenceBanner(nearest));
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                UpdateGeofenceBanner(nearest);
+                if (nearest != null)
+                {
+                    if (isPopupOpen) return;
+                    isPopupOpen = true;
+                    ShowStallPopup(nearest);
+                    _ = SpeakCurrentStallAsync(nearest);
+                }
+            });
         }
     }
 
@@ -566,6 +577,7 @@ public partial class MapPage : ContentPage
 
     private void ClosePopup()
     {
+        isPopupOpen = false;
         shopPopup.IsVisible = false;
         overlay.IsVisible = false;
     }

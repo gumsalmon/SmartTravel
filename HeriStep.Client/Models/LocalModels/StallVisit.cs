@@ -40,5 +40,7 @@ namespace HeriStep.Client.Models.LocalModels
 
         /// <summary>Phiên làm việc (mỗi lần bật Free Discovery = 1 SessionId mới)</summary>
         public string SessionId { get; set; } = string.Empty;
+
+        public int ListenDurationSeconds { get; set; } = 0;
     }
 }

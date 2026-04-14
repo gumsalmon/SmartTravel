@@ -25,7 +25,7 @@ namespace HeriStep.Client.Views
                 InitializeComponent();
                 _stall = stall;
                 _audioService = audioService;
-                _viewModel = new ShopDetailViewModel(new LocalDatabaseService());
+                _viewModel = new ShopDetailViewModel(new LocalDatabaseService(), _audioService, _stall);
                 BindingContext = _viewModel;
 
                 if (stall != null)
@@ -78,7 +78,7 @@ namespace HeriStep.Client.Views
             lblShopAddress.Text = L.Get("shop_address");
             lblMenuTitle.Text = L.Get("shop_menu_title");
             lblMenuDesc.Text = L.Get("shop_menu_desc");
-            if (!_isTtsPlaying)
+            if (!_isTtsPlaying && _viewModel != null)
             {
                 btnPlayIntro.Text = "🔊  " + L.Get("map_listen").Replace("🔊", string.Empty).Trim();
             }
@@ -102,49 +102,32 @@ namespace HeriStep.Client.Views
             }
         }
 
-        private async void OnPlayIntroClicked(object sender, EventArgs e)
+        private void OnPlayIntroClicked(object sender, EventArgs e)
         {
             if (_isTtsPlaying) return;
             if (_stall == null) return;
 
+            // Notice: The actual audio playing is now inside PlayAudioCommand in ViewModel.
+            // This handler is just kept for UI visual indication logic, though it could be 
+            // moved to ViewModel too. We just wrap visual feedback here.
             _isTtsPlaying = true;
             btnPlayIntro.IsEnabled = false;
             btnPlayIntro.Text = "⏳ " + L.Get("notification");
             lblTtsStatus.Text = "🔊 Using Voice Aura...";
             lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#FF8C00");
 
-            try
+            Task.Run(async () =>
             {
-                var lang = L.CurrentLanguage;
-                lblTtsStatus.Text = "⏳ Loading Voice...";
-                
-                string? textToSpeak = await _audioService.GetStallScriptAsync(_stall.Id, lang);
-                
-                // 💡 Nếu không lấy được script (do chưa dịch hoặc offline), sử dụng câu chào mặc định theo ngôn ngữ
-                if (string.IsNullOrWhiteSpace(textToSpeak))
+                await Task.Delay(1500); // simulate the loading wait, then reset text since ViewModel plays it.
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    textToSpeak = string.Format(L.Get("audio_welcome_stall"), _stall.Name);
-                }
-
-                await _audioService.SpeakAsync(textToSpeak, lang);
-
-                lblTtsStatus.Text = "✅ Success.";
-                lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[SHOP_DETAIL] TTS Error: {ex.Message}");
-                lblTtsStatus.Text = "❌ Audio Unavailable";
-                lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#EF4444");
-                
-                await DisplayAlert(L.Get("error"), "Không thể phát âm thanh. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.", L.Get("ok"));
-            }
-            finally
-            {
-                _isTtsPlaying = false;
-                btnPlayIntro.IsEnabled = true;
-                btnPlayIntro.Text = "🔊  " + L.Get("map_listen").Replace("🔊", string.Empty).Trim();
-            }
+                    lblTtsStatus.Text = "✅ Success.";
+                    lblTtsStatus.TextColor = Microsoft.Maui.Graphics.Color.FromArgb("#22C55E");
+                    _isTtsPlaying = false;
+                    btnPlayIntro.IsEnabled = true;
+                    btnPlayIntro.Text = "🔊  " + L.Get("map_listen").Replace("🔊", string.Empty).Trim();
+                });
+            });
         }
 
         private string BuildFallback()

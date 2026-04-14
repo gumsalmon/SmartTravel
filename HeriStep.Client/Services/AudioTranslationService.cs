@@ -219,6 +219,15 @@ namespace HeriStep.Client.Services
                     {
                         if (token.IsCancellationRequested) return;
 
+                        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                        {
+                            await MainThread.InvokeOnMainThreadAsync(async () =>
+                            {
+                                await Toast.Make("Vui lòng tải gói ngôn ngữ hoặc bật mạng để nghe audio").Show();
+                            });
+                            return; // TUYỆT ĐỐI không tự động nhảy về đọc tiếng Việt
+                        }
+
                         Debug.WriteLine($"[VOICE_SERVICE] Lỗi Locale cụ thể: {speakEx.Message}. Thử giọng mặc định...");
                         
                         // 🔄 FALLBACK: Chỉ gọi khi lệnh trên thực sự thất bại hoàn toàn

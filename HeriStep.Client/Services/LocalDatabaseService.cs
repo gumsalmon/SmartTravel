@@ -237,6 +237,31 @@ namespace HeriStep.Client.Services
         }
 
         /// <summary>
+        /// Update listen duration for the latest visit of a specific stall
+        /// </summary>
+        public async Task UpdateLatestStallVisitDurationAsync(int stallId, int durationSeconds)
+        {
+            try
+            {
+                await InitAsync();
+                var latestVisit = await _db.Table<StallVisit>()
+                                           .Where(v => v.StallId == stallId)
+                                           .OrderByDescending(v => v.VisitedAt)
+                                           .FirstOrDefaultAsync();
+
+                if (latestVisit != null)
+                {
+                    latestVisit.ListenDurationSeconds += durationSeconds;
+                    await _db.UpdateAsync(latestVisit);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOCAL_DB] UpdateLatestStallVisitDurationAsync failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Dữ liệu Heatmap: đếm lượt ghé thăm theo từng sạp.
         /// SELECT StallId, StallName, COUNT(*) as VisitCount
         /// FROM StallVisits GROUP BY StallId ORDER BY VisitCount DESC
