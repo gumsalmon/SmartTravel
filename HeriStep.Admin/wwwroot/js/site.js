@@ -1,4 +1,4 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
@@ -113,7 +113,7 @@ window.initAnalyticsDashboard = async function initAnalyticsDashboard() {
         const raw = await fetchJson(API.avgListenTime);
         const rows = Array.isArray(raw) ? raw : [];
         const labels = rows.map(x => x.stallName ?? x.name ?? "Không rõ");
-        const values = rows.map(x => Number(x.avgListenDurationSeconds ?? x.avgListenTimeSeconds ?? 0));
+        const values = rows.map(x => Number(x.avgSeconds ?? 0));
 
         if (avgListenTimeChart) avgListenTimeChart.destroy();
         avgListenTimeChart = new Chart(selectors.chartCanvas, {
@@ -131,7 +131,17 @@ window.initAnalyticsDashboard = async function initAnalyticsDashboard() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} giây` } },
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => {
+                                const count = rows[ctx.dataIndex]?.visitCount || 0;
+                                return [
+                                    `Thời gian nghe: ${ctx.parsed.y}s`,
+                                    `Tổng lượt ghé: ${count} lượt`
+                                ];
+                            } 
+                        } 
+                    },
                     legend: { display: false }
                 },
                 scales: {
@@ -176,7 +186,7 @@ window.initDashboardCharts = async function initDashboardCharts() {
 
         const rows = await response.json();
         const labels = (rows || []).map(x => x.stallName ?? "Không rõ");
-        const values = (rows || []).map(x => Number(x.avgListenDurationSeconds ?? 0));
+        const values = (rows || []).map(x => Number(x.avgSeconds ?? 0));
 
         if (window._listenTimeChartInstance) {
             window._listenTimeChartInstance.destroy();
@@ -197,7 +207,18 @@ window.initDashboardCharts = async function initDashboardCharts() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: true }
+                    legend: { display: true },
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => {
+                                const count = rows[ctx.dataIndex]?.visitCount || 0;
+                                return [
+                                    `Thời gian nghe: ${ctx.parsed.y}s`,
+                                    `Tổng lượt ghé: ${count} lượt`
+                                ];
+                            } 
+                        } 
+                    }
                 },
                 scales: {
                     x: {

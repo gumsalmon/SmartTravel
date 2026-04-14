@@ -135,25 +135,32 @@ public class AnalyticsController : ControllerBase
     {
         try
         {
-            var rows = await _context.StallVisits
+            var stats = await _context.StallVisits
                 .AsNoTracking()
                 .GroupBy(v => v.StallId)
-                .Select(g => new
+                .Select(g => new 
                 {
                     StallId = g.Key,
-                    AvgListenDurationSeconds = g.Average(x => (double)x.ListenDurationSeconds)
+                    Count = g.Count(),
+                    Sum = g.Sum(v => v.ListenDurationSeconds)
                 })
-                .Join(_context.Stalls.AsNoTracking(),
-                    a => a.StallId,
-                    s => s.Id,
-                    (a, s) => new
-                    {
-                        stallId = a.StallId,
-                        stallName = s.Name ?? "Unknown",
-                        avgListenDurationSeconds = Math.Round(a.AvgListenDurationSeconds, 2)
-                    })
-                .OrderByDescending(x => x.avgListenDurationSeconds)
+                .OrderByDescending(x => x.Count)
+                .Take(5)
                 .ToListAsync();
+
+            var stallIds = stats.Select(x => x.StallId).ToList();
+            var stallNames = await _context.Stalls
+                .AsNoTracking()
+                .Where(s => stallIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, s => s.Name);
+
+            var rows = stats.Select(x => new
+            {
+                stallName = stallNames.ContainsKey(x.StallId) && !string.IsNullOrWhiteSpace(stallNames[x.StallId]) 
+                    ? stallNames[x.StallId] : "Unknown",
+                avgSeconds = Math.Round(x.Count > 0 ? (double)x.Sum / x.Count : 0, 1),
+                visitCount = x.Count
+            });
 
             return Ok(rows);
         }

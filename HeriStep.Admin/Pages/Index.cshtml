@@ -145,6 +145,74 @@
 
 @section Scripts {
     <script>
+        // Khai báo hàm vẽ biểu đồ thời gian nghe (Chuẩn Senior: Async/Await + Hủy Chart cũ)
+        window.initDashboardCharts = async function () {
+        const canvas = document.getElementById('listenTimeChart');
+        if (!canvas) return;
+
+        try {
+        // Lấy dữ liệu từ Backend API
+        const response = await fetch('http://localhost:5297/api/analytics/avg-listen-time');
+        if (!response.ok) throw new Error('API lỗi: ' + response.status);
+        
+        const data = await response.json();
+        if (!data || data.length === 0) {
+        console.warn("Chưa có dữ liệu thời gian nghe.");
+        return;
+        }
+
+        // Tách dữ liệu ra các mảng để nhét vào Chart.js
+        const labels = data.map(d => d.stallName);
+        const avgTimes = data.map(d => d.avgSeconds);
+        const visitCounts = data.map(d => d.visitCount);
+
+        // SENIOR TOUCH: Nếu biểu đồ đã vẽ trước đó rồi thì phải hủy đi vẽ lại, tránh lỗi "Hover nhấp nháy"
+        if (window.listenTimeChartInstance) {
+        window.listenTimeChartInstance.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        window.listenTimeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+        labels: labels,
+        datasets: [{
+        label: 'Thời gian trung bình (Giây)',
+        data: avgTimes,
+        backgroundColor: '#0dcaf0', // Màu xanh Info tiệp với bộ theme hiện tại
+        borderColor: '#0bacce',
+        borderWidth: 1,
+        borderRadius: 4 // Bo góc cho xịn
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        y: {
+        beginAtZero: true,
+        title: { display: true, text: 'Số giây (s)' }
+        }
+        },
+        plugins: {
+        legend: { display: false }, // Tắt legend cho gọn vì có 1 cột
+        tooltip: {
+        callbacks: {
+        // Nhét thêm dòng Lượt ghé vào Tooltip y như sếp muốn
+        afterLabel: function(context) {
+        const index = context.dataIndex;
+        return 'Tổng lượt ghé: ' + visitCounts[index] + ' lượt';
+        }
+        }
+        }
+        }
+        }
+        });
+
+        } catch (error) {
+        console.error('Lỗi khi vẽ biểu đồ thời gian nghe:', error);
+        }
+        };
         function applyQuickFilter(days) {
             if (!days) return;
             const end = new Date();
@@ -231,6 +299,7 @@
             if (window.initDashboardCharts) {
                 window.initDashboardCharts();
             }
+
         });
 
     </script>
