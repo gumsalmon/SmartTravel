@@ -1,0 +1,316 @@
+@page "{stallId:int}"
+@model HeriStep.Merchant.Pages.ListenModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Nghe thuyết minh - HeriStep</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .cover-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stall-info {
+            margin-top: -40px;
+            position: relative;
+            z-index: 10;
+        }
+        .stall-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .lang-btn {
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .lang-btn:active {
+            transform: scale(0.95);
+        }
+        .lang-btn.active {
+            border-color: #0d6efd;
+            background-color: #e9ecef;
+        }
+        .flag-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+        .visualizer-container {
+            display: none; /* hidden by default */
+            height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .bar {
+            width: 6px;
+            height: 10px;
+            background-color: #0d6efd;
+            border-radius: 3px;
+            animation: bounce 0.5s infinite alternate;
+        }
+        .bar:nth-child(2) { animation-delay: 0.1s; background-color: #fca311; }
+        .bar:nth-child(3) { animation-delay: 0.2s; background-color: #ef233c; }
+        .bar:nth-child(4) { animation-delay: 0.3s; background-color: #2a9d8f; }
+        .bar:nth-child(5) { animation-delay: 0.4s; background-color: #8338ec; }
+
+        @@keyframes bounce {
+            to { height: 35px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="text-center mt-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted fw-bold">Đang tải thông tin sạp...</p>
+    </div>
+
+    <div id="main-content" style="display:none; padding-bottom: 50px;">
+<img id="stallImage" src="https://via.placeholder.com/800x400?text=HeriStep" class="cover-img" alt="Stall Cover" />
+        
+        <div class="container stall-info">
+            <div class="stall-card text-center mb-4">
+                <h3 id="stallName" class="fw-bold text-dark mb-1">...</h3>
+                <p class="text-muted small mb-0"><i class="bi bi-geo-alt-fill text-danger"></i> Quét từ mã QR</p>
+                
+                <div id="visualizer" class="visualizer-container mt-3">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+                <div id="playingStatus" class="mt-2 fw-bold text-primary" style="display:none;">🔊 Đang phát thuyết minh...</div>
+                
+                <button id="btnStop" class="btn btn-outline-danger w-100 rounded-pill mt-3 fw-bold border-2 shadow-sm" style="display:none;" onclick="stopAudio()">
+                    <i class="bi bi-stop-circle-fill me-1"></i> DỪNG PHÁT ÂM
+                </button>
+            </div>
+
+            <h5 class="fw-bold text-secondary text-center mb-3">Chọn ngôn ngữ để bắt đầu nghe</h5>
+            <div class="row g-3" id="langsContainer">
+                <!-- Data rendered by JS -->
+            </div>
+        </div>
+    </div>
+    <script>
+        const DOMAIN = "https://vinhkhanh.click";
+        const API_BASE = `${DOMAIN}/api/Listen`;
+        const stallId = @Model.StallId;
+        
+        let deviceId = localStorage.getItem('deviceId');
+        if (!deviceId) {
+            deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('deviceId', deviceId);
+        }
+
+        let availableLangs = [];
+        let synth = window.speechSynthesis;
+        let playStartTime = 0;
+        let isSpeaking = false;
+
+        const langCodeMap = {
+            'vi': 'vi-VN', 'en': 'en-US', 'ja': 'ja-JP', 'ko': 'ko-KR',
+            'zh': 'zh-CN', 'fr': 'fr-FR', 'es': 'es-ES', 'ru': 'ru-RU',
+            'th': 'th-TH', 'de': 'de-DE'
+        };
+
+        window.onload = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/info/${stallId}`);
+                if (!res.ok) {
+                    document.getElementById('loading').innerHTML = '<h5 class="text-danger mt-5">Sạp không tồn tại hoặc tạm ngưng hoạt động.</h5>';
+                    return;
+                }
+                const data = await res.json();
+                
+                document.getElementById('stallName').innerText = data.stallName;
+                
+                const stallImgElement = document.getElementById('stallImage');
+                
+                // Ẩn ảnh nếu load bị lỗi (404)
+                stallImgElement.onerror = function() {
+                    this.onerror = null;
+                    this.style.display = 'none';
+                };
+
+                // Xử lý link ảnh
+                if (data.imageUrl && data.imageUrl.trim() !== '') {
+                    const cleanPath = data.imageUrl.startsWith('/') ? data.imageUrl : '/' + data.imageUrl;
+                    stallImgElement.src = DOMAIN + cleanPath;
+                } else {
+                    // Nếu API trả về null/empty, lập tức ẩn luôn ảnh
+                    stallImgElement.style.display = 'none';
+                }
+                
+                availableLangs = data.availableLanguages;
+                renderLanguages();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loading').innerHTML = '<h5 class="text-danger mt-5">Lỗi kết nối máy chủ. Vui lòng quét lại.</h5>';
+            }
+        };
+
+        function renderLanguages() {
+            const container = document.getElementById('langsContainer');
+            if (!availableLangs || availableLangs.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted">Sạp này chưa cấu hình nội dung thuyết minh.</div>`;
+                return;
+            }
+
+            container.innerHTML = availableLangs.map((lang, index) => {
+                let flagHtml = '<span style="font-size: 2.5rem;">🌐</span>'; 
+                if (lang.flagIconUrl) {
+                    if (lang.flagIconUrl.includes('.')) {
+                        const cleanFlagPath = lang.flagIconUrl.startsWith('/') ? lang.flagIconUrl : '/' + lang.flagIconUrl;
+                        // Replace img to outerHTML span emoji to prevent blank flag
+                        flagHtml = `<img src="${DOMAIN}${cleanFlagPath}" alt="${lang.langName}" style="width: 40px; height: 30px; object-fit: cover; border-radius: 4px;" onerror="this.onerror=null; this.outerHTML='<span style=&quot;font-size: 2.5rem;&quot;>🌐</span>';" />`;
+                    } else {
+                        flagHtml = `<span style="font-size: 2.5rem;">${lang.flagIconUrl}</span>`;
+                    }
+                }
+
+                return `
+                <div class="col-6">
+                    <div class="card lang-btn text-center shadow-sm h-100 py-4" onclick="playAudio(${index}, this)">
+                        <div class="flag-icon mb-2 d-flex justify-content-center align-items-center" style="height: 40px;">
+                            ${flagHtml}
+                        </div>
+                        <h6 class="fw-bold mb-0 text-dark">${lang.langName}</h6>
+                        <small class="text-muted mt-1" style="font-size: 0.75rem; background: #e9ecef; padding: 2px 8px; border-radius: 10px;">Nghe ngay</small>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function playAudio(index, btnElement) {
+            if (isSpeaking) {
+                stopAudio();
+            }
+
+            const langData = availableLangs[index];
+            const textToSpeak = langData.ttsScript;
+            if (!textToSpeak) return;
+
+            const bcp47Code = langCodeMap[langData.langCode] || langData.langCode;
+            
+            const startSpeech = () => {
+                const voices = synth.getVoices();
+                console.log("Available voices:", voices); // In ra để user kiểm tra console
+                
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = bcp47Code;
+                utterance.volume = 1;
+                utterance.rate = 1;
+
+                let matchingVoice = voices.find(v => v.lang === bcp47Code || v.lang.replace('_', '-') === bcp47Code);
+                if (!matchingVoice) {
+                    matchingVoice = voices.find(v => v.lang.startsWith(langData.langCode));
+                }
+
+                // Force default behavior for Thai
+                if (!matchingVoice && langData.langCode === 'th' && voices.length > 0) {
+                    matchingVoice = voices.find(v => v.default) || voices[0];
+                    console.log("Fallback with default voice for Thai:", matchingVoice.name);
+                }
+
+                if (matchingVoice) {
+                    utterance.voice = matchingVoice;
+                }
+
+                utterance.onstart = () => {
+                    isSpeaking = true;
+                    playStartTime = Date.now();
+                    document.getElementById('visualizer').style.display = 'flex';
+                    document.getElementById('playingStatus').style.display = 'block';
+                    document.getElementById('btnStop').style.display = 'block';
+                    
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    btnElement.classList.add('active');
+                };
+
+                utterance.onend = () => finishAudio();
+                utterance.onerror = (e) => {
+                    console.error("SpeechSynthesis Error", e);
+                    finishAudio();
+                };
+
+                synth.speak(utterance);
+            };
+
+            if (synth.getVoices().length === 0) {
+                synth.onvoiceschanged = () => {
+                    synth.onvoiceschanged = null; // Tránh lặp vô tận
+                    startSpeech();
+                };
+                
+                // Fallback nếu browser chặn onvoiceschanged
+                setTimeout(() => {
+                    if (!isSpeaking) startSpeech();
+                }, 500);
+            } else {
+                startSpeech();
+            }
+        }
+
+        function stopAudio() {
+            synth.cancel();
+            finishAudio();
+        }
+
+        function finishAudio() {
+            if (!isSpeaking) return;
+            isSpeaking = false;
+            
+            document.getElementById('visualizer').style.display = 'none';
+            document.getElementById('playingStatus').style.display = 'none';
+            document.getElementById('btnStop').style.display = 'none';
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+
+            const durationMs = Date.now() - playStartTime;
+            const durationSec = Math.floor(durationMs / 1000);
+
+            trackVisit(durationSec);
+        }
+
+        async function trackVisit(duration) {
+            try {
+                await fetch(`${API_BASE}/track-visit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stallId: stallId,
+                        deviceId: deviceId,
+                        duration: duration
+                    })
+                });
+            } catch (err) {
+                console.error("Tracking failure", err);
+            }
+        }
+        
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = () => synth.getVoices();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+@page
+@model HeriStep.Admin.Pages.Analytics.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Analytics Dashboard - User Trajectories & Insights";
+}
+
+<!-- Thư viện CSS cho Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    .analytics-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .analytics-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important;
+    }
+    #heatmap { 
+        height: 500px; 
+        width: 100%; 
+        border-radius: 0.5rem;
+        z-index: 1; /* Tránh đè modal Bootstrap */
+    }
+</style>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold text-dark m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Analytics & Tracing</h4>
+            <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill">
+                <i class="bi bi-clock-history me-1"></i> Real-time Sync Enabled
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- HÀNG 1: Bản đồ Nhiệt (Heatmap) -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 analytics-card">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Tourist Heatmap (Mật độ di chuyển Offline)</h6>
+                <p class="text-muted small mt-1 mb-0">Hiển thị tọa độ đám mây nhiệt dựa trên thiết bị di động quét được dọc tuyến đường Vĩnh Khánh.</p>
+            </div>
+            <div class="card-body">
+                <!-- Vùng chứa bản đồ -->
+                <div id="heatmap" class="shadow-sm border"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HÀNG 2: Biểu đồ (Top POI & Average Time) -->
+<div class="row g-4">
+    <div class="col-12 col-xl-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100 analytics-card">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Top 10 Sạp/Khu vực Được Quan Tâm Nhất</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="topPoiChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-xl-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100 analytics-card">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-pie-chart-fill me-2 text-warning"></i>Thời Gian Nghe Audio Trung Bình</h6>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="width: 100%; max-height: 300px;">
+                    <canvas id="avgListenChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Thư viện Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Thư viện Leaflet và Leaflet.heat -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            
+            // ==========================================
+            // 1. DỮ LIỆU ĐƯỢC INJECT TỪ BACKEND
+            // ==========================================
+            const topPoiLabels = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopPoiLabels))');
+            const topPoiCounts = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopPoiCounts))');
+            
+            const avgListenLabels = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenLabels))');
+            const avgListenData = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenData))');
+            
+            const heatmapPoints = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeatmapData))');
+
+            // ==========================================
+            // 2. VẼ BIỂU ĐỒ BAR (TOP POI)
+            // ==========================================
+            const ctxBar = document.getElementById('topPoiChart').getContext('2d');
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: topPoiLabels,
+                    datasets: [{
+                        label: 'Số lượt quét / truy cập an nhàn',
+                        data: topPoiCounts,
+                        backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                        borderColor: '#0dcaf0',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // ==========================================
+            // 3. VẼ BIỂU ĐỒ DONUT (THỜI GIAN NGHE TRUNG BÌNH)
+            // ==========================================
+            const ctxDonut = document.getElementById('avgListenChart').getContext('2d');
+            new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: avgListenLabels,
+                    datasets: [{
+                        data: avgListenData,
+                        backgroundColor: [
+                            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', 
+                            '#ff9f40', '#e83e8c', '#20c997', '#fd7e14', '#6f42c1'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.parsed + ' giây';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // ==========================================
+            // 4. VẼ BẢN ĐỒ NHIỆT (LEAFLET HEATMAP)
+            // ==========================================
+            // Tọa độ trung tâm: Vĩnh Khánh, Quận 4, TP.HCM
+            const map = L.map('heatmap').setView([10.762622, 106.660172], 15);
+
+            // Layer bản đồ Tile
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add Heatmap layer (Yêu cầu leaflet-heat.js)
+            // Cấu trúc data Leaflet.heat cần: [[lat, lng, intensity], ...]
+            if (heatmapPoints && heatmapPoints.length > 0) {
+                // Tùy chỉnh tham số nhiệt độ cho đẹp mắt
+                L.heatLayer(heatmapPoints, {
+                    radius: 25,
+                    blur: 15, 
+                    maxZoom: 18,
+                    gradient: { 0.4: 'yellow', 0.65: 'orange', 1: 'red' }
+                }).addTo(map);
+
+                // Tự động căn chỉnh bản đồ ôm trọn mây nhiệt (Nâng cao)
+                const bounds = new L.LatLngBounds(heatmapPoints.map(p => [p[0], p[1]]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        });
+    </script>
+}

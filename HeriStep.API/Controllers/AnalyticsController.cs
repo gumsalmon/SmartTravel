@@ -1,222 +1,111 @@
 using HeriStep.API.Data;
 using HeriStep.Shared.Models;
+using HeriStep.Shared.Models.DTOs.Requests;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace HeriStep.API.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-public class AnalyticsController : ControllerBase
+namespace HeriStep.API.Controllers
 {
-    private readonly HeriStepDbContext _context;
-
-    public AnalyticsController(HeriStepDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AnalyticsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly HeriStepDbContext _context;
 
-    [HttpPost("track")]
-    public async Task<IActionResult> TrackAsync([FromBody] TrackRequest request)
-    {
-        try
+        public AnalyticsController(HeriStepDbContext context)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.DeviceId))
+            _context = context;
+        }
+
+        [HttpPost("trajectory")]
+        public async Task<IActionResult> SyncMobileTrackingData([FromBody] SyncTrackingPayload payload)
+        {
+            if (payload == null || string.IsNullOrWhiteSpace(payload.DeviceId))
             {
-                return BadRequest(new { message = "deviceId is required." });
+                return BadRequest(new { Message = "Dữ liệu hoặc DeviceId không hợp lệ." });
             }
 
-            var item = new TouristTrajectory
+            try
             {
-                DeviceId = request.DeviceId.Trim(),
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
-                RecordedAt = request.RecordedAt ?? DateTime.UtcNow
-            };
-
-            _context.TouristTrajectories.Add(item);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Tracked", id = item.Id });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ANALYTICS] track failed: {ex.Message}");
-            return StatusCode(500, new { message = "Track failed", detail = ex.Message });
-        }
-    }
-
-    [HttpGet("heatmap")]
-    public async Task<IActionResult> GetHeatmapAsync()
-    {
-        try
-        {
-            var points = await _context.TouristTrajectories
-                .AsNoTracking()
-                .OrderBy(t => t.RecordedAt)
-                .Select(t => new
+                // 1. Lưu Location Logs (TouristTrajectories)
+                if (payload.LocationLogs != null && payload.LocationLogs.Any())
                 {
-                    lat = t.Latitude,
-                    lng = t.Longitude,
-                    deviceId = t.DeviceId,
-                    recordedAt = t.RecordedAt
-                })
-                .ToListAsync();
+                    var trajectories = payload.LocationLogs.Select(log => new TouristTrajectory
+                    {
+                        Id = Guid.NewGuid(),
+                        DeviceId = payload.DeviceId,
+                        Latitude = log.Lat,
+                        Longitude = log.Lng,
+                        RecordedAt = log.Timestamp
+                    }).ToList();
 
-            return Ok(points);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ANALYTICS] heatmap failed: {ex.Message}");
-            return StatusCode(500, new { message = "Heatmap query failed", detail = ex.Message });
-        }
-    }
+                    await _context.TouristTrajectories.AddRangeAsync(trajectories);
+                }
 
-    [HttpGet("route/{deviceId}")]
-    public async Task<IActionResult> GetRouteAsync(string deviceId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(deviceId))
-            {
-                return BadRequest(new { message = "deviceId is required." });
+                // 2. Lưu Listen Logs (StallVisits)
+                if (payload.ListenLogs != null && payload.ListenLogs.Any())
+                {
+                    var visits = payload.ListenLogs.Select(log => new StallVisit
+                    {
+                        Id = Guid.NewGuid(),
+                        StallId = log.PoiId,
+                        DeviceId = payload.DeviceId,
+                        VisitedAt = DateTime.UtcNow,
+                        CreatedAtServer = DateTime.UtcNow,
+                        ListenDurationSeconds = log.ListenDurationSeconds
+                    }).ToList();
+
+                    await _context.StallVisits.AddRangeAsync(visits);
+                }
+
+                // Tiết kiệm connection db: Gộp thành 1 lần SaveChanges
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "Đồng bộ dữ liệu tracking thành công." });
             }
-
-            var route = await _context.TouristTrajectories
-                .AsNoTracking()
-                .Where(t => t.DeviceId == deviceId)
-                .OrderBy(t => t.RecordedAt)
-                .Select(t => new
-                {
-                    lat = t.Latitude,
-                    lng = t.Longitude,
-                    recordedAt = t.RecordedAt
-                })
-                .ToListAsync();
-
-            return Ok(route);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ANALYTICS] route failed: {ex.Message}");
-            return StatusCode(500, new { message = "Route query failed", detail = ex.Message });
-        }
-    }
-
-    [HttpGet("device-ids-recent")]
-    public async Task<IActionResult> GetRecentDeviceIdsAsync([FromQuery] int take = 20)
-    {
-        try
-        {
-            var limited = Math.Clamp(take, 1, 200);
-            var ids = await _context.TouristTrajectories
-                .AsNoTracking()
-                .Where(t => !string.IsNullOrWhiteSpace(t.DeviceId))
-                .GroupBy(t => t.DeviceId)
-                .Select(g => new
-                {
-                    deviceId = g.Key,
-                    lastSeen = g.Max(x => x.RecordedAt)
-                })
-                .OrderByDescending(x => x.lastSeen)
-                .Take(limited)
-                .ToListAsync();
-
-            return Ok(ids);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ANALYTICS] device-ids-recent failed: {ex.Message}");
-            return StatusCode(500, new { message = "Cannot fetch recent device IDs", detail = ex.Message });
-        }
-    }
-
-    [HttpGet("avg-listen-time")]
-    public async Task<IActionResult> GetAverageListenTimeAsync()
-    {
-        try
-        {
-            var stats = await _context.StallVisits
-                .AsNoTracking()
-                .GroupBy(v => v.StallId)
-                .Select(g => new 
-                {
-                    StallId = g.Key,
-                    Count = g.Count(),
-                    Sum = g.Sum(v => v.ListenDurationSeconds)
-                })
-                .OrderByDescending(x => x.Count)
-                .Take(5)
-                .ToListAsync();
-
-            var stallIds = stats.Select(x => x.StallId).ToList();
-            var stallNames = await _context.Stalls
-                .AsNoTracking()
-                .Where(s => stallIds.Contains(s.Id))
-                .ToDictionaryAsync(s => s.Id, s => s.Name);
-
-            var rows = stats.Select(x => new
+            catch (Exception ex)
             {
-                stallName = stallNames.ContainsKey(x.StallId) && !string.IsNullOrWhiteSpace(stallNames[x.StallId]) 
-                    ? stallNames[x.StallId] : "Unknown",
-                avgSeconds = Math.Round(x.Count > 0 ? (double)x.Sum / x.Count : 0, 1),
-                visitCount = x.Count
-            });
-
-            return Ok(rows);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ANALYTICS] avg-listen-time failed: {ex.Message}");
-            return StatusCode(500, new { message = "Average listen time query failed", detail = ex.Message });
-        }
-    }
-
-    [HttpPost("stall-visit")]
-    public async Task<IActionResult> SyncStallVisitAsync([FromBody] StallVisitSyncRequest request)
-    {
-        try
-        {
-            if (request == null || request.StallId <= 0)
-            {
-                return BadRequest(new { message = "Invalid stall visit payload." });
+                // Log exception in a real application
+                return StatusCode(500, new { Message = "Lỗi khi lưu tracking data.", Error = ex.Message });
             }
-
-            var visit = new StallVisit
-            {
-                Id = request.Id == Guid.Empty ? Guid.NewGuid() : request.Id,
-                StallId = request.StallId,
-                DeviceId = request.DeviceId,
-                VisitedAt = request.VisitedAt ?? DateTime.UtcNow,
-                CreatedAtServer = DateTime.UtcNow,
-                ListenDurationSeconds = Math.Max(0, request.ListenDurationSeconds)
-            };
-
-            _context.StallVisits.Add(visit);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Stall visit synced", id = visit.Id });
         }
-        catch (Exception ex)
+
+        [HttpGet("avg-listen-time")]
+        public async Task<IActionResult> GetAvgListenTime()
         {
-            Console.WriteLine($"[ANALYTICS] stall-visit sync failed: {ex.Message}");
-            return StatusCode(500, new { message = "Sync stall visit failed", detail = ex.Message });
+            try
+            {
+                var data = await _context.StallVisits
+                    .AsNoTracking()
+                    .Where(v => v.ListenDurationSeconds > 0)
+                    .GroupBy(v => v.StallId)
+                    .Select(g => new
+                    {
+                        StallId = g.Key,
+                        AvgSeconds = g.Average(x => x.ListenDurationSeconds),
+                        VisitCount = g.Count()
+                    })
+                    .Join(_context.Stalls.AsNoTracking(),
+                        visit => visit.StallId,
+                        stall => stall.Id,
+                        (visit, stall) => new
+                        {
+                            stallName = stall.Name,
+                            avgSeconds = visit.AvgSeconds,
+                            visitCount = visit.VisitCount
+                        })
+                    .OrderByDescending(x => x.avgSeconds)
+                    .ToListAsync();
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Lỗi khi truy vấn dữ liệu.", Error = ex.Message });
+            }
         }
-    }
-
-    public class TrackRequest
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public DateTime? RecordedAt { get; set; }
-    }
-
-    public class StallVisitSyncRequest
-    {
-        public Guid Id { get; set; }
-        public int StallId { get; set; }
-        public string? DeviceId { get; set; }
-        public DateTime? VisitedAt { get; set; }
-        public int ListenDurationSeconds { get; set; }
     }
 }

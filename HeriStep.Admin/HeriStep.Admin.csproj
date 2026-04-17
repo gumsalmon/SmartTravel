@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HeriStep.Shared\HeriStep.Shared.csproj" />
+    <ProjectReference Include="..\HeriStep.API\HeriStep.API.csproj" />
   </ItemGroup>
 
 </Project>
