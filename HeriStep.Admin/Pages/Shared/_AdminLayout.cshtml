@@ -1,212 +1,395 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - HeriStep Admin</title>
+    <meta name="description" content="HeriStep Admin CMS — Hệ thống quản trị nội dung du lịch Vĩnh Khánh">
 
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom admin css (nếu có) -->
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 
     <style>
-        /* CSS bổ sung để Sidebar trông chuyên nghiệp hơn */
-        .sidebar {
-            min-width: 260px;
-            max-width: 260px;
-            background: #212529;
-            min-height: 100vh;
-            color: white;
+        /* =========================================
+           DESIGN TOKENS
+        ========================================= */
+        :root {
+            --sidebar-bg:       #0f172a;
+            --sidebar-accent:   #1e293b;
+            --sidebar-active:   #3b82f6;
+            --sidebar-text:     rgba(255,255,255,.7);
+            --sidebar-text-h:   #ffffff;
+            --sidebar-width:    250px;
+            --header-h:         60px;
+            --radius:           12px;
         }
 
-            .sidebar .nav-link {
-                color: rgba(255,255,255,.75);
-                padding: 12px 20px;
-                transition: all 0.3s;
-            }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; margin: 0; }
 
-                .sidebar .nav-link:hover {
-                    color: white;
-                    background: rgba(255,255,255,.1);
-                }
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
 
-                .sidebar .nav-link.active {
-                    color: white;
-                    background: #0d6efd;
-                    font-weight: bold;
-                }
+        .sidebar-brand {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .sidebar-brand .brand-icon {
+            width: 36px; height: 36px;
+            background: var(--sidebar-active);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .sidebar-brand .brand-text { color: white; font-weight: 700; font-size: 1.05rem; line-height: 1.1; }
+        .sidebar-brand .brand-sub  { color: rgba(255,255,255,.45); font-size: 0.7rem; }
 
-                .sidebar .nav-link i {
-                    margin-right: 10px;
-                    font-size: 1.1rem;
-                }
+        /* Menu section label */
+        .nav-section-label {
+            padding: 18px 20px 6px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.3);
+        }
 
-        .main-content {
-            background: #f8f9fa;
+        /* Nav link */
+        .sidebar .nav-link {
+            color: var(--sidebar-text);
+            padding: 10px 20px;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color .2s, background .2s;
+            text-decoration: none;
+            position: relative;
+        }
+        .sidebar .nav-link i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar .nav-link:hover {
+            color: var(--sidebar-text-h);
+            background: rgba(255,255,255,.06);
+        }
+        .sidebar .nav-link.active {
+            color: var(--sidebar-text-h);
+            background: var(--sidebar-active);
+            font-weight: 600;
+        }
+        .sidebar .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: rgba(255,255,255,.6);
+            border-radius: 0 3px 3px 0;
+        }
+
+        /* Sidebar footer (user info + logout) */
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-footer .user-avatar {
+            width: 34px; height: 34px;
+            background: var(--sidebar-active);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: .85rem;
+            flex-shrink: 0;
+        }
+        .sidebar-footer .user-name  { color: #fff; font-size: .82rem; font-weight: 600; }
+        .sidebar-footer .user-role  { color: rgba(255,255,255,.4); font-size: .7rem; }
+
+        /* =========================================
+           MAIN LAYOUT
+        ========================================= */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Topbar */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            height: var(--header-h);
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .topbar .page-title {
+            font-size: .95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .topbar .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+        /* Page content */
+        .page-content { flex: 1; padding: 28px; }
+
+        /* Responsive collapse (tablet) */
+        @@media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); transition: transform .3s; }
+            .sidebar.show { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="admin-wrapper d-flex">
 
-        <nav class="sidebar shadow d-flex flex-column">
-            <div class="p-4 mb-3 border-bottom border-secondary">
-                <h4 class="fw-bold text-white m-0">
-                    <i class="bi bi-intersect me-2"></i>HeriStep
-                </h4>
+<!-- =========================================================
+     SIDEBAR
+========================================================= -->
+<nav class="sidebar" id="adminSidebar">
+
+    <!-- Brand -->
+    <a href="/Index" class="sidebar-brand">
+        <div class="brand-icon"><i class="bi bi-intersect"></i></div>
+        <div>
+            <div class="brand-text">HeriStep</div>
+            <div class="brand-sub">Admin CMS</div>
+        </div>
+    </a>
+
+    <!-- Menu chính -->
+    <div class="nav-section-label">Tổng quan</div>
+    <a href="/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+
+    <div class="nav-section-label">Quản lý nội dung</div>
+    <a href="/Tours/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Tours/") == true ? "active" : "")">
+        <i class="bi bi-signpost-split"></i> Lộ trình Tour
+    </a>
+    <a href="/Stalls/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Stalls/") == true ? "active" : "")">
+        <i class="bi bi-shop"></i> Danh sách Sạp
+    </a>
+    <a href="/AdminMap"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/AdminMap" ? "active" : "")">
+        <i class="bi bi-map"></i> Bản đồ quy hoạch
+    </a>
+
+    <div class="nav-section-label">Phân tích</div>
+    <a href="/Analytics/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Analytics/") == true ? "active" : "")">
+        <i class="bi bi-graph-up-arrow"></i> Analytics
+    </a>
+
+    <div class="nav-section-label">Hệ thống</div>
+    <a href="/Users/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Users/") == true ? "active" : "")">
+        <i class="bi bi-person-badge"></i> Tài khoản chủ sạp
+    </a>
+    <a href="/Tourists/Index"
+       class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Tourists/") == true ? "active" : "")">
+        <i class="bi bi-people"></i> Khách du lịch
+    </a>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="user-avatar"><i class="bi bi-shield-check"></i></div>
+            <div>
+                <div class="user-name">Quản trị viên</div>
+                <div class="user-role">Ban Quản Lý</div>
             </div>
+        </div>
+        <a href="/Logout" class="btn btn-sm w-100 fw-semibold"
+           style="background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3);">
+            <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+        </a>
+    </div>
+</nav>
 
-            <div class="nav flex-column w-100">
-                <a href="/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")">
-                    <i class="bi bi-speedometer2"></i> Tổng quan
-                </a>
+<!-- =========================================================
+     MAIN CONTENT AREA
+========================================================= -->
+<div class="main-wrapper">
 
-                <a href="/Tours/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Tours/") == true ? "active" : "")">
-                    <i class="bi bi-signpost-split"></i> Quản lý lộ trình
-                </a>
+    <!-- Topbar -->
+    <header class="topbar">
+        <!-- Mobile toggle -->
+        <button class="btn btn-light btn-sm d-lg-none border-0 me-2"
+                onclick="document.getElementById('adminSidebar').classList.toggle('show')">
+            <i class="bi bi-list fs-5"></i>
+        </button>
 
-                <a href="/Stalls/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Stalls/") == true ? "active" : "")">
-                    <i class="bi bi-shop"></i> Quản lý sạp hàng
-                </a>
+        <h5 class="page-title">@ViewData["Title"]</h5>
 
-                <a href="/AdminMap" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/AdminMap") == true ? "active" : "")">
-                    <i class="bi bi-map"></i> Bản đồ quy hoạch
-                </a>
+        <div class="topbar-actions">
+            <!-- Nút Mock Data -->
+            <button class="btn btn-sm fw-semibold shadow-sm"
+                    style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;"
+                    data-bs-toggle="modal" data-bs-target="#mockDataModal">
+                <i class="bi bi-database-fill-gear me-1"></i> Mock Data
+            </button>
 
-                <a href="/Subscriptions/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Subscriptions/") == true ? "active" : "")">
-                    <i class="bi bi-card-checklist"></i> Gói Subscription
-                </a>
+            <!-- Badge phiên bản -->
+            <span class="badge px-3 py-2 rounded-pill"
+                  style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:.72rem;">
+                v1.0
+            </span>
+        </div>
+    </header>
 
-                <a href="/Users/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Users/") == true ? "active" : "")">
-                    <i class="bi bi-person-badge"></i> Tài khoản chủ sạp
-                </a>
+    <!-- Page Body -->
+    <main class="page-content">
+        @RenderBody()
+    </main>
+</div>
 
-                <a href="/Tourists/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/Tourists/") == true ? "active" : "")">
-                    <i class="bi bi-people"></i> Quản lý khách du lịch
-                </a>
-                <a href="/PRD/Index" class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("/PRD") == true ? "active" : "")">
-                    <i class="bi bi-journal-richtext"></i> Tài liệu Dự án (PRD)
-                </a>
+<!-- =========================================================
+     MODAL MOCK DATA
+========================================================= -->
+<div class="modal fade" id="mockDataModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0" style="background:#fffbeb;">
+                <h5 class="modal-title fw-bold text-amber-800">
+                    <i class="bi bi-database-fill-gear me-2" style="color:#d97706;"></i>
+                    Tạo dữ liệu thử nghiệm
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <div class="modal-body px-4 pt-3 pb-2">
+                <p class="text-muted small mb-4">
+                    Hệ thống sẽ tự động sinh dữ liệu và liên kết các bảng với nhau.
+                </p>
 
-            <div class="mt-auto p-4 border-top border-secondary">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-person-circle fs-3"></i>
-                    </div>
-                    <div class="flex-grow-1 ms-3 overflow-hidden">
-                        <p class="mb-0 text-white small text-truncate">Quản trị viên</p>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-dark">
+                        <i class="bi bi-person-plus me-1 text-primary"></i>Số Chủ Sạp (Users)
+                    </label>
+                    <input type="number" id="mockUserCount"
+                           class="form-control rounded-3" value="5" min="0">
                 </div>
-
-                <a href="/Logout" class="btn btn-outline-danger btn-sm w-100">
-                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
-                </a>
-            </div>
-        </nav>
-
-        <div class="main-content flex-grow-1">
-            <header class="bg-white shadow-sm p-3 mb-4 d-flex justify-content-between align-items-center">
-                <h5 class="m-0 text-secondary fw-bold">@ViewData["Title"]</h5>
-
-                <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-warning btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#mockDataModal">
-                        <i class="bi bi-magic me-1"></i> Tạo Dữ Liệu Ảo
-                    </button>
-                    <span class="badge bg-primary px-3 py-2">HeriStep v1.0</span>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-dark">
+                        <i class="bi bi-shop me-1 text-success"></i>Số Sạp &amp; Gói cước
+                    </label>
+                    <input type="number" id="mockStallCount"
+                           class="form-control rounded-3" value="10" min="0">
+                    <small class="text-muted">Tự động tạo Sạp trên bản đồ + Subscription tương ứng</small>
                 </div>
-            </header>
-
-            <div class="container-fluid px-4">
-                @RenderBody()
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-dark">
+                        <i class="bi bi-ear me-1 text-warning"></i>Lượt nghe &amp; Lịch sử vé
+                    </label>
+                    <input type="number" id="mockVisitCount"
+                           class="form-control rounded-3" value="50" min="0">
+                    <small class="text-muted">Tạo StallVisits + TouristTickets giả</small>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                <button type="button" class="btn btn-light rounded-pill px-4"
+                        data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-dark fw-semibold rounded-pill px-4 shadow-sm"
+                        onclick="executeMockData()">
+                    <i class="bi bi-rocket-takeoff me-1"></i> Chạy ngay
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ========================================== -->
-    <!-- 💡 MODAL MOCK DATA ĐÃ ĐƯỢC CẬP NHẬT CHÚ THÍCH -->
-    <!-- ========================================== -->
-    <div class="modal fade" id="mockDataModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow-lg">
-                <div class="modal-header bg-warning text-dark border-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-database-fill-gear me-2"></i> Trình tạo Mock Data</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <p class="text-muted small mb-4">Nhập số lượng bạn muốn hệ thống tự động sinh ra. Hệ thống sẽ tự động liên kết các bảng với nhau:</p>
+<!-- =========================================================
+     SCRIPTS
+========================================================= -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">👥 Số lượng Chủ Sạp (Users)</label>
-                        <input type="number" id="mockUserCount" class="form-control rounded-pill px-3" value="5" min="0">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">🏪 Số lượng Sạp & Gói cước</label>
-                        <small class="d-block text-primary mb-2">Tự động tạo Sạp trên bản đồ + Sinh ra gói Subscription tương ứng.</small>
-                        <input type="number" id="mockStallCount" class="form-control rounded-pill px-3" value="10" min="0">
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">👣 Lượt khách & Vé du lịch</label>
-                        <small class="d-block text-success mb-2">Tự động tạo lịch sử truy cập + Lịch sử khách mua vé (Tourist Tickets).</small>
-                        <input type="number" id="mockVisitCount" class="form-control rounded-pill px-3" value="50" min="0">
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pb-4 pe-4">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-dark fw-bold rounded-pill px-4 shadow" onclick="executeMockData()">🚀 CHẠY MOCK DATA</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- 💡 SCRIPT GỌI API MOCK DATA -->
-    <!-- Tìm đến đoạn Script cuối file và sửa lại như sau -->
-    <script>
-        async function executeMockData() {
-            const btn = document.querySelector('button[onclick="executeMockData()"]');
-            const originalText = btn.innerHTML;
-
-            // 1. Hiệu ứng Loading cho chuyên nghiệp
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
-            btn.disabled = true;
-
-            // 2. Lấy dữ liệu từ các ô input
-            const reqBody = {
-                UserCount: parseInt(document.getElementById('mockUserCount').value) || 0,
-                StallCount: parseInt(document.getElementById('mockStallCount').value) || 0,
-                VisitCount: parseInt(document.getElementById('mockVisitCount').value) || 0
-            };
-
-            try {
-        // Sửa dòng 173 thành thế này:
-        const response = await fetch('http://localhost:5297/api/MockData/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reqBody)
-        });
-
-                if (response.ok) {
-                    alert("🎉 Tuyệt vời sếp ơi! Dữ liệu ảo đã được bơm đầy Database!");
-                    location.reload();
-                } else {
-                    const errorText = await response.text();
-                    alert("❌ API báo lỗi: " + errorText);
-                }
-            } catch (e) {
-                alert("🧨 Không kết nối được API! Sếp nhớ kiểm tra xem Project API đã bật chưa nhé.");
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+<script>
+    // Đóng sidebar khi click ngoài (mobile)
+    document.addEventListener('click', function(e) {
+        const sidebar = document.getElementById('adminSidebar');
+        if (sidebar.classList.contains('show') && !sidebar.contains(e.target)) {
+            const toggle = e.target.closest('button[onclick*="adminSidebar"]');
+            if (!toggle) sidebar.classList.remove('show');
         }
-    </script>
+    });
 
-    @await RenderSectionAsync("Scripts", required: false)
+    // Gọi API Mock Data
+    async function executeMockData() {
+        const btn = document.querySelector('#mockDataModal button[onclick="executeMockData()"]');
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+        btn.disabled = true;
+
+        const reqBody = {
+            UserCount : parseInt(document.getElementById('mockUserCount').value)  || 0,
+            StallCount: parseInt(document.getElementById('mockStallCount').value) || 0,
+            VisitCount: parseInt(document.getElementById('mockVisitCount').value) || 0
+        };
+
+        try {
+            const res = await fetch('http://localhost:5297/api/MockData/generate', {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify(reqBody)
+            });
+            if (res.ok) {
+                alert('🎉 Dữ liệu ảo đã được bơm vào Database thành công!');
+                location.reload();
+            } else {
+                const err = await res.text();
+                alert('❌ API lỗi: ' + err);
+            }
+        } catch {
+            alert('🧨 Không kết nối được API — kiểm tra Project Backend đã chạy chưa.');
+        } finally {
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,7 +1,10 @@
-﻿using HeriStep.Shared.Models.DTOs.Responses;
+using HeriStep.Shared.Models.DTOs.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 
 namespace HeriStep.Admin.Pages
 {
@@ -12,15 +15,13 @@ namespace HeriStep.Admin.Pages
 
         public DashboardStats Stats { get; set; } = new();
 
-        // 💡 PHẢI CÓ 2 BIẾN NÀY THÌ FORM GIAO DIỆN MỚI LỌC ĐƯỢC
         [BindProperty(SupportsGet = true)] public DateTime? StartDate { get; set; }
-        [BindProperty(SupportsGet = true)] public DateTime? EndDate { get; set; }
+        [BindProperty(SupportsGet = true)] public DateTime? EndDate   { get; set; }
 
         public async Task OnGetAsync()
         {
             try
             {
-                // Kẹp ngày vào URL để gọi API Backend
                 var query = $"?startDate={StartDate?.ToString("yyyy-MM-dd")}&endDate={EndDate?.ToString("yyyy-MM-dd")}";
                 Stats = await _http.GetFromJsonAsync<DashboardStats>($"api/Stats{query}") ?? new DashboardStats();
             }

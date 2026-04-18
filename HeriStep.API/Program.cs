@@ -80,7 +80,6 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStallService, StallService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // Thay thế AwsS3 bằng Local tạm
 
-builder.Services.AddHostedService<DailyTourUpdateService>();
 builder.Services.AddHttpClient<TranslationService>();
 builder.Services.AddHostedService<TranslationWorker>();
 builder.Services.AddMemoryCache(); // 💡 Thêm dòng này

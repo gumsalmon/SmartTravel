@@ -1,276 +1,288 @@
-    @page
-    @model HeriStep.Admin.Pages.Stalls.IndexModel
-    @{
-        Layout = "_AdminLayout";
-        ViewData["Title"] = "Quản lý sạp hàng";
+@page
+@inject IConfiguration Configuration
+@model HeriStep.Admin.Pages.Stalls.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý sạp hàng";
+}
+
+<style>
+    .page-link { border-radius: 8px !important; margin: 0 3px; }
+</style>
+
+<div class="container-fluid py-4">
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     }
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <style>
-        .page-link {
-            border-radius: 8px !important;
-            margin: 0 3px;
-        }
-    </style>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
 
-    <div class="container-fluid py-4">
+        <!-- Header + Bộ lọc tìm kiếm -->
+        <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+            <h4 class="fw-bold m-0 text-dark text-nowrap">
+                <i class="bi bi-shop me-2 text-primary"></i> Danh sách Sạp hàng
+                <span class="badge bg-primary-subtle text-primary border ms-2" style="font-size:0.75rem;">
+                    Chỉ xem
+                </span>
+            </h4>
 
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
-                <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-            <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
-                <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-shop me-2 text-primary"></i> Quản lý sạp</h4>
-
-                <div class="d-flex gap-2 flex-wrap justify-content-end">
-                    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-                        <div class="input-group input-group-sm" style="width: 250px;">
-                            <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm tên, SĐT chủ sạp...">
-                        </div>
-
-                        <div class="input-group input-group-sm" style="width: 130px;">
-                            <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
-                        </div>
-                        <span class="text-muted fw-bold">-</span>
-                        <div class="input-group input-group-sm" style="width: 130px;">
-                            <input type="date" asp-for="EndDate" class="form-control bg-light" title="Đến ngày">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-search me-1"></i> Lọc</button>
-
-                        @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.StartDate.HasValue || Model.EndDate.HasValue)
-                        {
-                            <a href="/Stalls/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
-                        }
-                    </form>
-
-                    <a href="/AdminMap" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center text-nowrap">
-                        <i class="bi bi-geo-alt-fill me-1"></i> Thêm sạp mới
-                    </a>
+            <form method="get" class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                <div class="input-group input-group-sm" style="width:250px;">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" asp-for="SearchTerm" class="form-control bg-light border-start-0"
+                           placeholder="Tìm theo tên sạp...">
                 </div>
-            </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-muted small text-uppercase">
-                        <tr>
-                            <th class="ps-4">Thông tin Sạp</th>
-                            <th>Chủ quản lý</th>
-                            <th class="text-center">Vị trí</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="text-center">Mã QR</th>
-                            <th class="text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var s in Model.Stalls)
-                        {
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark">@s.Name</div>
-                                    <div class="text-muted extra-small">ID: #@s.Id | @s.RadiusMeter m</div>
-                                </td>
-                                <td>
-                                    <span class="badge @(s.OwnerId != null ? "bg-info-subtle text-info" : "bg-light text-muted") border px-2">
-                                        @(s.OwnerName ?? "Chưa gán chủ")
-                                    </span>
-                                </td>
-                                <td class="text-center small text-muted">@s.Latitude, @s.Longitude</td>
-                                <td class="text-center">
-                                    <span class="badge @(s.IsOpen ? "bg-success" : "bg-danger") rounded-pill px-3">
-                                        @(s.IsOpen ? "Mở" : "Đóng")
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm fw-bold"
-                                            onclick="showQrModal(@s.Id, '@s.Name.Replace("'", "\\'")')">
-                                        <i class="bi bi-qr-code"></i> Lấy mã
-                                    </button>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-outline-primary border-0 rounded-circle"
-                                                data-bs-toggle="modal" data-bs-target="#editStallModal"
-                                                data-id="@s.Id" data-name="@s.Name" data-lat="@s.Latitude"
-                                                data-lng="@s.Longitude" data-radius="@s.RadiusMeter"
-                                                data-owner="@s.OwnerId" data-isopen="@(s.IsOpen ? "true" : "false")"
-                                                onclick="fillEditModal(this)">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
+                <input type="date" asp-for="StartDate" class="form-control form-control-sm bg-light" style="width:130px;" title="Từ ngày">
+                <span class="text-muted fw-bold">-</span>
+                <input type="date" asp-for="EndDate" class="form-control form-control-sm bg-light" style="width:130px;" title="Đến ngày">
 
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" onsubmit="return confirm('Xóa sạp?')">
-                                            <button class="btn btn-sm btn-outline-danger border-0 rounded-circle"><i class="bi bi-trash3"></i></button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                <button type="submit" class="btn btn-primary btn-sm px-3">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
 
-            <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
-                <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
-
-                @if (Model.TotalPages > 1)
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.StartDate.HasValue || Model.EndDate.HasValue)
                 {
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                                <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Trước</a>
-                            </li>
-
-                            @{
-                                int startPage = Math.Max(1, Model.CurrentPage - 2);
-                                int endPage = Math.Min(Model.TotalPages, startPage + 4);
-                                if (endPage - startPage < 4)
-                                {
-                                    startPage = Math.Max(1, endPage - 4);
-                                }
-                            }
-
-                            @for (int i = startPage; i <= endPage; i++)
-                            {
-                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                                    <a class="page-link" href="/Stalls/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
-                                </li>
-                            }
-
-                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                                <a class="page-link" href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Sau</a>
-                            </li>
-                        </ul>
-                    </nav>
+                    <a href="/Stalls/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 }
-            </div>
+            </form>
         </div>
-    </div>
 
-    <div class="modal fade" id="editStallModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4 shadow">
-                <form method="post" asp-page-handler="Edit">
-                    <div class="modal-body p-4">
-                        <h5 class="fw-bold mb-3 text-warning">✏️ Chỉnh sửa sạp</h5>
-                        <input type="hidden" id="edit-id" asp-for="EditStall.Id" />
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Chủ sạp</label>
-                            <select id="edit-owner" asp-for="EditStall.OwnerId" class="form-select select2-modal" style="width: 100%;">
-                                @foreach (var o in Model.Owners)
+        <!-- Bảng danh sách -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Thông tin Sạp</th>
+                        <th class="text-center">Tọa độ</th>
+                        <th class="text-center">Bán kính</th>
+                        <th class="text-center">Tour</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">QR Code</th>
+                        <th class="text-center">Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Stalls.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                Chưa có sạp nào phù hợp với bộ lọc.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var s in Model.Stalls)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">@s.Name</div>
+                                <div class="text-muted" style="font-size:0.78rem;">
+                                    ID: #@s.Id
+                                    @if (s.OwnerId.HasValue)
+                                    {
+                                        <span class="badge bg-info-subtle text-info border ms-1">Chủ: #@s.OwnerId</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border ms-1">Chưa có chủ</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-center small text-muted">
+                                @s.Latitude.ToString("F5"),
+                                @s.Longitude.ToString("F5")
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary-subtle text-secondary border">
+                                    @s.RadiusMeter m
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (s.TourID.HasValue)
                                 {
-                                    <option value="@o.Id">@o.FullName</option>
+                                    <span class="badge bg-primary-subtle text-primary border">Tour #@s.TourID</span>
                                 }
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Tên sạp</label>
-                            <input type="text" id="edit-name" asp-for="EditStall.Name" class="form-control">
-                        </div>
-                        <div class="row">
-                            <div class="col-6 mb-3">
-                                <label class="form-label small fw-bold">Bán kính (m)</label>
-                                <input type="number" id="edit-radius" asp-for="EditStall.RadiusMeter" class="form-control">
-                            </div>
-                            <div class="col-6 mb-3">
-                                <label class="form-label small fw-bold">Trạng thái</label>
-                                <select id="edit-isopen" asp-for="EditStall.IsOpen" class="form-select">
-                                    <option value="true">Mở</option>
-                                    <option value="false">Đóng</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-warning w-100 rounded-pill py-2 fw-bold text-white shadow-sm">LƯU THAY ĐỔI</button>
-                    </div>
-                </form>
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(s.IsOpen ? "bg-success" : "bg-danger") rounded-pill px-3">
+                                    @(s.IsOpen ? "Mở" : "Đóng")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm fw-bold"
+                                        onclick="showQrModal(@s.Id, '@Html.Raw(s.Name.Replace("'", "\\'"))')">
+                                    <i class="bi bi-qr-code me-1"></i>QR
+                                </button>
+                            </td>
+                            <td class="text-center">
+                                <a href="/Stalls/Detail/@s.Id"
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                    <i class="bi bi-eye me-1"></i> Xem
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phân trang -->
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">
+                Trang <strong>@Model.CurrentPage</strong> /
+                @(Model.TotalPages == 0 ? 1 : Model.TotalPages)
+            </span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link"
+                               href="/Stalls/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">
+                                Trước
+                            </a>
+                        </li>
+
+                        @{
+                            int startPage = Math.Max(1, Model.CurrentPage - 2);
+                            int endPage   = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link"
+                                   href="/Stalls/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link"
+                               href="/Stalls/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">
+                                Sau
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal QR Code -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold text-info" id="qrModalTitle">
+                        <i class="bi bi-qr-code me-2"></i>Mã QR Sạp
+                    </h5>
+                    <p class="text-muted small mb-0" id="qrModalSubtitle">Quét để nghe thuyết minh</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-2">
+                <div id="qrcodeBox"
+                     class="d-flex justify-content-center align-items-center bg-white p-3 border rounded-3 shadow-sm mb-3 mx-auto"
+                     style="width: 240px; height: 240px;">
+                </div>
+                <p class="text-muted small text-break mb-0" id="qrUrlDisplay" style="font-size: 0.72rem;"></p>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm"
+                        onclick="downloadQR()">
+                    <i class="bi bi-download me-1"></i>Tải xuống (.png)
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="qrModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 rounded-4 shadow">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold text-info" id="qrModalTitle">Mã QR</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center p-4">
-                    <p class="text-muted small mb-3 text-break">Dành cho QR tại trạm hoặc quầy.</p>
-                    <div id="qrcodeBox" class="d-flex justify-content-center bg-white p-3 border rounded-3 shadow-sm mb-3" style="min-height: 200px;"></div>
-                    <button class="btn btn-info text-white w-100 rounded-pill fw-bold shadow-sm" onclick="downloadQR()">
-                        <i class="bi bi-download"></i> Tải ảnh QR (.png)
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // Auto-dismiss alerts
+        setTimeout(() => document.querySelectorAll('.alert').forEach(el => el.remove()), 4000);
 
-    @section Scripts {
-        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-        <script>
-            $(document).ready(function() {
-                $('#editStallModal').on('shown.bs.modal', function () {
-                    $('#edit-owner').select2({ dropdownParent: $('#editStallModal') });
-                });
+        let currentQrStallName = "";
+
+        function showQrModal(stallId, stallName) {
+            currentQrStallName = stallName;
+
+            // Xây dựng URL từ origin của trang hiện tại (tự động đúng domain)
+        const qrUrl = `http://vinhkhanh.click/Listen/${stallId}`;
+
+            // Cập nhật tiêu đề và URL hiển thị
+            document.getElementById('qrModalTitle').innerHTML =
+                '<i class="bi bi-qr-code me-2"></i>' + stallName;
+            document.getElementById('qrModalSubtitle').innerText = 'Quét để nghe thuyết minh sạp này';
+            document.getElementById('qrUrlDisplay').innerText = qrUrl;
+
+            // Xóa QR cũ và render mới
+            const qrBox = document.getElementById('qrcodeBox');
+            qrBox.innerHTML = '';
+
+            new QRCode(qrBox, {
+                text: qrUrl,
+                width: 210,
+                height: 210,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
             });
 
-            function fillEditModal(btn) {
-                $('#edit-id').val($(btn).data('id'));
-                $('#edit-name').val($(btn).data('name'));
-                $('#edit-radius').val($(btn).data('radius'));
-                $('#edit-isopen').val($(btn).data('isopen').toString());
-                $('#edit-owner').val($(btn).data('owner')).trigger('change');
-            }
-
-            let currentQrName = "";
-        function showQrModal(id, name) {
-        currentQrName = name;
-        $('#qrModalTitle').text("Mã QR: " + name);
-    
-        const qrBox = document.getElementById("qrcodeBox");
-        qrBox.innerHTML = ""; // Clear existing QR
-    
-        // Đã đổi ${stallId} thành ${id} để khớp với tham số ở trên
-        const dynamicUrl = `https://vinhkhanh.click/Listen/${id}`;
-        new QRCode(qrBox, {
-        text: dynamicUrl,
-        width: 200,
-        height: 200,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-        });
-    
-        var myModal = new bootstrap.Modal(document.getElementById('qrModal'));
-        myModal.show();
+            // Mở modal Bootstrap
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
         }
 
-            function downloadQR() {
-                const qrBox = document.getElementById("qrcodeBox");
-                const img = qrBox.querySelector("img");
-                const canvas = qrBox.querySelector("canvas");
-            
-                let urlToDownload = "";
-                if (img && img.src && img.src.includes("data:image")) {
-                    urlToDownload = img.src;
-                } else if (canvas) {
-                    urlToDownload = canvas.toDataURL("image/png");
-                } else {
-                    alert("Thiếu dữ liệu QR chưa kịp tạo!");
-                    return;
-                }
+        function downloadQR() {
+            const qrBox = document.getElementById('qrcodeBox');
+            const canvas = qrBox.querySelector('canvas');
+            const img = qrBox.querySelector('img');
 
-                const a = document.createElement("a");
-                a.href = urlToDownload;
-                a.download = `QR_${currentQrName}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+            let dataUrl = '';
+
+            if (canvas) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else if (img && img.src && img.src.startsWith('data:image')) {
+                dataUrl = img.src;
+            } else {
+                alert('QR chưa sẵn sàng, vui lòng thử lại sau 1 giây!');
+                return;
             }
-        </script>
-    }
+
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'QR_' + currentQrStallName.replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9]/g, '_') + '.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        // Lấy URL của Merchant Web từ appsettings.json (Ví dụ: "MerchantUrl": "https://vinhkhanh.click")
+        const merchantDomain = '@Configuration["MerchantUrl"]';
+
+        // Ráp link an toàn
+        const qrUrl = `${merchantDomain}/Listen/${stallId}`;
+    </script>
+}

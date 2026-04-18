@@ -6,301 +6,277 @@
 }
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+    @@keyframes pulseFlash {
+        0%   { background-color: white; }
+        50%  { background-color: rgba(220, 53, 69, 0.15); }
+        100% { background-color: white; }
+    }
+    .pulse-animation { animation: pulseFlash 1.2s ease-out; }
+</style>
 
-    <!-- HÀNG 1: KPI CARDS (DỮ LIỆU TỪ API) -->
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-primary border-4">
-                <div class="d-flex justify-content-between text-truncate">
-                    <div>
-                        <p class="text-muted small fw-bold text-uppercase mb-1">Tổng sạp hàng</p>
-                        <h3 class="fw-bold text-primary mb-0">@(Model.Stats?.TotalStalls ?? 0)</h3>
-                    </div>
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-shop fs-4"></i>
-                    </div>
+<!-- HÀNG 1: KPI CARDS -->
+<div class="row g-4 mb-4">
+
+    <!-- KPI: Khách Online (SignalR real-time) -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-danger border-4"
+             id="activeUsersCard">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Khách Online</p>
+                    <h3 class="fw-bold text-danger mb-0" id="activeUsersCount">0</h3>
+                    <small class="text-muted" style="font-size:0.7rem;">App đang mở</small>
                 </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-success border-4">
-                <div class="d-flex justify-content-between text-truncate">
-                    <div>
-                        <p class="text-muted small fw-bold text-uppercase mb-1">Lượt ghé sạp</p>
-                        <h3 class="fw-bold text-success mb-0">@(Model.Stats?.TotalVisits ?? 0)</h3>
-                    </div>
-                    <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-eye fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-warning border-4">
-                <div class="d-flex justify-content-between text-truncate">
-                    <div>
-                        <p class="text-muted small fw-bold text-uppercase mb-1">Lộ trình Tour</p>
-                        <h3 class="fw-bold text-warning mb-0">@(Model.Stats?.TotalTours ?? 0)</h3>
-                    </div>
-                    <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-map fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-info border-4">
-                <div class="d-flex justify-content-between text-truncate">
-                    <div>
-                        <p class="text-muted small fw-bold text-uppercase mb-1">Ngôn ngữ</p>
-                        <h3 class="fw-bold text-info mb-0">@(Model.Stats?.TotalLanguages ?? 0)</h3>
-                    </div>
-                    <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-translate fs-4"></i>
-                    </div>
+                <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-person-fill fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- HÀNG 2: BIỂU ĐỒ CHÍNH & TRẠNG THÁI -->
-    <div class="row g-4 mb-4">
-        <div class="col-12 col-xl-8">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-graph-up me-2 text-primary"></i>Lượng Khách Mua Vé</h6>
-                    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-                        <select id="quickFilter" class="form-select form-select-sm bg-light" style="width: 130px;" onchange="applyQuickFilter(this.value)">
-                            <option value="">-- Mốc --</option>
-                            <option value="7">7 ngày qua</option>
-                            <option value="30">30 ngày qua</option>
-                            <option value="90">90 ngày qua</option>
-                        </select>
-                        <input type="date" id="startDate" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="form-control form-control-sm bg-light" style="width: 130px;">
-                        <span class="text-muted small">-</span>
-                        <input type="date" id="endDate" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="form-control form-control-sm bg-light" style="width: 130px;">
-                        <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-filter"></i></button>
-                    </form>
+    <!-- KPI: Tổng sạp hàng -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Tổng sạp hàng</p>
+                    <h3 class="fw-bold text-primary mb-0">@(Model.Stats?.TotalStalls ?? 0)</h3>
                 </div>
-                <div class="card-body">
-                    <div id="visitorChart" style="min-height: 350px;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-pie-chart me-2 text-primary"></i>Trạng Thái Sạp</h6>
-                </div>
-                <div class="card-body d-flex align-items-center">
-                    <div id="stallStatusChart" class="w-100"></div>
+                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-shop fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- HÀNG 3: TOP SẠP & DOANH THU GÓI VÉ -->
-    <div class="row g-4">
-        <div class="col-12 col-xl-7">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-trophy me-2 text-warning"></i>Top 5 Sạp Hàng Thu Hút Nhất</h6>
+    <!-- KPI: Lượt ghé sạp -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-success border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Lượt ghé sạp</p>
+                    <h3 class="fw-bold text-success mb-0">@(Model.Stats?.TotalVisits ?? 0)</h3>
                 </div>
-                <div class="card-body">
-                    <div id="topStallsChart"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-5">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h6 class="fw-bold m-0 text-dark"><i class="bi bi-wallet2 me-2 text-success"></i>Cơ Cấu Doanh Thu Gói Vé</h6>
-                </div>
-                <div class="card-body">
-                    <div id="revenueChart"></div>
+                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-ear fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mt-1">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h6 class="fw-bold m-0 text-dark">
-                        <i class="bi bi-bar-chart-line me-2 text-primary"></i>Thống kê thời gian trải nghiệm trung bình theo Sạp
-                    </h6>
+    <!-- KPI: Lộ trình Tour -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-warning border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Lộ trình Tour</p>
+                    <h3 class="fw-bold text-warning mb-0">@(Model.Stats?.TotalTours ?? 0)</h3>
                 </div>
-                <div class="card-body">
-                    <canvas id="listenTimeChart" height="110"></canvas>
+                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-map fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
 
+<!-- HÀNG 2: Biểu đồ vé theo ngày + Trạng thái sạp -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-graph-up me-2 text-primary"></i>Lượng Khách Mua Vé
+                </h6>
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <select id="quickFilter" class="form-select form-select-sm bg-light"
+                            style="width:130px;" onchange="applyQuickFilter(this.value)">
+                        <option value="">-- Mốc --</option>
+                        <option value="7">7 ngày qua</option>
+                        <option value="30">30 ngày qua</option>
+                        <option value="90">90 ngày qua</option>
+                    </select>
+                    <input type="date" id="startDate" name="StartDate"
+                           value="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                           class="form-control form-control-sm bg-light" style="width:130px;">
+                    <span class="text-muted small">-</span>
+                    <input type="date" id="endDate" name="EndDate"
+                           value="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           class="form-control form-control-sm bg-light" style="width:130px;">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-filter"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div id="visitorChart" style="min-height:350px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-pie-chart me-2 text-primary"></i>Trạng Thái Sạp
+                </h6>
+            </div>
+            <div class="card-body d-flex align-items-center">
+                <div id="stallStatusChart" class="w-100"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HÀNG 3: Top 5 sạp theo Thời gian nghe + Doanh thu Gói vé -->
+<div class="row g-4">
+    <!-- TOP 5 SẠP THEO THỜI GIAN NGHE (load bằng fetch /api/Stats/top5-by-listen) -->
+    <div class="col-12 col-xl-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-trophy me-2 text-warning"></i>Top 5 Sạp Hàng Được Nghe Lâu Nhất
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="topListenChart" style="min-height:280px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOANH THU GÓI VÉ -->
+    <div class="col-12 col-xl-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-wallet2 me-2 text-success"></i>Cơ Cấu Doanh Thu Gói Vé
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="revenueChart" style="min-height:280px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
+    <!-- SignalR: đếm Khách Online real-time -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
-        // Khai báo hàm vẽ biểu đồ thời gian nghe (Chuẩn Senior: Async/Await + Hủy Chart cũ)
-        window.initDashboardCharts = async function () {
-        const canvas = document.getElementById('listenTimeChart');
-        if (!canvas) return;
+        const adminConn = new signalR.HubConnectionBuilder()
+            .withUrl("/dashboardHub")
+            .withAutomaticReconnect()
+            .build();
 
-        try {
-        // Lấy dữ liệu từ Backend API
-        const response = await fetch('http://localhost:5297/api/analytics/avg-listen-time');
-        if (!response.ok) throw new Error('API lỗi: ' + response.status);
-        
-        const data = await response.json();
-        if (!data || data.length === 0) {
-        console.warn("Chưa có dữ liệu thời gian nghe.");
-        return;
-        }
-
-        // Tách dữ liệu ra các mảng để nhét vào Chart.js
-        const labels = data.map(d => d.stallName);
-        const avgTimes = data.map(d => d.avgSeconds);
-        const visitCounts = data.map(d => d.visitCount);
-
-        // SENIOR TOUCH: Nếu biểu đồ đã vẽ trước đó rồi thì phải hủy đi vẽ lại, tránh lỗi "Hover nhấp nháy"
-        if (window.listenTimeChartInstance) {
-        window.listenTimeChartInstance.destroy();
-        }
-
-        const ctx = canvas.getContext('2d');
-        window.listenTimeChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-        labels: labels,
-        datasets: [{
-        label: 'Thời gian trung bình (Giây)',
-        data: avgTimes,
-        backgroundColor: '#0dcaf0', // Màu xanh Info tiệp với bộ theme hiện tại
-        borderColor: '#0bacce',
-        borderWidth: 1,
-        borderRadius: 4 // Bo góc cho xịn
-        }]
-        },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-        y: {
-        beginAtZero: true,
-        title: { display: true, text: 'Số giây (s)' }
-        }
-        },
-        plugins: {
-        legend: { display: false }, // Tắt legend cho gọn vì có 1 cột
-        tooltip: {
-        callbacks: {
-        // Nhét thêm dòng Lượt ghé vào Tooltip y như sếp muốn
-        afterLabel: function(context) {
-        const index = context.dataIndex;
-        return 'Tổng lượt ghé: ' + visitCounts[index] + ' lượt';
-        }
-        }
-        }
-        }
-        }
+        adminConn.on("UpdateActiveTourists", function (count) {
+            document.getElementById("activeUsersCount").innerText = count;
+            const card = document.getElementById("activeUsersCard");
+            card.classList.remove("pulse-animation");
+            void card.offsetWidth; // reflow để reset animation
+            card.classList.add("pulse-animation");
         });
 
-        } catch (error) {
-        console.error('Lỗi khi vẽ biểu đồ thời gian nghe:', error);
-        }
+        adminConn.start()
+            .then(() => console.log("✅ SignalR Admin kết nối Hub"))
+            .catch(err => console.error("❌ SignalR Error:", err));
+    </script>
+
+    <script>
+        // ================================================================
+        // Dữ liệu inject từ PageModel (vé theo ngày + Doanh thu)
+        // ================================================================
+        const stats = {
+            chartData  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartData   ?? new System.Collections.Generic.List<int>()))'),
+            chartLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartLabels ?? new System.Collections.Generic.List<string>()))'),
+            revData    : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueData  ?? new System.Collections.Generic.List<double>()))'),
+            revLabels  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueLabels ?? new System.Collections.Generic.List<string>()))')
         };
+
         function applyQuickFilter(days) {
             if (!days) return;
-            const end = new Date();
+            const end   = new Date();
             const start = new Date();
             start.setDate(end.getDate() - parseInt(days) + 1);
-            document.getElementById('endDate').value = end.toISOString().split('T')[0];
-            document.getElementById('startDate').value = start.toISOString().split('T')[0];
-            document.getElementById('startDate').form.submit();
+            document.getElementById("endDate").value   = end.toISOString().split("T")[0];
+            document.getElementById("startDate").value = start.toISOString().split("T")[0];
+            document.getElementById("startDate").form.submit();
         }
 
-        $(document).ready(function () {
-            // 💡 Dùng JSON.parse để tránh lỗi đỏ gạch trong VS và giúp code chạy ổn định hơn
-            const stats = {
-                chartData: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartData ?? new List<int>()))'),
-                chartLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartLabels ?? new List<string>()))'),
-                topNames: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.TopStallNames ?? new List<string>()))'),
-                topVisits: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.TopStallVisits ?? new List<int>()))'),
-                revData: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueData ?? new List<double>()))'),
-                revLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueLabels ?? new List<string>()))')
-            };
+        $(document).ready(async function () {
 
-            // --- 1. BIỂU ĐỒ ĐƯỜNG: LƯỢNG KHÁCH ---
+            // --- 1. Biểu đồ đường: Lượng khách mua vé ---
             new ApexCharts(document.querySelector("#visitorChart"), {
-                series: [{ name: 'Vé bán ra', data: stats.chartData }],
-                chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-                colors: ['#0d6efd'],
-                stroke: { curve: 'smooth', width: 3 },
-                // 💡 TẮT SỐ HIỆN TRỰC TIẾP TRÊN ĐƯỜNG KẺ
-                dataLabels: { enabled: false }, 
-                xaxis: {
+                series     : [{ name: "Vé bán ra", data: stats.chartData }],
+                chart      : { height: 350, type: "area", toolbar: { show: false }, fontFamily: "Inter, sans-serif" },
+                colors     : ["#0d6efd"],
+                stroke     : { curve: "smooth", width: 3 },
+                dataLabels : { enabled: false },
+                xaxis      : {
                     categories: stats.chartLabels,
-                    labels: { rotate: -45, hideOverlappingLabels: true, style: { fontSize: '11px' } },
+                    labels: { rotate: -45, hideOverlappingLabels: true, style: { fontSize: "11px" } },
                     tickAmount: 10
                 },
-                fill: { type: 'gradient', gradient: { opacityFrom: 0.6, opacityTo: 0.1 } },
-                // 💡 CẤU HÌNH TOOLTIP ĐỂ CHỈ VÀO MỚI HIỆN SỐ
-                tooltip: {
-                    shared: true,
-                    intersect: false,
-                    y: { formatter: (val) => val + " vé" }
-                }
+                fill   : { type: "gradient", gradient: { opacityFrom: 0.6, opacityTo: 0.1 } },
+                tooltip: { shared: true, intersect: false, y: { formatter: (val) => val + " vé" } }
             }).render();
 
-            // --- 2. BIỂU ĐỒ TRÒN: TRẠNG THÁI SẠP ---
+            // --- 2. Biểu đồ tròn: Trạng thái sạp ---
             new ApexCharts(document.querySelector("#stallStatusChart"), {
-                series: [@(Model.Stats?.OpenStalls ?? 0), @(Model.Stats?.ClosedStalls ?? 0)],
-                labels: ['Đang Mở', 'Đang Đóng'],
-                chart: { type: 'donut', height: 320 },
-                colors: ['#198754', '#dc3545'],
-                dataLabels: { enabled: false }, // Tắt số hiện trên vòng tròn
-                plotOptions: { 
-                    pie: { 
-                        donut: { 
-                            labels: { 
-                                show: true, 
-                                total: { show: true, label: 'Tổng sạp', formatter: () => '@(Model.Stats?.TotalStalls ?? 0)' } 
-                            } 
-                        } 
-                    } 
+                series      : [@(Model.Stats?.OpenStalls ?? 0), @(Model.Stats?.ClosedStalls ?? 0)],
+                labels      : ["Đang Mở", "Đang Đóng"],
+                chart       : { type: "donut", height: 320 },
+                colors      : ["#198754", "#dc3545"],
+                dataLabels  : { enabled: false },
+                plotOptions : {
+                    pie: { donut: { labels: { show: true, total: { show: true, label: "Tổng sạp",
+                        formatter: () => "@(Model.Stats?.TotalStalls ?? 0)" } } } }
                 },
-                legend: { position: 'bottom' }
+                legend: { position: "bottom" }
             }).render();
 
-            // --- 3. BIỂU ĐỒ CỘT NGANG: TOP SẠP ---
-            new ApexCharts(document.querySelector("#topStallsChart"), {
-                series: [{ name: 'Lượt ghé', data: stats.topVisits }],
-                chart: { type: 'bar', height: 300, toolbar: { show: false } },
-                plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: '60%' } },
-                dataLabels: { enabled: false }, // Chỉ vào cột mới hiện số
-                colors: ['#6366f1'],
-                xaxis: { categories: stats.topNames }
-            }).render();
+            // --- 3. Biểu đồ cột ngang: Top 5 sạp theo THỜI GIAN NGHE ---
+            //    Gọi API riêng để đảm bảo dữ liệu là ListenDuration (không phải VisitCount)
+            try {
+                const res = await fetch("http://localhost:5297/api/Stats/top5-by-listen");
+                if (res.ok) {
+                    const top5 = await res.json();
+                    const topNames   = top5.map(x => x.stallName);
+                    const topSeconds = top5.map(x => Math.round(x.totalListenSeconds));
+                    const topVisits  = top5.map(x => x.visitCount);
 
-            // --- 4. BIỂU ĐỒ TRÒN: DOANH THU GÓI VÉ ---
-            new ApexCharts(document.querySelector("#revenueChart"), {
-                series: stats.revData,
-                labels: stats.revLabels,
-                chart: { type: 'pie', height: 300 },
-                legend: { position: 'bottom' },
-                dataLabels: { enabled: false }, // Tắt mấy cái % hiện đè lên biểu đồ
-                tooltip: { y: { formatter: (val) => val.toLocaleString() + " đ" } }
-            }).render();
-
-            if (window.initDashboardCharts) {
-                window.initDashboardCharts();
+                    new ApexCharts(document.querySelector("#topListenChart"), {
+                        series       : [{ name: "Tổng giây nghe", data: topSeconds }],
+                        chart        : { type: "bar", height: 280, toolbar: { show: false } },
+                        plotOptions  : { bar: { horizontal: true, borderRadius: 5, barHeight: "55%" } },
+                        dataLabels   : { enabled: false },
+                        colors       : ["#f59e0b"],
+                        xaxis        : { categories: topNames, labels: { formatter: (v) => v + "s" } },
+                        tooltip      : {
+                            y: {
+                                formatter: (val, { dataPointIndex }) =>
+                                    `${val}s (${topVisits[dataPointIndex]} lượt ghé)`
+                            }
+                        }
+                    }).render();
+                }
+            } catch (err) {
+                console.warn("Không load được Top 5 Listen:", err);
             }
 
+            // --- 4. Biểu đồ tròn: Doanh thu gói vé ---
+            new ApexCharts(document.querySelector("#revenueChart"), {
+                series    : stats.revData,
+                labels    : stats.revLabels,
+                chart     : { type: "pie", height: 280 },
+                legend    : { position: "bottom" },
+                dataLabels: { enabled: false },
+                tooltip   : { y: { formatter: (val) => val.toLocaleString("vi-VN") + " đ" } }
+            }).render();
         });
-
     </script>
 }

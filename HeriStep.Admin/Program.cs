@@ -32,23 +32,6 @@ builder.Services.AddRazorPages(options =>
 
 var app = builder.Build();
 
-// ==============================================================
-// 💡 ĐÃ FIX: TỰ ĐỘNG GỌI API KHỞI TẠO 10 TOUR KHI VỪA BẬT WEB
-// ==============================================================
-using (var scope = app.Services.CreateScope())
-{
-    var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
-    try
-    {
-        // Gọi thẳng vào hàm Init mà sếp đã có sẵn bên MockDataController
-        httpClient.PostAsync("http://localhost:5297/api/MockData/init-first-day-tours", null).Wait();
-    }
-    catch
-    {
-        // Bỏ qua lỗi nếu lỡ project API chưa bật kịp
-    }
-}
-
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

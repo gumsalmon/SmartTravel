@@ -2,11 +2,8 @@
 @model HeriStep.Admin.Pages.Analytics.IndexModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Analytics Dashboard - User Trajectories & Insights";
+    ViewData["Title"] = "Quản lý thời gian nghe";
 }
-
-<!-- Thư viện CSS cho Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
     .analytics-card {
@@ -14,60 +11,55 @@
     }
     .analytics-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important;
-    }
-    #heatmap { 
-        height: 500px; 
-        width: 100%; 
-        border-radius: 0.5rem;
-        z-index: 1; /* Tránh đè modal Bootstrap */
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
     }
 </style>
 
 <div class="row g-4 mb-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="fw-bold text-dark m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Analytics & Tracing</h4>
+            <h4 class="fw-bold text-dark m-0">
+                <i class="bi bi-headphones me-2 text-primary"></i>Quản lý thời gian nghe
+            </h4>
             <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill">
-                <i class="bi bi-clock-history me-1"></i> Real-time Sync Enabled
+                <i class="bi bi-graph-up me-1"></i> Dữ liệu thống kê từ QR
             </span>
         </div>
     </div>
 </div>
 
-<!-- HÀNG 1: Bản đồ Nhiệt (Heatmap) -->
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm rounded-4 analytics-card">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Tourist Heatmap (Mật độ di chuyển Offline)</h6>
-                <p class="text-muted small mt-1 mb-0">Hiển thị tọa độ đám mây nhiệt dựa trên thiết bị di động quét được dọc tuyến đường Vĩnh Khánh.</p>
-            </div>
-            <div class="card-body">
-                <!-- Vùng chứa bản đồ -->
-                <div id="heatmap" class="shadow-sm border"></div>
-            </div>
-        </div>
+@if (!Model.TopPoiLabels.Any())
+{
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Chưa có dữ liệu thời gian nghe. Hãy để khách quét QR và nghe thuyết minh trước!
     </div>
-</div>
+}
 
-<!-- HÀNG 2: Biểu đồ (Top POI & Average Time) -->
 <div class="row g-4">
+    <!-- Biểu đồ Bar: Top 10 sạp được nghe nhiều nhất -->
     <div class="col-12 col-xl-7">
         <div class="card border-0 shadow-sm rounded-4 h-100 analytics-card">
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Top 10 Sạp/Khu vực Được Quan Tâm Nhất</h6>
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-bar-chart-fill me-2 text-info"></i>Top 10 Sạp Được Nghe Nhiều Nhất
+                </h6>
+                <p class="text-muted small mt-1 mb-0">Xếp hạng theo tổng số lượt nghe TTS từ mã QR.</p>
             </div>
-            <div class="card-body">
-                <canvas id="topPoiChart" height="300"></canvas>
+            <div class="card-body" style="position: relative; height: 320px;">
+                <canvas id="topPoiChart"></canvas>
             </div>
         </div>
     </div>
-    
+
+    <!-- Biểu đồ Donut: Thời gian nghe trung bình -->
     <div class="col-12 col-xl-5">
         <div class="card border-0 shadow-sm rounded-4 h-100 analytics-card">
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-pie-chart-fill me-2 text-warning"></i>Thời Gian Nghe Audio Trung Bình</h6>
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-pie-chart-fill me-2 text-warning"></i>Thời Gian Nghe Trung Bình / Sạp
+                </h6>
+                <p class="text-muted small mt-1 mb-0">Tính bằng giây. Loại bỏ các lượt nghe dưới 5 giây (spam).</p>
             </div>
             <div class="card-body d-flex align-items-center justify-content-center">
                 <div style="width: 100%; max-height: 300px;">
@@ -78,40 +70,92 @@
     </div>
 </div>
 
+<!-- Bảng thống kê chi tiết -->
+<div class="row g-4 mt-0">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 analytics-card">
+            <div class="card-header bg-white border-bottom pt-4 pb-3">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-table me-2 text-success"></i>Bảng Chi Tiết Thống Kê
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Tên Sạp</th>
+                            <th class="text-center">Tổng lượt nghe</th>
+                            <th class="text-center">TG nghe TB (giây)</th>
+                            <th class="text-center">Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.AvgListenLabels.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>Chưa có dữ liệu
+                                </td>
+                            </tr>
+                        }
+                        @for (int i = 0; i < Model.AvgListenLabels.Count; i++)
+                        {
+                            var avgSec = Model.AvgListenData[i];
+                            var visitIdx = Model.TopPoiLabels.IndexOf(Model.AvgListenLabels[i]);
+                            var visits = visitIdx >= 0 ? Model.TopPoiCounts[visitIdx] : 0;
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">@Model.AvgListenLabels[i]</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info border px-2">@visits lượt</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-warning border px-2">@avgSec.ToString("F1")s</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (avgSec >= 30)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border rounded-pill">⭐ Tốt</span>
+                                    }
+                                    else if (avgSec >= 10)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border rounded-pill">📊 Trung bình</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border rounded-pill">⚠️ Cần cải thiện script</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-    <!-- Thư viện Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Thư viện Leaflet và Leaflet.heat -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            
-            // ==========================================
-            // 1. DỮ LIỆU ĐƯỢC INJECT TỪ BACKEND
-            // ==========================================
+
             const topPoiLabels = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopPoiLabels))');
             const topPoiCounts = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopPoiCounts))');
-            
-            const avgListenLabels = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenLabels))');
-            const avgListenData = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenData))');
-            
-            const heatmapPoints = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeatmapData))');
 
-            // ==========================================
-            // 2. VẼ BIỂU ĐỒ BAR (TOP POI)
-            // ==========================================
+            const avgListenLabels = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenLabels))');
+            const avgListenData   = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvgListenData))');
+
+            // Biểu đồ Bar: Top 10 sạp được nghe nhiều nhất
             const ctxBar = document.getElementById('topPoiChart').getContext('2d');
             new Chart(ctxBar, {
                 type: 'bar',
                 data: {
                     labels: topPoiLabels,
                     datasets: [{
-                        label: 'Số lượt quét / truy cập an nhàn',
+                        label: 'Số lượt nghe',
                         data: topPoiCounts,
-                        backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                        backgroundColor: 'rgba(13, 202, 240, 0.75)',
                         borderColor: '#0dcaf0',
                         borderWidth: 1,
                         borderRadius: 6
@@ -121,17 +165,22 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true }
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
                     },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.parsed.y + ' lượt';
+                                }
+                            }
+                        }
                     }
                 }
             });
 
-            // ==========================================
-            // 3. VẼ BIỂU ĐỒ DONUT (THỜI GIAN NGHE TRUNG BÌNH)
-            // ==========================================
+            // Biểu đồ Donut: Thời gian nghe trung bình
             const ctxDonut = document.getElementById('avgListenChart').getContext('2d');
             new Chart(ctxDonut, {
                 type: 'doughnut',
@@ -140,7 +189,7 @@
                     datasets: [{
                         data: avgListenData,
                         backgroundColor: [
-                            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', 
+                            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
                             '#ff9f40', '#e83e8c', '#20c997', '#fd7e14', '#6f42c1'
                         ],
                         borderWidth: 2,
@@ -155,40 +204,13 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return ' ' + context.parsed + ' giây';
+                                    return ' ' + context.label + ': ' + context.parsed + ' giây';
                                 }
                             }
                         }
                     }
                 }
             });
-
-            // ==========================================
-            // 4. VẼ BẢN ĐỒ NHIỆT (LEAFLET HEATMAP)
-            // ==========================================
-            // Tọa độ trung tâm: Vĩnh Khánh, Quận 4, TP.HCM
-            const map = L.map('heatmap').setView([10.762622, 106.660172], 15);
-
-            // Layer bản đồ Tile
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-
-            // Add Heatmap layer (Yêu cầu leaflet-heat.js)
-            // Cấu trúc data Leaflet.heat cần: [[lat, lng, intensity], ...]
-            if (heatmapPoints && heatmapPoints.length > 0) {
-                // Tùy chỉnh tham số nhiệt độ cho đẹp mắt
-                L.heatLayer(heatmapPoints, {
-                    radius: 25,
-                    blur: 15, 
-                    maxZoom: 18,
-                    gradient: { 0.4: 'yellow', 0.65: 'orange', 1: 'red' }
-                }).addTo(map);
-
-                // Tự động căn chỉnh bản đồ ôm trọn mây nhiệt (Nâng cao)
-                const bounds = new L.LatLngBounds(heatmapPoints.map(p => [p[0], p[1]]));
-                map.fitBounds(bounds, { padding: [50, 50] });
-            }
         });
     </script>
 }

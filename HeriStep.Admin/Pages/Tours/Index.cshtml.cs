@@ -1,7 +1,11 @@
-﻿using HeriStep.Shared.Models;
+using HeriStep.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 
 namespace HeriStep.Admin.Pages.Tours
 {
@@ -12,7 +16,7 @@ namespace HeriStep.Admin.Pages.Tours
 
         public List<Tour> Tours { get; set; } = new();
 
-        [BindProperty] public Tour NewTour { get; set; } = new();
+        [BindProperty] public Tour NewTour  { get; set; } = new();
         [BindProperty] public Tour EditTour { get; set; } = new();
 
         // ==========================================
@@ -22,7 +26,6 @@ namespace HeriStep.Admin.Pages.Tours
         {
             try
             {
-                // Sếp nhớ đảm bảo URL API khớp với port của project API đang chạy nhé
                 Tours = await _http.GetFromJsonAsync<List<Tour>>("http://127.0.0.1:5297/api/Tours") ?? new();
             }
             catch
@@ -32,7 +35,7 @@ namespace HeriStep.Admin.Pages.Tours
         }
 
         // ==========================================
-        // 2. XỬ LÝ THÊM MỚI LỘ TRÌNH
+        // 2. TẠO MỚI LỘ TRÌNH
         // ==========================================
         public async Task<IActionResult> OnPostCreateAsync()
         {
@@ -44,8 +47,8 @@ namespace HeriStep.Admin.Pages.Tours
 
             try
             {
-                NewTour.Id = 0;
-                NewTour.IsActive = true; // Mặc định khi tạo mới là hoạt động
+                NewTour.Id       = 0;
+                NewTour.IsActive = true;
 
                 var response = await _http.PostAsJsonAsync("http://127.0.0.1:5297/api/Tours", NewTour);
                 if (response.IsSuccessStatusCode)
@@ -59,7 +62,7 @@ namespace HeriStep.Admin.Pages.Tours
         }
 
         // ==========================================
-        // 3. XỬ LÝ CẬP NHẬT LỘ TRÌNH (CÓ CẢ IMAGE_URL)
+        // 3. CẬP NHẬT LỘ TRÌNH
         // ==========================================
         public async Task<IActionResult> OnPostEditAsync()
         {
@@ -74,6 +77,60 @@ namespace HeriStep.Admin.Pages.Tours
             catch { TempData["Error"] = "❌ Lỗi kết nối API."; }
 
             return RedirectToPage();
+        }
+
+        // ==========================================
+        // 4. XÓA LỘ TRÌNH
+        // ==========================================
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            try
+            {
+                var response = await _http.DeleteAsync($"http://127.0.0.1:5297/api/Tours/{id}");
+                if (response.IsSuccessStatusCode)
+                    TempData["Success"] = "🗑️ Đã xóa lộ trình thành công!";
+                else
+                    TempData["Error"] = "❌ Không thể xóa lộ trình này.";
+            }
+            catch { TempData["Error"] = "❌ Lỗi kết nối API."; }
+
+            return RedirectToPage();
+        }
+
+        // ==========================================
+        // 5. TẠO TOUR TRENDING (Gọi /api/Tours/create-trending)
+        // ==========================================
+        public async Task<IActionResult> OnPostCreateTrendingAsync([FromQuery] int topX = 5)
+        {
+            try
+            {
+                var response = await _http.PostAsync(
+                    $"http://127.0.0.1:5297/api/Tours/create-trending?topX={topX}", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<TrendingResult>();
+                    TempData["Success"] = $"🔥 Đã tạo Tour Trending: '{result?.TourName}' với {result?.StallCount} sạp!";
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    TempData["Error"] = $"❌ {error}";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"❌ Lỗi kết nối: {ex.Message}";
+            }
+
+            return RedirectToPage();
+        }
+
+        // DTO nội bộ để parse response từ create-trending
+        private class TrendingResult
+        {
+            public string? TourName   { get; set; }
+            public int     StallCount { get; set; }
         }
     }
 }
