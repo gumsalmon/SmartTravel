@@ -7,7 +7,7 @@ namespace HeriStep.Shared.Models;
 public class TouristTrajectory
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [Column("device_id")]
     [MaxLength(128)]

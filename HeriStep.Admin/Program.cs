@@ -1,4 +1,6 @@
+using HeriStep.API.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +11,10 @@ builder.Services.AddScoped(sp => {
     client.BaseAddress = new Uri("http://localhost:5297/"); // Đảm bảo API đang chạy ở cổng này
     return client;
 });
-
+// 1. ĐĂNG KÝ DATABASE (Cho Analytics & Dashboard)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<HeriStepDbContext>(options =>
+    options.UseSqlServer(connectionString));
 // 2. CẤU HÌNH BẢO MẬT & ĐĂNG NHẬP
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -35,19 +40,6 @@ var app = builder.Build();
 // ==============================================================
 // 💡 ĐÃ FIX: TỰ ĐỘNG GỌI API KHỞI TẠO 10 TOUR KHI VỪA BẬT WEB
 // ==============================================================
-using (var scope = app.Services.CreateScope())
-{
-    var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
-    try
-    {
-        // Gọi thẳng vào hàm Init mà sếp đã có sẵn bên MockDataController
-        httpClient.PostAsync("http://localhost:5297/api/MockData/init-first-day-tours", null).Wait();
-    }
-    catch
-    {
-        // Bỏ qua lỗi nếu lỡ project API chưa bật kịp
-    }
-}
 
 if (!app.Environment.IsDevelopment())
 {
