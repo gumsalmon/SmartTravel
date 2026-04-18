@@ -1,50 +1,68 @@
 using Microsoft.AspNetCore.SignalR;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 
 namespace HeriStep.Admin.Hubs
 {
     /// <summary>
-    /// Hub đếm khách đang dùng App (anonymous users).
-    /// Quy tắc: KHÔNG đếm Admin đã đăng nhập đang xem Dashboard.
+    /// Hub đếm khách đang dùng App (App Client — anonymous).
+    /// 
+    /// KIẾN TRÚC:
+    ///   - Admin đã đăng nhập (IsAuthenticated = true) → vào group "Admins", chỉ nhận thông báo, KHÔNG bị đếm.
+    ///   - App Client Flutter / WebClient ẩn danh       → được đếm vào _activeTourists.
+    ///
+    /// SỰ KIỆN GỬI VỀ FRONTEND:
+    ///   - Tên: "UpdateActiveUsers"  (Admin Web lắng nghe tên này trong JS)
     /// </summary>
     public class DashboardHub : Hub
     {
-        // Counter tĩnh — an toàn với Interlocked (thread-safe)
+        // Static + Interlocked = thread-safe, không cần lock
         private static int _activeTourists = 0;
 
+        // ─────────────────────────────────────────────
+        // KẾT NỐI MỚI
+        // ─────────────────────────────────────────────
         public override async Task OnConnectedAsync()
         {
-            if (Context.User?.Identity?.IsAuthenticated == true)
+            bool isAdmin = Context.User?.Identity?.IsAuthenticated == true;
+
+            if (isAdmin)
             {
-                // Là Admin đã đăng nhập → thêm vào group Admins, chỉ nhận thông báo
+                // Admin vào xem Dashboard → thêm vào group riêng để nhận broadcast
                 await Groups.AddToGroupAsync(Context.ConnectionId, "Admins");
 
-                // Gửi ngay số hiện tại cho Admin vừa kết nối
-                await Clients.Caller.SendAsync("UpdateActiveTourists", _activeTourists);
+                // Gửi ngay số hiện tại cho Admin vừa mở tab
+                await Clients.Caller.SendAsync("UpdateActiveUsers", _activeTourists);
             }
             else
             {
-                // Là App Client (Khách ẩn danh) → tăng đếm
-                Interlocked.Increment(ref _activeTourists);
+                // Khách ẩn danh (App Client) mở app → +1
+                int newCount = Interlocked.Increment(ref _activeTourists);
 
-                // Broadcast số mới tới tất cả Admin đang xem Dashboard
-                await Clients.Group("Admins").SendAsync("UpdateActiveTourists", _activeTourists);
+                // Broadcast tới tất cả Admin đang xem Dashboard
+                await Clients.Group("Admins").SendAsync("UpdateActiveUsers", newCount);
             }
 
             await base.OnConnectedAsync();
         }
 
+        // ─────────────────────────────────────────────
+        // NGẮT KẾT NỐI
+        // ─────────────────────────────────────────────
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            if (Context.User?.Identity?.IsAuthenticated != true)
-            {
-                // Khách ẩn danh tắt app → giảm đếm (không để âm)
-                var current = Interlocked.Decrement(ref _activeTourists);
-                if (current < 0) Interlocked.Exchange(ref _activeTourists, 0);
+            bool isAdmin = Context.User?.Identity?.IsAuthenticated == true;
 
-                await Clients.Group("Admins").SendAsync("UpdateActiveTourists", Math.Max(0, current));
+            if (!isAdmin)
+            {
+                // Khách ẩn danh tắt app → -1 (không để xuống âm)
+                int newCount = Math.Max(0, Interlocked.Decrement(ref _activeTourists));
+
+                // Đảm bảo biến tĩnh không âm trong trường hợp race condition
+                if (newCount == 0) Interlocked.Exchange(ref _activeTourists, 0);
+
+                await Clients.Group("Admins").SendAsync("UpdateActiveUsers", newCount);
             }
 
             await base.OnDisconnectedAsync(exception);

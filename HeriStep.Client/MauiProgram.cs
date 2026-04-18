@@ -38,6 +38,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<AudioTranslationService>();
         builder.Services.AddSingleton<LocationTrackingService>();
 
+        // Kết nối SignalR ngầm — đếm Khách Online trên Admin Dashboard
+        builder.Services.AddSingleton<SignalRService>();
+
         // ═══ FREE DISCOVERY MODE ═══
         // GeofenceEngine: singleton có thể sống suốt vòng đời App
         builder.Services.AddSingleton<GeofenceEngine>();

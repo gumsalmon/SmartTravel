@@ -26,7 +26,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <p class="text-muted small fw-bold text-uppercase mb-1">Khách Online</p>
-                    <h3 class="fw-bold text-danger mb-0" id="activeUsersCount">0</h3>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold text-danger mb-0" id="activeUsersCount">0</h3>
+                        <span id="hubStatusBadge"
+                              class="badge bg-secondary-subtle text-secondary border"
+                              style="font-size:.65rem;">⏳ Đang kết nối</span>
+                    </div>
                     <small class="text-muted" style="font-size:0.7rem;">App đang mở</small>
                 </div>
                 <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center"
@@ -168,23 +173,68 @@
     <!-- SignalR: đếm Khách Online real-time -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
+        // ============================================================
+        // SIGNALR — KẾT NỐI ĐẾN DASHBOARDHUB
+        // Hub URL: /dashboardHub (hosted trên Admin Web, port 5287)
+        // Fallback LongPolling để hoạt động với mọi môi trường mạng
+        // ============================================================
+        const hubUrl = window.location.origin + "/dashboardHub";
+
         const adminConn = new signalR.HubConnectionBuilder()
-            .withUrl("/dashboardHub")
-            .withAutomaticReconnect()
+            .withUrl(hubUrl, {
+                // Thử WebSocket trước, fallback LongPolling nếu bị block bởi proxy/firewall
+                transport: signalR.HttpTransportType.WebSockets |
+                           signalR.HttpTransportType.LongPolling
+            })
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // retry schedule (ms)
+            .configureLogging(signalR.LogLevel.Warning)
             .build();
 
-        adminConn.on("UpdateActiveTourists", function (count) {
-            document.getElementById("activeUsersCount").innerText = count;
+        // Lắng nghe sự kiện từ DashboardHub.cs: Clients.Caller.SendAsync("UpdateActiveUsers", count)
+        adminConn.on("UpdateActiveUsers", function (count) {
+            const el   = document.getElementById("activeUsersCount");
             const card = document.getElementById("activeUsersCard");
-            card.classList.remove("pulse-animation");
-            void card.offsetWidth; // reflow để reset animation
-            card.classList.add("pulse-animation");
+            if (el)   el.innerText = count;
+            if (card) {
+                card.classList.remove("pulse-animation");
+                void card.offsetWidth; // force reflow để reset animation
+                card.classList.add("pulse-animation");
+            }
         });
 
-        adminConn.start()
-            .then(() => console.log("✅ SignalR Admin kết nối Hub"))
-            .catch(err => console.error("❌ SignalR Error:", err));
+        // Cập nhật badge trạng thái kết nối (tuỳ chọn, hữu ích khi debug)
+        function setHubStatus(connected) {
+            const badge = document.getElementById("hubStatusBadge");
+            if (!badge) return;
+            badge.textContent = connected ? "🟢 Live" : "🔴 Offline";
+            badge.className   = connected
+                ? "badge bg-success-subtle text-success border ms-2"
+                : "badge bg-danger-subtle text-danger border ms-2";
+        }
+
+        async function startHub() {
+            try {
+                await adminConn.start();
+                console.log("✅ SignalR Admin kết nối Hub:", hubUrl);
+                setHubStatus(true);
+            } catch (err) {
+                console.error("❌ SignalR kết nối thất bại:", err);
+                setHubStatus(false);
+                // Thử lại sau 5 giây nếu server chưa sẵn sàng
+                setTimeout(startHub, 5000);
+            }
+        }
+
+        adminConn.onreconnecting(() => setHubStatus(false));
+        adminConn.onreconnected(() => setHubStatus(true));
+        adminConn.onclose(() => {
+            setHubStatus(false);
+            setTimeout(startHub, 5000);
+        });
+
+        startHub();
     </script>
+
 
     <script>
         // ================================================================
