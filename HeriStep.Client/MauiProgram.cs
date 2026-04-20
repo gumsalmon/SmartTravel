@@ -37,6 +37,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocalDatabaseService>();
         builder.Services.AddSingleton<AudioTranslationService>();
         builder.Services.AddSingleton<LocationTrackingService>();
+        builder.Services.AddSingleton(Plugin.Maui.Audio.AudioManager.Current);
+        builder.Services.AddSingleton<AudioManagerService>();
 
         // Kết nối SignalR ngầm — đếm Khách Online trên Admin Dashboard
         builder.Services.AddSingleton<SignalRService>();

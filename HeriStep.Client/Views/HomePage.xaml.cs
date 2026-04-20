@@ -12,16 +12,18 @@ public partial class HomePage : ContentPage
 {
     private readonly HomeViewModel _viewModel;
     private readonly AudioTranslationService _audioService;
+    private readonly AudioManagerService _audioManager;
     private readonly LocalDatabaseService _localDb;
     private readonly GeofenceEngine _geofenceEngine;
     private readonly LocationTrackingService _trackingService;
     private Action? _langChangedHandler;
 
-    public HomePage(HomeViewModel viewModel, AudioTranslationService audioService, LocalDatabaseService localDb, GeofenceEngine geofenceEngine, LocationTrackingService trackingService)
+    public HomePage(HomeViewModel viewModel, AudioTranslationService audioService, AudioManagerService audioManager, LocalDatabaseService localDb, GeofenceEngine geofenceEngine, LocationTrackingService trackingService)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _audioService = audioService;
+        _audioManager = audioManager;
         _localDb = localDb;
         _geofenceEngine = geofenceEngine;
         _trackingService = trackingService;
@@ -144,7 +146,7 @@ public partial class HomePage : ContentPage
     {
         // Hide suggestion panel before navigating
         suggestionPanel.IsVisible = false;
-        await Navigation.PushAsync(new MapPage(_audioService, _localDb, _geofenceEngine, _trackingService));
+        await Navigation.PushAsync(new MapPage(_audioService, _audioManager, _localDb, _geofenceEngine, _trackingService));
     }
 
     private async void OnShopSelected(object sender, SelectionChangedEventArgs e)

@@ -115,8 +115,8 @@ namespace HeriStep.Client.Services
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     _cachedLocales = await TextToSpeech.Default.GetLocalesAsync();
-                    // 💡 Phát dấu cách thay vì chuỗi rỗng để khởi động engine an toàn trên Android
-                    await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 });
+                    // Đã gỡ bỏ: await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 });
+                    // Lưu ý: Việc ráng ép phát TTS bằng volume 0 làm engine Android tạo tiếng rè / click loa trong lần gọi đầu.
                 });
                 
                 _isWarmedUp = true;
@@ -189,24 +189,8 @@ namespace HeriStep.Client.Services
                     Console.WriteLine($"[VOICE_SERVICE] Chuẩn bị phát: '{scriptText}' ({targetLang})");
 
 #if ANDROID
-                    try
-                    {
-                        var audioManager = (Android.Media.AudioManager?)Android.App.Application.Context.GetSystemService(Android.Content.Context.AudioService);
-                        if (audioManager != null)
-                        {
-                            // Chỉ reset nếu máy đang bị kẹt ở chế độ không bình thường (In-Call/Communication)
-                            if (audioManager.Mode != Android.Media.Mode.Normal)
-                            {
-                                Debug.WriteLine("[VOICE_SERVICE] Resetting Audio Mode to Normal...");
-                                audioManager.Mode = Android.Media.Mode.Normal;
-                                await Task.Delay(200); // Đợi ngắn để phần cứng ổn định
-                            }
-                        }
-                    }
-                    catch (Exception volEx)
-                    {
-                        Debug.WriteLine($"[VOICE_SERVICE] Audio Reset Ignored: {volEx.Message}");
-                    }
+                    // Vô hiệu hóa việc can thiệp vào AudioManager. Việc ép phần cứng Audio thiết lập lại .Mode = Normal 
+                    // trước khi phát TTS có thể gây ra hiện tượng pop / rè loa ở một số máy Android.
 #endif
 
                     try

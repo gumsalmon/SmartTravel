@@ -65,6 +65,8 @@ namespace HeriStep.API.Data
                 entity.Property(p => p.RadiusMeter).HasColumnName("radius_meter");
                 entity.Property(p => p.IsOpen).HasColumnName("is_open");
                 entity.Property(p => p.ImageUrl).HasColumnName("image_thumb");
+                entity.Property(p => p.AudioUrl).HasColumnName("audio_url");
+                entity.Property(p => p.Priority).HasColumnName("priority").HasDefaultValue(0);
                 entity.Property(p => p.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
                 entity.Property(p => p.UpdatedAt).HasColumnName("updated_at");
 

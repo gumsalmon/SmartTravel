@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
              x:Class="HeriStep.Client.Views.MapPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="#1C1C1C">
 
     <Grid>
-        <!-- ── FULL-SCREEN MAP ── -->
-        <mapsui:MapView x:Name="mapView" VerticalOptions="Fill" HorizontalOptions="Fill"/>
+        <!-- ── FULL-SCREEN MAP LEAFLET ── -->
+        <WebView x:Name="mapWebView" VerticalOptions="Fill" HorizontalOptions="Fill" Navigating="mapWebView_Navigating" />
 
         <!-- ── BACK BUTTON ── -->
         <Button Text="❮" FontSize="28" FontAttributes="Bold" TextColor="#FF8C00" BackgroundColor="Transparent" 
@@ -83,48 +82,11 @@
         </Border>
 
         <!-- ── FLOAT BUTTONS ── -->
-        <!-- My Location -->
-        <Button x:Name="btnMyLocation" Text="📍" FontSize="20"
-                BackgroundColor="#EE242424" BorderColor="#D35400" BorderWidth="1"
-                CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"
-                Clicked="MyLocation_Clicked">
-            <Button.Shadow>
-                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
-            </Button.Shadow>
-        </Button>
-        <!-- Demo Mode -->
-        <Button x:Name="btnDemoMode" Text="🏃" FontSize="20"
-                BackgroundColor="#EE242424" BorderColor="#6B5B4E" BorderWidth="1"
-                CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,148"
-                Clicked="DemoMode_Clicked">
-            <Button.Shadow>
-                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
-            </Button.Shadow>
-        </Button>
-
-        <!-- Free Exploration Mode -->
-        <Button x:Name="btnFreeExplore" Text="🧭" FontSize="20"
-                BackgroundColor="#EE242424" BorderColor="#22C55E" BorderWidth="1"
-                CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,208"
-                Clicked="FreeExplore_Clicked">
-            <Button.Shadow>
-                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
-            </Button.Shadow>
-        </Button>
-
-        <Button x:Name="btnBotTest" Text="🤖" FontSize="20"
-                BackgroundColor="#EE242424" BorderColor="#6B5B4E" BorderWidth="1"
-                CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,268"
-                Clicked="BotTest_Clicked">
-            <Button.Shadow>
-                <Shadow Brush="Black" Offset="0,3" Radius="8" Opacity="0.4"/>
-            </Button.Shadow>
-        </Button>
-
+        <ImageButton x:Name="btnCenterUser" Source="https://cdn-icons-png.flaticon.com/512/9356/9356230.png"
+                     BackgroundColor="#EEFFFFFF" CornerRadius="20" WidthRequest="44" HeightRequest="44"
+                     HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"
+                     Padding="10" Clicked="CenterUser_Clicked" />
+        
         <!-- ── DARK OVERLAY ── -->
         <BoxView x:Name="overlay" BackgroundColor="Black" Opacity="0.5" IsVisible="False">
             <BoxView.GestureRecognizers>

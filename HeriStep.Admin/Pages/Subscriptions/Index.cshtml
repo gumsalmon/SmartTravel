@@ -1,0 +1,123 @@
+﻿@page
+@model HeriStep.Admin.Pages.Subscriptions.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Gói Subscription";
+}
+
+<div class="container-fluid py-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+            <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-cpu me-2 text-primary"></i> Gói Subscription</h4>
+
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm Device ID, Mã kích hoạt...">
+                    </div>
+
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="StartDate" class="form-control bg-light" title="Từ ngày">
+                    </div>
+                    <span class="text-muted fw-bold">-</span>
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <input type="date" asp-for="EndDate" class="form-control bg-light" title="Đến ngày">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-search me-1"></i> Lọc</button>
+
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.StartDate.HasValue || Model.EndDate.HasValue)
+                    {
+                        <a href="/Subscriptions/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3 border-0">Device ID</th>
+                        <th class="py-3 border-0">Mã kích hoạt</th>
+                        <th class="py-3 border-0">Ngày bắt đầu</th>
+                        <th class="py-3 border-0">Ngày hết hạn</th>
+                        <th class="text-center py-3 border-0">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.SubList.Any())
+                    {
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có thiết bị nào được ghi nhận.</td></tr>
+                    }
+                    @foreach (var sub in Model.SubList)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">@sub.DeviceId</td>
+                            <td><code class="text-primary fw-bold">@sub.ActivationCode</code></td>
+                            <td>@sub.StartDate?.ToString("dd/MM/yyyy")</td>
+
+                            <td class="@(sub.ExpiryDate.HasValue && sub.ExpiryDate.Value < DateTime.Now ? "text-danger fw-bold" : "")">
+                                @sub.ExpiryDate?.ToString("dd/MM/yyyy")
+                            </td>
+
+                            <td class="text-center">
+                                <span class="badge @(sub.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill px-3">
+                                    @(sub.IsActive == true ? "Đang chạy" : "Hết hạn")
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Trước</a>
+                        </li>
+
+                        @{
+                            int startPage = Math.Max(1, Model.CurrentPage - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Subscriptions/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>

@@ -156,6 +156,10 @@ namespace HeriStep.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AudioUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("audio_url");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("image_thumb");
@@ -185,6 +189,12 @@ namespace HeriStep.API.Migrations
                     b.Property<int?>("OwnerId")
                         .HasColumnType("int")
                         .HasColumnName("owner_id");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("priority");
 
                     b.Property<int>("RadiusMeter")
                         .HasColumnType("int")
@@ -229,6 +239,10 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("device_id");
 
+                    b.Property<int>("ListenDurationSeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("listen_duration_seconds");
+
                     b.Property<int>("StallId")
                         .HasColumnType("int")
                         .HasColumnName("stall_id");
@@ -256,7 +270,6 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("activation_code");
 
                     b.Property<string>("DeviceId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("device_id");
 
@@ -264,7 +277,7 @@ namespace HeriStep.API.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("expiry_date");
 
-                    b.Property<bool?>("IsActive")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
 
@@ -277,6 +290,7 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("start_date");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
@@ -285,6 +299,40 @@ namespace HeriStep.API.Migrations
                     b.HasIndex("StallId");
 
                     b.ToTable("Subscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("HeriStep.Shared.Models.SubscriptionTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<int?>("DurationDays")
+                        .HasColumnType("int")
+                        .HasColumnName("duration_days");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("payment_date");
+
+                    b.Property<int>("StallId")
+                        .HasColumnType("int")
+                        .HasColumnName("stall_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionTransactions");
                 });
 
             modelBuilder.Entity("HeriStep.Shared.Models.TicketPackage", b =>
@@ -410,6 +458,34 @@ namespace HeriStep.API.Migrations
                     b.ToTable("TouristTickets", (string)null);
                 });
 
+            modelBuilder.Entity("HeriStep.Shared.Models.TouristTrajectory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("device_id");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float")
+                        .HasColumnName("latitude");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float")
+                        .HasColumnName("longitude");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("recorded_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TouristTrajectories", (string)null);
+                });
+
             modelBuilder.Entity("HeriStep.Shared.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -438,6 +514,7 @@ namespace HeriStep.API.Migrations
                         .HasColumnName("role");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 

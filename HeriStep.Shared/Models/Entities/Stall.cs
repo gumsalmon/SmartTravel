@@ -43,6 +43,12 @@ namespace HeriStep.Shared.Models
         [Column("is_deleted")]
         public bool IsDeleted { get; set; } = false;
 
+        [Column("audio_url")]
+        public string? AudioUrl { get; set; }
+
+        [Column("priority")]
+        public int Priority { get; set; } = 0;
+
         [Column("updated_at")]
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime? UpdatedAt { get; set; }

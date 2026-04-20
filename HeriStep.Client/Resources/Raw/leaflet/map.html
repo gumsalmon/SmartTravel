@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="leaflet.css" />
+    <style>
+        body { padding: 0; margin: 0; background-color: #f8f9fa; }
+        html, body, #map { height: 100%; width: 100vw; }
+        .amber-marker { background-color: #D35400; border: 2px solid white; border-radius: 50%; opacity: 0.9; }
+        .green-marker { background-color: #28A745; border: 2px solid white; border-radius: 50%; opacity: 0.9; }
+        .gray-marker { background-color: #6B5B4E; border: 2px solid white; border-radius: 50%; opacity: 0.7; }
+        .user-marker { background-color: #FFBF00; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px #FFBF00; }
+        
+        .marker-label {
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 11px;
+            text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
+            white-space: nowrap;
+        }
+        .leaflet-control-attribution { background-color: rgba(255, 255, 255, 0.7) !important; color: #666 !important; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 84, 0, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(211, 84, 0, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 84, 0, 0); }
+        }
+        .highlighted-marker {
+            animation: pulse 1.5s infinite;
+            border-color: #FFBF00 !important;
+            border-width: 3px !important;
+            z-index: 999 !important;
+        }
+    </style>
+    <script src="leaflet.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map', { 
+            zoomControl: false,
+            preferCanvas: true // BUỘC vẽ lên Canvas để tối ưu hiệu năng Android
+        }).setView([10.7595, 106.7025], 16);
+        
+        // Lớp bản đồ chính (Online) - Tải Voyager từ server CartoDB
+        var baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            minZoom: 0,
+            attribution: '&copy; OpenStreetMap & CARTO'
+        }).addTo(map);
+
+        // Logic Hybrid: Nếu tải từ Internet thất bại (Offline), tự động tìm ảnh trong bộ nhớ App
+        baseLayer.on('tileerror', function(e) {
+            var z = e.coords.z;
+            var x = e.coords.x;
+            var y = e.coords.y;
+            // Chuyển hướng sang file tiles cục bộ
+            e.tile.src = 'tiles/' + z + '/' + x + '/' + y + '.png';
+        });
+
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+        var markers = {};
+        var userMarker = null;
+        var accuracyCircle = null;
+        var highlightedStallId = null;
+        var isMapMoving = false; // Flag để tránh cập nhật khi người dùng đang thao tác
+
+        function notifyInteraction(isStarting) {
+            window.location.href = isStarting ? "maui://interaction/start" : "maui://interaction/stop";
+        }
+
+        // Lắng nghe sự kiện để tránh xung đột khi người dùng thao tác
+        map.on('movestart zoomstart', function() { 
+            isMapMoving = true; 
+            notifyInteraction(true);
+        });
+        map.on('moveend zoomend', function() { 
+            isMapMoving = false; 
+            notifyInteraction(false);
+        });
+
+        // Bắt sự kiện chạm và nhấn trực tiếp để phản hồi nhanh nhất
+        var mapDiv = map.getContainer();
+        ['touchstart', 'mousedown', 'pointerdown'].forEach(function(evt) {
+            mapDiv.addEventListener(evt, function() { 
+                isMapMoving = true;
+                notifyInteraction(true); 
+            }, {passive: true});
+        });
+
+        ['touchend', 'mouseup', 'pointerup'].forEach(function(evt) {
+            mapDiv.addEventListener(evt, function() { 
+                // Không set isMapMoving = false ở đây vì movend/zoomend sẽ xử lý chính xác hơn
+                // Nhưng vẫn gửi stop để đảm bảo đồng bộ nếu không có move thực sự
+                notifyInteraction(false); 
+            }, {passive: true});
+        });
+
+        function highlightStall(stallId) {
+            if (isMapMoving) return; // Bỏ qua nếu đang zoom/move
+            // Xóa highlight cũ
+            if (highlightedStallId !== null && markers[highlightedStallId]) {
+                var el = markers[highlightedStallId].getElement();
+                if (el) {
+                    var inner = el.querySelector('div');
+                    if(inner) inner.classList.remove('highlighted-marker');
+                }
+            }
+            
+            highlightedStallId = stallId;
+            
+            // Thêm highlight mới
+            if (highlightedStallId !== null && markers[highlightedStallId]) {
+                var el = markers[highlightedStallId].getElement();
+                if (el) {
+                    var inner = el.querySelector('div');
+                    if(inner) inner.classList.add('highlighted-marker');
+                }
+            }
+        }
+
+        function updateStalls(stallsJson) {
+            if (isMapMoving) return;
+            try {
+                var stalls = stallsJson;
+                // Giải mã lặp (Recursive parse) nếu dữ liệu bị bọc trong chuỗi nhiều lần
+                while (typeof stalls === 'string' && stalls.length > 0) {
+                    stalls = JSON.parse(stalls);
+                }
+                
+                if (!Array.isArray(stalls)) return;
+
+                stalls.forEach(function(s) {
+                var color = "#6B5B4E"; // Xám (đóng cửa)
+                if(s.IsOpen) {
+                    color = s.OwnerId != null ? "#D35400" : "#28A745"; // Cam (đã thuê) hoặc Xanh (trống)
+                }
+
+                if(markers[s.Id]) {
+                    markers[s.Id].setLatLng([s.Latitude, s.Longitude]);
+                    markers[s.Id].setStyle({ fillColor: color, color: "#FFFFFF" });
+                } else {
+                    // Sử dụng CircleMarker để render trực tiếp trên Canvas - Cực nhẹ cho máy ảo/Android
+                    markers[s.Id] = L.circleMarker([s.Latitude, s.Longitude], {
+                        radius: 7,
+                        fillColor: color,
+                        color: "#FFFFFF",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+
+                    markers[s.Id].bindTooltip(s.Name, { 
+                        permanent: false, 
+                        direction: 'top',
+                        className: 'marker-label'
+                    });
+
+                    markers[s.Id].on('click', function() {
+                        window.location.href = "maui://stallclick/" + s.Id;
+                    });
+                }
+            });
+        } catch (e) {
+            console.error("Update stalls error:", e);
+        }
+    }
+
+        var isFirstLocation = true;
+        function updateUserLocation(lat, lon, isRealGPS) {
+            if (isMapMoving && !isFirstLocation) return;
+            var latLng = [lat, lon];
+            if(!userMarker) {
+                var icon = L.divIcon({
+                    className: 'user-marker',
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+                accuracyCircle = L.circle(latLng, {
+                    color: '#D35400',
+                    fillColor: '#D35400',
+                    fillOpacity: 0.15,
+                    radius: isRealGPS ? 20 : 0
+                }).addTo(map);
+                
+                userMarker = L.marker(latLng, {icon: icon, zIndexOffset: 1000}).addTo(map);
+            } else {
+                userMarker.setLatLng(latLng);
+                if(accuracyCircle) {
+                    accuracyCircle.setLatLng(latLng);
+                    accuracyCircle.setRadius(isRealGPS ? 20 : 0);
+                }
+            }
+
+            // Tự động focus vào người dùng trong lần đầu nhận toạ độ
+            if(isFirstLocation && lat !== 0) {
+                map.setView(latLng, 17);
+                isFirstLocation = false;
+            }
+        }
+
+        function centerOnUser() {
+            if(userMarker) {
+                map.setView(userMarker.getLatLng(), 17);
+            }
+        }
+    </script>
+</body>
+</html>

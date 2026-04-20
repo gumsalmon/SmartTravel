@@ -60,10 +60,17 @@ namespace HeriStep.Shared.Models.DTOs.Responses
         [JsonPropertyName("isOpen")]
         public bool IsOpen { get; set; } = true;
 
-        // 💡 TECH LEAD FIX: Cột quan trọng để khớp với SQL Enterprise
         [Column("is_deleted")]
         [JsonPropertyName("isDeleted")]
         public bool IsDeleted { get; set; } = false;
+
+        [Column("audio_url")]
+        [JsonPropertyName("audioUrl")]
+        public string? AudioUrl { get; set; }
+
+        [Column("priority")]
+        [JsonPropertyName("priority")]
+        public int Priority { get; set; } = 0;
 
         [Column("updated_at")]
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]

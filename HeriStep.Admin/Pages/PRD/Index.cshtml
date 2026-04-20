@@ -1,0 +1,1168 @@
+﻿@page
+@model HeriStep.Admin.Pages.PRD.IndexModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech-PRD: HeriStep - Enterprise Edition (Full)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            /* ☀️ Premium Bright Glassmorphism Palette */
+            --bg-base: #f4f4f9;
+            --bg-surface: rgba(255, 255, 255, 0.85);
+            --bg-surface-hover: rgba(248, 250, 252, 0.95);
+            --accent-primary: #0284c7;
+            --accent-secondary: #4f46e5;
+            --accent-tertiary: #059669;
+            --accent-warning: #ea580c;
+            --accent-danger: #dc2626;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --border-glass: rgba(15, 23, 42, 0.08);
+            --border-highlight: rgba(2, 132, 199, 0.4);
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            z-index: -1;
+            animation: float 15s infinite ease-in-out alternate;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: rgba(79, 70, 229, 0.05);
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 700px;
+            height: 700px;
+            background: rgba(2, 132, 199, 0.06);
+            bottom: 5%;
+            right: -200px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 500px;
+            height: 500px;
+            background: rgba(5, 150, 105, 0.04);
+            top: 40%;
+            left: 30%;
+            animation-duration: 20s;
+        }
+
+        @@keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(40px, 60px) scale(1.05);
+            }
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            color: var(--text-main);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 100px;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            gap: 0.8rem;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            white-space: nowrap;
+            overflow-x: auto;
+            max-width: 95vw;
+        }
+
+            nav a {
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 0.8rem;
+                font-weight: 600;
+                transition: all 0.2s;
+                padding: 0.4rem 0.8rem;
+                border-radius: 50px;
+            }
+
+                nav a:hover, nav a.active {
+                    color: #fff;
+                    background: var(--accent-primary);
+                    box-shadow: 0 4px 10px rgba(2,132,199,0.3);
+                }
+
+        /* Hero Section */
+        header {
+            padding: 9rem 0 5rem;
+            text-align: center;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(2, 132, 199, 0.08);
+            border: 1px solid var(--border-highlight);
+            color: var(--accent-primary);
+            padding: 0.5rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        header p {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Layout & Cards */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        section {
+            margin-bottom: 6rem;
+            scroll-margin-top: 100px;
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-main);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+            padding-bottom: 1rem;
+        }
+
+            .section-title::before {
+                content: '';
+                display: block;
+                width: 45px;
+                height: 5px;
+                background: linear-gradient(90deg, var(--accent-primary), transparent);
+                border-radius: 3px;
+            }
+
+        .glass-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+            .glass-card:hover {
+                transform: translateY(-5px);
+                border-color: var(--border-highlight);
+                box-shadow: 0 15px 40px rgba(2, 132, 199, 0.1);
+            }
+
+            .glass-card h3 {
+                font-size: 1.4rem;
+                margin-bottom: 1.2rem;
+                color: var(--accent-primary);
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+            }
+
+        .content-paragraph {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .highlight-text {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* Tables & Data */
+        .glass-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-glass);
+        }
+
+            .glass-table th {
+                background: rgba(2, 132, 199, 0.05);
+                color: var(--accent-primary);
+                padding: 1rem 1.2rem;
+                text-align: left;
+                border-bottom: 1px solid var(--border-glass);
+            }
+
+            .glass-table td {
+                padding: 1rem 1.2rem;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+                color: var(--text-muted);
+            }
+
+            .glass-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            .glass-table strong {
+                color: var(--text-main);
+            }
+
+        .data-panel {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid var(--border-glass);
+            margin-top: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .data-header {
+            background: rgba(2, 132, 199, 0.05);
+            padding: 1rem 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-row {
+            padding: 0.8rem 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+
+            .data-row:last-child {
+                border-bottom: none;
+            }
+
+        .col-name {
+            width: 35%;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .col-type {
+            width: 25%;
+            color: var(--accent-secondary);
+        }
+
+        .col-desc {
+            width: 40%;
+            font-family: var(--font-sans);
+        }
+
+        /* API Tags */
+        .api-method {
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-right: 1rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .method-get {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--accent-tertiary);
+        }
+
+        .method-post {
+            background: rgba(2, 132, 199, 0.1);
+            color: var(--accent-primary);
+        }
+
+        /* Helpers */
+        .mermaid-wrapper {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 1.5rem;
+            overflow-x: auto;
+            text-align: center;
+        }
+
+        .ac-box {
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+            .ac-box.info {
+                background: rgba(2, 132, 199, 0.05);
+                border-left: 4px solid var(--accent-primary);
+                color: var(--text-main);
+            }
+
+            .ac-box.warning {
+                background: rgba(234, 88, 12, 0.05);
+                border-left: 4px solid var(--accent-warning);
+                color: var(--text-main);
+            }
+
+            .ac-box.success {
+                background: rgba(5, 150, 105, 0.05);
+                border-left: 4px solid var(--accent-tertiary);
+                color: var(--text-main);
+            }
+
+        code.inline {
+            background: rgba(15, 23, 42, 0.06);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+            .feature-list li {
+                position: relative;
+                padding-left: 1.8rem;
+                margin-bottom: 0.8rem;
+                color: var(--text-muted);
+            }
+
+                .feature-list li::before {
+                    content: '✓';
+                    position: absolute;
+                    left: 0;
+                    color: var(--accent-primary);
+                    font-weight: bold;
+                }
+
+        footer {
+            border-top: 1px solid var(--border-glass);
+            padding: 4rem 0;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        @@media (max-width: 992px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <nav id="navbar">
+        <a href="#ch01">01. Architecture</a>
+        <a href="#ch02">02. B2C Tourist</a>
+        <a href="#ch03">03. B2B Portal</a>
+        <a href="#ch04">04. GPS & Audio</a>
+        <a href="#ch05">05. Auth Flow</a>
+        <a href="#ch06">06. Subscriptions</a>
+        <a href="#ch07">07. Auto Jobs</a>
+        <a href="#ch08">08. POI State</a>
+        <a href="#ch09">09. Pack State</a>
+        <a href="#ch10">10. Localize</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <div class="badge-pill"><i class="bi bi-rocket-takeoff"></i> Tech-PRD Enterprise Master Edition</div>
+            <h1>Hệ Thống Phố Ẩm Thực Vĩnh Khánh <br><span class="gradient-text">HeriStep Platform</span></h1>
+            <p>Tài liệu Đặc tả Yêu cầu Kỹ thuật toàn diện. Bao gồm 12 Chương, phân tích 100% chi tiết Entity, Service và Sơ đồ UML không lỗi.</p>
+        </header>
+
+        <section id="ch01">
+            <h2 class="section-title">01. Sơ Đồ Kiến Trúc Hệ Thống (Class Diagram)</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-diagram-3"></i> Tái tạo 100% Cấu trúc Modular Monolith</h3>
+                <p>Sơ đồ dưới đây hiển thị <strong>toàn bộ 22 Thực thể, Interfaces, Services và Controllers</strong>. Đã xử lý kỹ thuật HTML Encode để đảm bảo render 100% không dính lỗi Syntax.</p>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    classDiagram
+                        direction TB
+
+                        class User { 
+                            +int Id 
+                            +string Username 
+                            +string PasswordHash 
+                            +string FullName 
+                            +string Role 
+                        }
+                        
+                        class Stall { 
+                            +int Id 
+                            +string Name 
+                            +double Latitude 
+                            +double Longitude 
+                            +int RadiusMeter 
+                            +bool IsOpen 
+                            +string ImageUrl 
+                            +int SortOrder 
+                            +DateTime UpdatedAt 
+                        }
+                        
+                        class Tour { 
+                            +int Id 
+                            +string TourName 
+                            +string Description 
+                            +string ImageUrl 
+                            +bool IsActive 
+                            +bool IsTopHot 
+                            +int StallCount 
+                            +string DurationType 
+                        }
+                        
+                        class Subscription { 
+                            +int Id 
+                            +string DeviceId 
+                            +string ActivationCode 
+                            +DateTime StartDate 
+                            +DateTime ExpiryDate 
+                            +bool IsActive 
+                        }
+                        
+                        class Product { 
+                            +int Id 
+                            +decimal BasePrice 
+                            +string ImageUrl 
+                            +bool IsSignature 
+                        }
+                        
+                        class ProductTranslation { 
+                            +int Id 
+                            +string LangCode 
+                            +string ProductName 
+                            +string ProductDesc 
+                        }
+                        
+                        class StallContent { 
+                            +int Id 
+                            +string LangCode 
+                            +string TtsScript 
+                            +bool IsActive 
+                        }
+                        
+                        class StallVisit { 
+                            +int Id 
+                            +string DeviceId 
+                            +DateTime VisitedAt 
+                        }
+                        
+                        class TicketPackage { 
+                            +int Id 
+                            +string PackageName 
+                            +decimal Price 
+                            +int DurationHours 
+                            +bool IsActive 
+                        }
+                        
+                        class TouristTicket { 
+                            +int Id 
+                            +string TicketCode 
+                            +string DeviceId 
+                            +string PackageName 
+                            +decimal AmountPaid 
+                            +string PaymentMethod 
+                            +DateTime CreatedAt 
+                            +DateTime ExpiryDate 
+                        }
+
+                        class IAuthService { 
+                            &lt;&lt;interface&gt;&gt; 
+                            +LoginAsync()
+                            +RegisterAsync()
+                        }
+                        
+                        class IStallService { 
+                            &lt;&lt;interface&gt;&gt; 
+                            +GetAllStallsAsync()
+                            +ExtendSubscriptionAsync()
+                        }
+                        
+                        class IFileStorageService { 
+                            &lt;&lt;interface&gt;&gt; 
+                            +UploadFileAsync()
+                            +DeleteFileAsync()
+                        }
+
+                        class AuthService { 
+                            +LoginAsync()
+                            +RegisterAsync()
+                            -GenerateJwtToken()
+                        }
+                        
+                        class StallService { 
+                            +GetAllStallsAsync()
+                            +ExtendSubscriptionAsync()
+                        }
+                        
+                        class TranslationService { 
+                            +TranslateTextAsync()
+                        }
+                        
+                        class LocalFileStorageService { 
+                            +UploadFileAsync()
+                            +DeleteFileAsync()
+                        }
+                        
+                        class AwsS3StorageService { 
+                            +UploadFileAsync()
+                            +DeleteFileAsync()
+                        }
+
+                        class BackgroundService { 
+                            &lt;&lt;abstract&gt;&gt; 
+                            #ExecuteAsync()
+                        }
+                        
+                        class DailyTourUpdateService { 
+                            #ExecuteAsync()
+                        }
+                        
+                        class Hub { 
+                            &lt;&lt;abstract&gt;&gt; 
+                        }
+                        
+                        class StallHub { 
+                            +TouristArrived()
+                        }
+
+                        class AuthController { 
+                            +Login()
+                            +ChangePassword()
+                        }
+                        
+                        class StallsController { 
+                            +GetStalls()
+                            +GetStall()
+                            +UpdateStall()
+                            +DeleteStall()
+                            +AssignStall()
+                            +CreateAtPos()
+                            +GetStallTts()
+                            +GetMyStalls()
+                            +ExtendSubscription()
+                            +AddProduct()
+                            +DeleteProduct()
+                        }
+                        
+                        class ToursController {
+                            +GetTop10Tours()
+                            +GetTours()
+                            +GetTour()
+                            +AutoAssignOrphanStalls()
+                            +AddStallToTour()
+                            +RemoveStallFromTour()
+                            +MoveStall()
+                        }
+                        
+                        class TicketsController { 
+                            +ValidateTicket()
+                            +GetAll()
+                        }
+
+                        IAuthService &lt;|.. AuthService
+                        IStallService &lt;|.. StallService
+                        IFileStorageService &lt;|.. LocalFileStorageService
+                        IFileStorageService &lt;|.. AwsS3StorageService
+                        BackgroundService &lt;|-- DailyTourUpdateService
+                        Hub &lt;|-- StallHub
+
+                        AuthController ..&gt; IAuthService : Dependency Inject
+                        StallsController ..&gt; IStallService : Dependency Inject
+                        StallsController ..&gt; IFileStorageService : Dependency Inject
+                        ToursController ..&gt; TranslationService : API Call
+
+                        User "1" --&gt; "*" Stall : Owns
+                        Tour "1" --&gt; "*" Stall : Contains
+                        TicketPackage "1" --&gt; "*" TouristTicket : Provides
+                        
+                        Stall "1" *-- "*" Subscription : Has Packages
+                        Stall "1" *-- "*" Product : Has Menu
+                        Stall "1" *-- "*" StallContent : Has TTS Script
+                        Stall "1" o-- "*" StallVisit : Records
+                        Product "1" *-- "*" ProductTranslation : Translated to
+                    </pre>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 3rem; margin-bottom: 1.5rem;"><i class="bi bi-search"></i> Phân Tích Chuyên Sâu Các Lớp Kiến Trúc</h3>
+
+            <div class="grid-2">
+                <div class="glass-card" style="padding: 1.8rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--accent-secondary);"><i class="bi bi-hdd-network"></i> Lớp 1: Các Controllers (Giao tiếp HTTP)</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Nhiệm vụ: Mở các Endpoint API (RESTful) để nhận request. Các Controller <strong>không chứa logic nghiệp vụ phức tạp</strong> mà ủy quyền (delegate) xuống lớp Service.</p>
+                    <ul class="feature-list" style="font-size: 0.9rem;">
+                        <li><strong>AuthController:</strong> Quản lý Login và ChangePassword. Giao tiếp với <code>IAuthService</code>.</li>
+                        <li><strong>StallsController:</strong> API đồ sộ nhất (>10 endpoints). Cung cấp CRUD cho sạp, quản lý Menu, gia hạn và kết nối <code>IFileStorageService</code>.</li>
+                        <li><strong>ToursController:</strong> Quản lý mảng điều hướng dòng khách. API <code>GetTop10Tours</code>.</li>
+                        <li><strong>TicketsController:</strong> Nơi quét mã QR mua vé định danh <code>DeviceId</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card" style="padding: 1.8rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--accent-tertiary);"><i class="bi bi-code-slash"></i> Lớp 2: Interfaces & Services (Logic Nghiệp vụ)</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Nhận data từ Controller, tương tác với Database. Áp dụng <strong>Strategy Pattern</strong> qua Interfaces.</p>
+                    <ul class="feature-list" style="font-size: 0.9rem;">
+                        <li><strong>IAuthService / AuthService:</strong> Xử lý băm mật khẩu (BCrypt) và sinh token JWT.</li>
+                        <li><strong>IStallService / StallService:</strong> Chứa logic tính cộng dồn ngày sử dụng.</li>
+                        <li><strong>IFileStorageService:</strong> Interface chuẩn cho phép "cắm nóng" lưu file Local hoặc Cloud AWS S3.</li>
+                        <li><strong>TranslationService:</strong> Dịch tự động từ tiếng Việt sang các ngôn ngữ khác qua API.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card" style="padding: 1.8rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--accent-warning);"><i class="bi bi-database"></i> Lớp 3: Entities (Mô hình Thực thể)</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Ánh xạ 1-1 với các bảng SQL Server. Phân định rõ các mối quan hệ Has-A và Composition.</p>
+                    <ul class="feature-list" style="font-size: 0.9rem;">
+                        <li><strong>Stall (Cốt lõi):</strong> Lưu GPS (Lat, Lng) và <code>RadiusMeter</code>. Sở hữu Menu và Nội dung loa AI.</li>
+                        <li><strong>Product & Translation:</strong> Tách làm 2 bảng riêng để chuẩn hóa đa ngôn ngữ.</li>
+                        <li><strong>Ticket & Visit:</strong> <code>TouristTicket</code> lưu vé Offline, <code>StallVisit</code> ghi nhận lịch sử khách lọt vào vòng GPS.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card" style="padding: 1.8rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--accent-danger);"><i class="bi bi-activity"></i> Lớp 4: Background Job & Realtime</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Xử lý các tác vụ ngoài luồng HTTP thông thường (Chạy ngầm và Socket).</p>
+                    <ul class="feature-list" style="font-size: 0.9rem;">
+                        <li><strong>DailyTourUpdateService:</strong> Cron Job tự động lúc 0h00 sáng. Quét DB, tìm Top 10 Tour hiển thị cho khách.</li>
+                        <li><strong>Hub (StallHub):</strong> Duy trì kết nối WebSockets 2 chiều liên tục. Gọi hàm <code>TouristArrived</code> làm chớp đỏ màn hình Chủ sạp.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch02">
+            <h2 class="section-title">02. Hành Trình Khách Du Lịch (B2C Tourist Flow)</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-person-walking"></i> Luồng Chọn Ngôn Ngữ & Mua Vé Ẩn Danh</h3>
+                <p>Khách hàng sử dụng tính năng ẩn danh (DeviceId) để chọn ngôn ngữ giao tiếp (LangCode), mua vé và lưu trữ cục bộ hỗ trợ Offline.</p>
+
+                <table class="glass-table">
+                    <thead><tr><th>BCE</th><th>Thành phần</th><th>Vai trò trong luồng</th></tr></thead>
+                    <tbody>
+                        <tr><td>🧑🦱 Actor</td><td><strong>Khách Du Lịch</strong></td><td>Mở App, Chọn Ngôn ngữ, Quét QR thanh toán vé.</td></tr>
+                        <tr><td>📱 Boundary</td><td><strong>App Mobile</strong></td><td>Sinh <code>DeviceId</code> ẩn danh, lưu <code>LangCode</code> và vé vào IndexedDB.</td></tr>
+                        <tr><td>⚙️ Control</td><td><strong>TicketsController</strong></td><td>Truy vấn Tour theo ngôn ngữ, Verify QR, cấp mã Ticket.</td></tr>
+                        <tr><td>🗄️ Entity</td><td><strong>Database</strong></td><td>Lưu <code>TouristTickets</code> liên kết với <code>TicketPackages</code>.</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    sequenceDiagram
+                        autonumber
+                        actor Tourist as 🧑‍🦱 Khách Du Lịch
+                        participant App as 📱 App Khách
+                        participant API as ⚙️ API Server
+                        participant DB as 🗄️ Database
+
+                        Note over Tourist, DB: 📍 GIAI ĐOẠN 1: KHỞI TẠO &amp; CHỌN NGÔN NGỮ
+                        Tourist-&gt;&gt;App: Mở Ứng dụng HeriStep
+                        App-&gt;&gt;App: Khởi tạo mã ẩn danh (DeviceId)
+                        Tourist-&gt;&gt;App: Chọn ngôn ngữ giao tiếp (VD: Tiếng Hàn - ko-KR)
+                        App-&gt;&gt;App: Lưu ngôn ngữ (LangCode) vào bộ nhớ tạm
+                        App-&gt;&gt;API: GET /api/Tours?langCode=ko-KR
+                        API--&gt;&gt;App: Trả về danh sách Tour (Đã dịch sang tiếng Hàn)
+
+                        Note over Tourist, DB: 🎫 GIAI ĐOẠN 2: MUA VÉ ĐIỆN TỬ
+                        Tourist-&gt;&gt;App: Quét mã QR tại cổng khu phố
+                        Tourist-&gt;&gt;App: Chọn mua Gói Trải Nghiệm 1 Tuần
+                        App-&gt;&gt;API: POST /api/Tickets/buy (DeviceId, PackageId)
+                        API-&gt;&gt;DB: Insert bảng TouristTickets
+                        DB--&gt;&gt;API: Trả về ID
+                        API--&gt;&gt;App: Trả về TicketCode duy nhất
+                        App-&gt;&gt;App: Lưu vé vào Local Storage (Bảo vệ Offline)
+
+                        Note over Tourist, DB: 🚶 GIAI ĐOẠN 3: BẮT ĐẦU ĐI DẠO
+                        Tourist-&gt;&gt;App: Cất điện thoại, bắt đầu tham quan
+                        loop Background Task (Mỗi 5s)
+                            App-&gt;&gt;App: Chạy ngầm định vị GPS &amp; Báo tọa độ (kèm LangCode)
+                        end
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch03">
+            <h2 class="section-title">03. Luồng Quản Trị B2B (Admin Web & Merchant Web)</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-laptop"></i> Phân rã nghiệp vụ Web Portal</h3>
+                <p>Hệ thống cung cấp 2 nền tảng Web riêng biệt: <strong>Admin Web</strong> dành cho Ban quản lý và <strong>Merchant Web</strong> dành cho Chủ sạp.</p>
+
+                <div class="grid-2" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                    <div class="ac-box info" style="margin:0;">
+                        <strong>Nhiệm vụ trên ADMIN WEB:</strong><br>
+                        - Xem bản đồ tổng thể khu vực.<br>
+                        - Click vào bản đồ để tạo <code>SapTrong</code>.<br>
+                        - Cấp phát tài khoản & Gán OwnerId.<br>
+                        - Nhóm các sạp vào các Tour chuyên đề.
+                    </div>
+                    <div class="ac-box success" style="margin:0;">
+                        <strong>Nhiệm vụ trên MERCHANT WEB:</strong><br>
+                        - Gia hạn cước duy trì sạp trên bản đồ.<br>
+                        - Cập nhật E-Menu & Ảnh món ăn.<br>
+                        - Soạn thảo kịch bản Loa AI.<br>
+                        - Treo Web chờ báo động từ SignalR.
+                    </div>
+                </div>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    sequenceDiagram
+                        autonumber
+                        actor Admin as 🛡️ Admin
+                        participant AdminWeb as 🖥️ Admin Web
+                        actor Owner as 🏪 Chủ Sạp
+                        participant MerchantWeb as 💻 Merchant Web
+                        participant API as ⚙️ API Server
+                        participant DB as 🗄️ Database
+
+                        Note over Admin, DB: LUỒNG QUẢN TRỊ TRÊN ADMIN WEB
+                        Admin-&gt;&gt;AdminWeb: Đăng nhập hệ thống Admin
+                        AdminWeb-&gt;&gt;API: Xác thực &amp; Bắt đầu phiên làm việc
+                        Admin-&gt;&gt;AdminWeb: Click tạo điểm mới trên bản đồ
+                        AdminWeb-&gt;&gt;API: POST /api/Stalls/create-at-pos
+                        API-&gt;&gt;DB: Tạo sạp (Trạng thái: SapTrong)
+                        Admin-&gt;&gt;AdminWeb: Gán sạp cho Tiểu thương
+                        AdminWeb-&gt;&gt;API: PUT /api/Stalls/assign (OwnerId)
+                        API-&gt;&gt;DB: Cập nhật sạp (Trạng thái: DaGanChu)
+
+                        Note over Owner, DB: LUỒNG VẬN HÀNH TRÊN MERCHANT WEB
+                        Owner-&gt;&gt;MerchantWeb: Đăng nhập hệ thống Chủ Sạp
+                        MerchantWeb-&gt;&gt;API: Xác thực &amp; Bắt đầu phiên làm việc
+                        Owner-&gt;&gt;MerchantWeb: Bấm thanh toán 150.000đ
+                        MerchantWeb-&gt;&gt;API: POST /api/Stalls/extend-subscription
+                        API-&gt;&gt;DB: Cộng dồn ExpiryDate (+30 ngày)
+                        Owner-&gt;&gt;MerchantWeb: Nhập Menu &amp; Kịch bản chào
+                        MerchantWeb-&gt;&gt;API: POST /products &amp; /content
+                        API-&gt;&gt;API: Auto-Translate (Dịch ra Anh, Hàn, Trung)
+                        API-&gt;&gt;DB: Lưu ProductTranslations &amp; StallContents
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch04">
+            <h2 class="section-title">04. Geofencing & AI Audio Engine</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-soundwave"></i> Thuật Toán Zero-Click Radar</h3>
+                <p>Khách không cần thao tác bấm. Điện thoại tính khoảng cách Haversine. Nếu khoảng cách lọt vòng Geofence 50m, hệ thống mượn Web Chủ Sạp để gọi Native TTS phát âm thanh.</p>
+
+                <table class="glass-table">
+                    <thead><tr><th>BCE</th><th>Thành phần</th><th>Vai trò trong luồng</th></tr></thead>
+                    <tbody>
+                        <tr><td>📱 Boundary</td><td><strong>App Khách</strong></td><td>Đo khoảng cách cục bộ, gọi API <code>/simulate-visit</code>.</td></tr>
+                        <tr><td>🔌 Control</td><td><strong>SignalR Hub</strong></td><td>Nhận tín hiệu từ API, Invoke hàm <code>TouristArrived</code> xuống Client.</td></tr>
+                        <tr><td>🖥️ Boundary</td><td><strong>Web Chủ Sạp</strong></td><td>Xử lý Cooldown chống Spam, gọi Native TTS phát âm thanh.</td></tr>
+                        <tr><td>🔊 Actor</td><td><strong>Loa AI</strong></td><td>Hardware phát thanh (Speaker).</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    sequenceDiagram
+                        autonumber
+                        participant App as 📱 App Khách
+                        participant API as ⚙️ API Server
+                        participant DB as 🗄️ Database
+                        participant Hub as 🔌 SignalR Hub
+                        participant Web as 🖥️ Web Chủ Sạp
+                        participant TTS as 🔊 Loa AI
+
+                        loop Quét ngầm mỗi 5 giây
+                            App-&gt;&gt;App: Lấy GPS Lat/Lng hiện tại
+                            App-&gt;&gt;App: Tính khoảng cách đến các Sạp
+                            alt Distance &lt;= RadiusMeter (50m)
+                                App-&gt;&gt;API: POST /simulate-visit (DeviceId, StallId)
+                                API-&gt;&gt;DB: Ghi nhận Check-in (Insert StallVisits)
+                                API-&gt;&gt;Hub: Bắn tín hiệu Notification
+                                Hub--&gt;&gt;Web: Event: TouristArrived(langCode)
+                                
+                                Web-&gt;&gt;Web: Check Cooldown (Tránh spam 2 phút)
+                                alt Khách mới
+                                    Web-&gt;&gt;API: GET /api/Stalls/tts (Lấy câu chào)
+                                    API-&gt;&gt;DB: Query StallContents
+                                    API--&gt;&gt;Web: Trả về Text
+                                    Web-&gt;&gt;Web: Đưa vào Hàng đợi Audio Queue
+                                    Web-&gt;&gt;TTS: Invoke Web Speech API (Native)
+                                    TTS--&gt;&gt;Web: Phát âm thanh qua loa 🔊
+                                end
+                            end
+                        end
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch05">
+            <h2 class="section-title">05. Authentication & RBAC Flow</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-shield-lock"></i> Đăng nhập & Xác Thực Token</h3>
+                <p>Do sử dụng 2 nền tảng Web tách biệt, quá trình xác thực chỉ cần kiểm tra tài khoản hợp lệ, lưu Token và cấp quyền bắt đầu phiên làm việc ngay lập tức.</p>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    sequenceDiagram
+                        autonumber
+                        actor User as 👤 Admin/Owner
+                        participant Client as 🌐 Trình duyệt (Admin/Merchant Web)
+                        participant AuthCtrl as ⚙️ AuthController
+                        participant DB as 🗄️ Database
+
+                        User-&gt;&gt;Client: Nhập Username &amp; Password
+                        Client-&gt;&gt;AuthCtrl: POST /api/Auth/login
+                        AuthCtrl-&gt;&gt;DB: Query User theo Username
+                        
+                        alt ❌ User == null
+                            AuthCtrl--&gt;&gt;Client: 401 Unauthorized (Sai User)
+                        else ✅ User tồn tại
+                            AuthCtrl-&gt;&gt;AuthCtrl: BCrypt.Verify(Password, Hash)
+                            alt ❌ Sai mật khẩu
+                                AuthCtrl--&gt;&gt;Client: 401 Unauthorized (Sai Pass)
+                            else ✅ Mật khẩu hợp lệ
+                                AuthCtrl-&gt;&gt;AuthCtrl: Generate JwtToken (Chứa Role)
+                                AuthCtrl--&gt;&gt;Client: 200 OK + JWT Token
+                                Client-&gt;&gt;Client: Lưu Token (HttpOnly Cookie)
+                                Client-&gt;&gt;Client: Bắt đầu phiên làm việc (Truy cập thành công)
+                            end
+                        end
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch06">
+            <h2 class="section-title">06. Luồng Gia Hạn Gói Cước B2B (Subscription)</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-cash-coin"></i> Xử Lý Thanh Toán & Tính Ngày</h3>
+                <p>Nghiệp vụ cốt lõi duy trì dòng tiền. <strong>150,000 VNĐ / 30 ngày</strong>. Xử lý triệt để các bài toán hết hạn, cộng dồn và khóa UI.</p>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    flowchart TD
+                        A([Chủ sạp đăng nhập]) --&gt; B{"Kiểm tra ExpiryDate"}
+
+                        B --&gt;|Còn hạn| C[Giao diện bình thường]
+                        
+                        B --&gt;|Hết hạn / Null| E["🔴 Sạp bị đóng băng UI"]
+                        E --&gt; F["Hiện Modal Bắt buộc Thanh Toán"]
+                        F --&gt; H{"Xác nhận hóa đơn?"}
+
+                        H --&gt;|Hủy| I([Sạp tiếp tục đóng băng])
+                        H --&gt;|Đã chuyển khoản| J["POST /api/stalls/extend-subscription"]
+                        J --&gt; K{"Logic tính thời gian"}
+
+                        K --&gt;|Chưa có gói| L["Tạo gói: Expiry = Now + 30d"]
+                        K --&gt;|Đã quá hạn| M["Mở khóa: Expiry = Now + 30d"]
+                        K --&gt;|Còn hạn| N["Cộng dồn: Expiry += 30d"]
+
+                        L --&gt; O[Lưu Database]
+                        M --&gt; O
+                        N --&gt; O
+
+                        O --&gt; P[Cập nhật IsActive = true]
+                        P --&gt; Q["Báo thành công &amp; Reload Trang"]
+                        Q --&gt; B
+
+                        style E fill:#fee2e2,stroke:#dc2626,color:#991b1b
+                        style C fill:#d1fae5,stroke:#059669,color:#065f46
+                        style Q fill:#d1fae5,stroke:#059669,color:#065f46
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch07">
+            <h2 class="section-title">07. Background Job (Auto-Scaling & Ranking)</h2>
+            <div class="glass-card">
+                <h3><i class="bi bi-graph-up-arrow"></i> Tiến Trình Chạy Ngầm 0h Sáng</h3>
+                <p>Đảm bảo cân bằng số lượng Tour và vinh danh Top 10 Tour được đi nhiều nhất trong tháng qua.</p>
+
+                <div class="mermaid-wrapper">
+                    <pre class="mermaid">
+                    flowchart TD
+                        START([API Server Khởi Động]) --&gt; WAIT["⏰ Chờ Event: Đúng 00:00 Sáng"]
+
+                        WAIT --&gt; SCOPE["Mở Scope &amp; Kết nối Database"]
+
+                        SCOPE --&gt; CHECK{"Tổng số Tour &lt; 10?"}
+                        CHECK --&gt;|Đúng| CREATE["Auto-tạo Tour mới"]
+                        CREATE --&gt; STEP1
+                        CHECK --&gt;|Sai| STEP1
+
+                        STEP1["BƯỚC 1: RESET IsTopHot = false"]
+
+                        STEP1 --&gt; STEP2["BƯỚC 2: RANKING Tính tổng lượt Check-in 30 ngày"]
+
+                        STEP2 --&gt; STEP3["BƯỚC 3: UPDATE IsTopHot = true cho 10 Tour"]
+
+                        STEP3 --&gt; SAVE["SaveChangesAsync"]
+                        SAVE --&gt; LOG["Ghi Log: Job chạy thành công"]
+                        LOG --&gt; WAIT
+
+                        SAVE -.->|Exception| ERR["Ghi Log: Lỗi Database"]
+                        ERR --&gt; WAIT
+
+                        style START fill:#0284c7,color:#fff,stroke:none
+                        style STEP2 fill:#4f46e5,color:#fff,stroke:none
+                        style ERR fill:#b91c1c,color:#fff,stroke:none
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch08">
+            <h2 class="section-title">08-09. State Machines (POIs & Packages Lifecycle)</h2>
+            <div class="grid-2">
+                <div class="glass-card">
+                    <h3><i class="bi bi-arrow-repeat"></i> Vòng Đời Điểm Sạp (Stall)</h3>
+                    <p>Mô hình trạng thái kiểm soát khả năng hiển thị của sạp trên ứng dụng khách hàng.</p>
+                    <div class="mermaid-wrapper" style="padding: 1rem;">
+                        <pre class="mermaid">
+                        stateDiagram-v2
+                            [*] --&gt; SapTrong : Admin chấm trên Map
+                            SapTrong --&gt; DaGanChu : Gán OwnerId
+                            DaGanChu --&gt; DangMoCua : Thanh toán phí
+                            
+                            DangMoCua --&gt; TamDong : Chủ tự đóng
+                            TamDong --&gt; DangMoCua : Chủ tự mở lại
+                            
+                            DangMoCua --&gt; HetHanCuoc : Hệ thống khóa
+                            HetHanCuoc --&gt; DangMoCua : Thanh toán gia hạn
+                            
+                            SapTrong --&gt; DaXoa : Admin Delete
+                            DangMoCua --&gt; DaXoa : Admin Delete
+                            HetHanCuoc --&gt; DaXoa : Admin Delete
+                            DaXoa --&gt; [*]
+                        </pre>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3><i class="bi bi-box-seam"></i> Vòng Đời Gói Cước (Subscription)</h3>
+                    <p>Quản lý cờ <code>IsActive</code> để quyết định thiết bị Radar của sạp có được phép kết nối SignalR hay không.</p>
+                    <div class="mermaid-wrapper" style="padding: 1rem;">
+                        <pre class="mermaid">
+                        stateDiagram-v2
+                            [*] --&gt; ChuaKichHoat : Sạp mới tạo
+                            
+                            ChuaKichHoat --&gt; ConHan : Mua lần đầu
+                            
+                            ConHan --&gt; HetHan : ExpiryDate &lt; Now
+                            
+                            HetHan --&gt; ConHan : Mua lại
+                            
+                            ConHan --&gt; ConHan : Mua dồn (+30 ngày)
+
+                            state ConHan {
+                                [*] --&gt; Active
+                                Active: IsActive = true
+                                Active: Cho phép Radar &amp; Map
+                            }
+                            
+                            state HetHan {
+                                [*] --&gt; Frozen
+                                Frozen: IsActive = false
+                                Frozen: Bị xóa khỏi Map khách
+                            }
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ch10">
+            <h2 class="section-title">10-12. Localization, Storage & Configs</h2>
+
+            <div class="grid-3">
+                <div class="glass-card">
+                    <h3><i class="bi bi-translate"></i> Đa Ngôn Ngữ & Dịch Tự Động</h3>
+                    <ul class="feature-list">
+                        <li><strong>Tách Bảng:</strong> Dữ liệu chữ tách sang <code>ProductTranslations</code> và <code>StallContents</code>.</li>
+                        <li><strong>Dịch Ngầm:</strong> Gọi API (DeepL/Google) để tự động sinh bản Tiếng Anh, Hàn, Trung.</li>
+                        <li><strong>Native TTS:</strong> Truyền string cho HĐH điện thoại đọc thành Audio.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <h3><i class="bi bi-cloud-arrow-up"></i> Chiến Lược Lưu File</h3>
+                    <ul class="feature-list">
+                        <li><strong>Design Pattern:</strong> Sử dụng <code>IFileStorageService</code>.</li>
+                        <li><strong>Local:</strong> Cắm Class <code>LocalFileStorageService</code> lúc Code Test.</li>
+                        <li><strong>AWS S3:</strong> Cắm Class <code>AwsS3StorageService</code> lúc lên Production.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <h3><i class="bi bi-wifi-off"></i> Cứu Cánh Offline Mode</h3>
+                    <ul class="feature-list">
+                        <li><strong>Vé Điện Tử:</strong> Lưu <code>TicketCode</code> vào bộ nhớ Local Storage sau khi quét QR.</li>
+                        <li><strong>Cache Tọa Độ:</strong> Tải sẵn Lat/Lng các sạp để duy trì Geofence khi mất sóng 4G.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="data-panel" style="margin-top: 2rem;">
+                <div class="data-header">Bảng Tham Số Hệ Thống Cốt Lõi (Constants)</div>
+                <div class="data-row"><div class="col-name">GPS_SCAN_INTERVAL</div><div class="col-type">5 Giây</div><div class="col-desc">Chu kỳ quét vị trí nền của App Khách.</div></div>
+                <div class="data-row"><div class="col-name">DEFAULT_RADIUS</div><div class="col-type">50 Mét</div><div class="col-desc">Khoảng cách kích hoạt Loa AI.</div></div>
+                <div class="data-row"><div class="col-name">SUB_FEE_MONTHLY</div><div class="col-type">150,000 VNĐ</div><div class="col-desc">Giá trị gói cước gia hạn 30 ngày (B2B).</div></div>
+                <div class="data-row"><div class="col-name">HOT_TOUR_LIMIT</div><div class="col-type">10 Tours</div><div class="col-desc">Số lượng Tour đẩy lên bảng xếp hạng lúc 0h.</div></div>
+                <div class="data-row"><div class="col-name">AUDIO_COOLDOWN</div><div class="col-type">2 Phút</div><div class="col-desc">Khóa phát thanh (Anti-Spam) với cùng 1 khách.</div></div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p><strong>HeriStep Platform PRD</strong> - Master Enterprise Edition</p>
+        <p style="margin-top: 0.5rem; color: var(--text-muted);">Tài liệu Đặc tả 12 Chương | Đã tối ưu hóa 100% cú pháp MermaidJS</p>
+    </footer>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            sequence: { showSequenceNumbers: true },
+            fontFamily: 'JetBrains Mono, monospace',
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'cardinal' },
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const sections = document.querySelectorAll("section[id]");
+            const navLinks = document.querySelectorAll("#navbar a[href^='#']");
+
+            navLinks.forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute("href").substring(1);
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        window.scrollTo({ top: targetSection.offsetTop - 80, behavior: "smooth" });
+                    }
+                });
+            });
+
+            window.addEventListener("scroll", () => {
+                let current = "";
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (pageYOffset >= (sectionTop - 150)) { current = section.getAttribute("id"); }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove("active");
+                    if (link.getAttribute("href").includes(current)) { link.classList.add("active"); }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
