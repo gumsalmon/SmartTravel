@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.FilterResultPage"
+             Title="{Binding CategoryTitle}"
+             BackgroundColor="#F5F7FA">
+
+    <Grid Margin="0,10,0,20">
+    <!-- Danh sách dọc, thêm sự kiện SelectionChanged để click vào món -->
+    <CollectionView ItemsSource="{Binding FilteredPoints}" 
+                    SelectionMode="Single" 
+                    SelectionChanged="OnShopSelected"
+                    IsVisible="{Binding HasResults}">
+
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="15" />
+        </CollectionView.ItemsLayout>
+
+        <CollectionView.ItemTemplate>
+            <DataTemplate>
+                <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="White" Margin="15,0">
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,3" Radius="5" Opacity="0.05"/>
+                    </Border.Shadow>
+
+                    <!-- Thiết kế thẻ dọc: Ảnh bên trái, Text bên phải -->
+                    <Grid ColumnDefinitions="120, *" HeightRequest="120">
+
+                        <!-- Ảnh quán -->
+                        <Image Grid.Column="0" Source="{Binding ImageUrl}" Aspect="AspectFill" BackgroundColor="#E0E0E0" />
+
+                        <!-- Thông tin quán -->
+                        <VerticalStackLayout Grid.Column="1" Padding="15,10" Spacing="5" VerticalOptions="Center">
+                            <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16" TextColor="Black" MaxLines="1" LineBreakMode="TailTruncation" />
+
+                            <HorizontalStackLayout Spacing="5">
+                                <Label Text="⭐ 4.8" FontSize="13" TextColor="#FFA000" FontAttributes="Bold"/>
+                                <Label Text="• Phố Vĩnh Khánh" FontSize="13" TextColor="Gray"/>
+                            </HorizontalStackLayout>
+
+                            <Label Text="Giao hàng 15p • 2.5 km" FontSize="12" TextColor="Gray"/>
+
+                            <!-- Tag giảm giá -->
+                            <Border StrokeShape="RoundRectangle 5" StrokeThickness="0" BackgroundColor="#E3F2FD" Padding="5,2" HorizontalOptions="Start">
+                                <Label Text="Mã giảm 30%" FontSize="10" TextColor="#1565C0" FontAttributes="Bold" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <Label Text="Không tìm thấy quán nào"
+           IsVisible="{Binding IsEmptyResult}"
+           HorizontalOptions="Center"
+           VerticalOptions="Center"
+           FontAttributes="Bold"
+           TextColor="Gray"/>
+    </Grid>
+
+</ContentPage>

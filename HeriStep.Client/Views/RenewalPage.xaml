@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.RenewalPage"
+             x:Name="pageRoot"
+             Title="Gia hạn gói cước"
+             BackgroundColor="#FFF8F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="0" HorizontalOptions="Fill">
+
+            <!-- Header Banner -->
+            <Border StrokeShape="RoundRectangle 20" StrokeThickness="0" BackgroundColor="#FFE0D6"
+                    Padding="20,18" Margin="0,0,0,24">
+                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Label Text="⏰" FontSize="48" HorizontalOptions="Center" />
+                    <Label x:Name="lblRenewExpired" Text="Gói cước đã hết hạn" FontSize="22" FontAttributes="Bold"
+                           TextColor="#FF5722" HorizontalOptions="Center" FontFamily="OpenSansSemibold" />
+                    <Label x:Name="lblExpiryInfo" Text="Vui lòng gia hạn để tiếp tục sử dụng."
+                           TextColor="#A07060" FontSize="14" HorizontalTextAlignment="Center"
+                           FontFamily="OpenSansRegular" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Device ID Row -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8" Margin="0,0,0,20">
+                <Border StrokeShape="RoundRectangle 20" StrokeThickness="0" BackgroundColor="#FFF3EE"
+                        Padding="10,6">
+                    <HorizontalStackLayout Spacing="6">
+                        <Label Text="📱" FontSize="14" VerticalOptions="Center"/>
+                        <Label x:Name="lblDevicePrefix" Text="Mã thiết bị:" TextColor="#A07060"
+                               FontSize="13" VerticalOptions="Center" FontFamily="OpenSansRegular"/>
+                        <Label x:Name="lblDeviceId" Text="..." TextColor="#FFB300" FontAttributes="Bold"
+                               FontSize="13" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </HorizontalStackLayout>
+
+            <!-- Tiêu đề chọn gói -->
+            <Label x:Name="lblChoosePackage" Text="🔄 Chọn gói gia hạn / nâng cấp:"
+                   FontAttributes="Bold" FontSize="16" TextColor="#1A0A00"
+                   Margin="0,0,0,12" FontFamily="OpenSansSemibold" />
+
+            <!-- Package List -->
+            <VerticalStackLayout x:Name="vlPackages" Spacing="12">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="pkgBorder" StrokeThickness="1.5" BackgroundColor="White"
+                                Padding="16,14" Stroke="#FFCCBC">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPackageTapped" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#FF5722" Offset="0,3" Radius="8" Opacity="0.08"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+                                <!-- Icon vòng tròn -->
+                                <Border Grid.Column="0" StrokeShape="RoundRectangle 22" StrokeThickness="0"
+                                        BackgroundColor="#FFF3E0" WidthRequest="44" HeightRequest="44" Padding="0">
+                                    <Label Text="🎫" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+
+                                <!-- Tên gói + thời lượng -->
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="3">
+                                    <Label Text="{Binding PackageName}" FontAttributes="Bold" FontSize="15"
+                                           TextColor="#1A0A00" FontFamily="OpenSansSemibold" />
+                                    <Label Text="{Binding DurationText}"
+                                           TextColor="#A07060" FontSize="12" FontFamily="OpenSansRegular" />
+                                </VerticalStackLayout>
+
+                                <!-- Giá -->
+                                <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" HorizontalOptions="End">
+                                    <Label Text="{Binding PriceText}" 
+                                           TextColor="#FF5722" FontAttributes="Bold" FontSize="16"
+                                           HorizontalOptions="End" />
+                                    <Label Text="{Binding ActionText}" TextColor="#FFB300" FontSize="11"
+                                           HorizontalOptions="End" FontFamily="OpenSansRegular"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <!-- QR Payment Section -->
+            <VerticalStackLayout x:Name="vlPayment" IsVisible="False" Spacing="16"
+                                 HorizontalOptions="Center" Margin="0,20,0,0">
+                
+                <!-- Package Summary -->
+                <Border StrokeShape="RoundRectangle 14" StrokeThickness="0" BackgroundColor="#FFF3EE"
+                        Padding="16,12" HorizontalOptions="Fill">
+                    <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="📦" FontSize="20" VerticalOptions="Center"/>
+                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                            <Label x:Name="lblSelectedPackageName" Text="Gói đã chọn" TextColor="#1A0A00"
+                                   FontAttributes="Bold" FontSize="15"/>
+                            <Label x:Name="lblPaymentAmount" TextColor="#FF5722" FontAttributes="Bold"
+                                   FontSize="18" FontFamily="OpenSansSemibold"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- QR Code -->
+                <Label x:Name="lblQrTitle" Text="Quét mã QR để thanh toán:" HorizontalOptions="Center"
+                       TextColor="#A07060" FontSize="14" FontFamily="OpenSansRegular" />
+
+                <Border StrokeShape="RoundRectangle 16" StrokeThickness="2" Stroke="#FF5722"
+                        Padding="10" HorizontalOptions="Center" BackgroundColor="White">
+                    <Image x:Name="imgQrCode" WidthRequest="220" HeightRequest="220"
+                           HorizontalOptions="Center" />
+                </Border>
+
+                <Label x:Name="lblQrNote" Text="Nội dung chuyển khoản đã được điền sẵn!"
+                       FontSize="12" TextColor="Orange" HorizontalOptions="Center"
+                       FontFamily="OpenSansRegular" />
+
+                <!-- Polling Indicator -->
+                <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,8,0,0">
+                    <ActivityIndicator x:Name="aiPolling" IsRunning="True" Color="#FF5722"
+                                       HorizontalOptions="Center" WidthRequest="36" HeightRequest="36" />
+                    <Label x:Name="lblWait" Text="Đang chờ xác nhận thanh toán..."
+                           TextColor="#A07060" HorizontalOptions="Center" FontSize="13"
+                           FontFamily="OpenSansRegular" />
+                </VerticalStackLayout>
+
+                <Button x:Name="btnCancel" Text="← Quay lại chọn gói"
+                        BackgroundColor="Transparent" TextColor="#FF5722" BorderColor="#FF5722"
+                        BorderWidth="1" CornerRadius="10" HeightRequest="44"
+                        Clicked="OnCancelPayment" FontFamily="OpenSansRegular"
+                        Margin="0,8,0,0" />
+            </VerticalStackLayout>
+
+            <!-- Loading indicator for packages -->
+            <ActivityIndicator x:Name="aiLoad" IsRunning="True" Color="#FF5722"
+                               HorizontalOptions="Center" Margin="20,20,20,0" />
+
+            <!-- DEV BYPASS -->
+            <Button x:Name="btnBypass" Text="DEV: Vào thẳng app" FontAttributes="Bold"
+                    BackgroundColor="#FFE0D6" TextColor="#FF5722"
+                    Clicked="OnBypassClicked" Margin="0,30,0,0" CornerRadius="12" HeightRequest="44"/>
+                    
+            <BoxView HeightRequest="20" BackgroundColor="Transparent" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

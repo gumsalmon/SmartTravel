@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.ProfilePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#FFF8F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,50,20,30" Spacing="18">
+
+            <!-- ══ HEADER ══ -->
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Button Text="←" FontSize="18" TextColor="#FF5722" BackgroundColor="Transparent"
+                        Padding="0" Grid.Column="0" Clicked="OnHomeClicked"/>
+                <Label x:Name="lblProfileTitle" Text="Profile" FontSize="18" FontAttributes="Bold"
+                       TextColor="#1A0A00" HorizontalOptions="Center" VerticalOptions="Center"
+                       Grid.Column="1"/>
+                <Border StrokeShape="RoundRectangle 20" HeightRequest="40" WidthRequest="40"
+                        StrokeThickness="2" Stroke="#FF5722" Grid.Column="2">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=200"
+                           Aspect="AspectFill"/>
+                </Border>
+            </Grid>
+
+            <!-- ══ AVATAR + NAME ══ -->
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="6" Margin="0,10,0,0">
+                <Border StrokeShape="RoundRectangle 55" HeightRequest="100" WidthRequest="100"
+                        StrokeThickness="3" Stroke="#FF5722" HorizontalOptions="Center">
+                    <Image Source="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&amp;w=300"
+                           Aspect="AspectFill"/>
+                </Border>
+                <Label x:Name="lblProfileDisplayName" Text="Khách Du Lịch" FontSize="24" FontAttributes="Bold"
+                       TextColor="#1A0A00" HorizontalOptions="Center" Margin="0,8,0,0"/>
+                <Label x:Name="lblDeviceId" Text="Mã máy: Đang tải..." FontSize="13" TextColor="#A07060" HorizontalOptions="Center"/>
+                <Label x:Name="lblTimeRemaining" Text="Hạn sử dụng: Đang kiểm tra..." FontSize="13" FontAttributes="Bold" TextColor="#FFB300" HorizontalOptions="Center" Margin="0,5,0,0"/>
+                
+                <!-- Sunrise accent strip -->
+                <BoxView HeightRequest="3" WidthRequest="50" CornerRadius="2"
+                         Color="#FF5722" HorizontalOptions="Center" Margin="0,6,0,0"/>
+            </VerticalStackLayout>
+
+            <!-- ══ STATS ROW ══ -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                        Padding="14,16" StrokeThickness="0" Grid.Column="0" HorizontalOptions="Fill">
+                    <Border.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label x:Name="lblStatVisitedValue" Text="0" FontSize="22" FontAttributes="Bold" TextColor="#FF5722"
+                               HorizontalOptions="Center"/>
+                        <Label x:Name="lblStatVisited" Text="Visited" FontSize="10" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                        Padding="14,16" StrokeThickness="0" Grid.Column="1" HorizontalOptions="Fill">
+                    <Border.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label x:Name="lblStatSavedValue" Text="0" FontSize="22" FontAttributes="Bold" TextColor="#FFB300"
+                               HorizontalOptions="Center"/>
+                        <Label x:Name="lblStatSaved" Text="Saved" FontSize="10" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                        Padding="14,16" StrokeThickness="0" Grid.Column="2" HorizontalOptions="Fill">
+                    <Border.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label x:Name="lblStatRatingValue" Text="★ -" FontSize="20" FontAttributes="Bold" TextColor="#FF5722"
+                               HorizontalOptions="Center"/>
+                        <Label x:Name="lblStatRating" Text="Rating" FontSize="10" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- ══ CHANGE LANGUAGE ══ -->
+            <Border StrokeShape="RoundRectangle 20" BackgroundColor="White"
+                    Padding="18,16" StrokeThickness="1" Stroke="#FFE0D6">
+                <Border.Shadow>
+                    <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                </Border.Shadow>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnChangeLanguageTapped"/>
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <Border StrokeShape="RoundRectangle 14" HeightRequest="44" WidthRequest="44"
+                            BackgroundColor="#FFF3EE" Padding="0" StrokeThickness="0" Grid.Column="0">
+                        <Label Text="🌐" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="14,0" Spacing="2">
+                        <Label x:Name="lblChangeLang" Text="Change Language" FontSize="15" FontAttributes="Bold" TextColor="#1A0A00"/>
+                        <Label x:Name="lblChangeLangDesc" Text="Tap to switch app language" FontSize="12" TextColor="#A07060"/>
+                    </VerticalStackLayout>
+                    <Label Text="›" FontSize="24" TextColor="#FF5722" Grid.Column="2" VerticalOptions="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- ══ QUICK ACTIONS ══ -->
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                <!-- Saved Spots -->
+                <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                        Padding="15" StrokeThickness="0" Grid.Column="0">
+                    <Border.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSavedSpotsTapped"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="12">
+                        <Border StrokeShape="RoundRectangle 14" HeightRequest="40" WidthRequest="40"
+                                BackgroundColor="#FFF3EE" Padding="0" StrokeThickness="0">
+                            <Label Text="🔖" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label x:Name="lblSaved" Text="Saved" FontSize="14" FontAttributes="Bold" TextColor="#1A0A00"/>
+                            <Label x:Name="lblSavedCount" Text="12 places" FontSize="11" TextColor="#A07060"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+                <!-- Support -->
+                <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                        Padding="15" StrokeThickness="0" Grid.Column="1">
+                    <Border.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,3" Radius="10" Opacity="0.08"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSupportTapped"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="12">
+                        <Border StrokeShape="RoundRectangle 14" HeightRequest="40" WidthRequest="40"
+                                BackgroundColor="#FFF3EE" Padding="0" StrokeThickness="0">
+                            <Label Text="🎧" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label x:Name="lblSupport" Text="Support" FontSize="14" FontAttributes="Bold" TextColor="#1A0A00"/>
+                            <Label x:Name="lblSupportDesc" Text="24/7 Help" FontSize="11" TextColor="#A07060"/>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- ══ RECENT HISTORY ══ -->
+            <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*, Auto">
+                    <Label x:Name="lblRecentHistory" Text="Recent History" FontSize="20" FontAttributes="Bold"
+                           TextColor="#1A0A00" Grid.Column="0"/>
+                    <Label x:Name="lblViewAll" Text="View All" FontSize="13" FontAttributes="Bold"
+                           TextColor="#FF5722" Grid.Column="1" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnViewAllHistoryTapped"/>
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Grid>
+
+                <CollectionView x:Name="historyCollection" ItemsSource="{Binding RecentVisits}" SelectionMode="Single" SelectionChanged="OnHistorySelectionChanged" HeightRequest="180">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 18" BackgroundColor="White"
+                                    Padding="0" StrokeThickness="0" WidthRequest="160">
+                                <Border.Shadow>
+                                    <Shadow Brush="#FF5722" Offset="0,3" Radius="8" Opacity="0.08"/>
+                                </Border.Shadow>
+                                <VerticalStackLayout Spacing="0">
+                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" HeightRequest="95" WidthRequest="160"/>
+                                    <VerticalStackLayout Padding="10,8" Spacing="2">
+                                        <Label Text="{Binding StallName}" FontSize="13" FontAttributes="Bold" TextColor="#1A0A00" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                        <Label Text="{Binding VisitLabel}" FontSize="11" TextColor="#A07060"/>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="{Binding NoHistoryText}" TextColor="#A07060" HorizontalTextAlignment="Center" Margin="0,8,0,0"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

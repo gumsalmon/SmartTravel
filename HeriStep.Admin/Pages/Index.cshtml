@@ -1,0 +1,332 @@
+@page
+@model HeriStep.Admin.Pages.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tổng quan hệ thống";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<style>
+    @@keyframes pulseFlash {
+        0%   { background-color: white; }
+        50%  { background-color: rgba(220, 53, 69, 0.15); }
+        100% { background-color: white; }
+    }
+    .pulse-animation { animation: pulseFlash 1.2s ease-out; }
+</style>
+
+<!-- HÀNG 1: KPI CARDS -->
+<div class="row g-4 mb-4">
+
+    <!-- KPI: Khách Online (SignalR real-time) -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-danger border-4"
+             id="activeUsersCard">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Khách Online</p>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold text-danger mb-0" id="activeUsersCount">0</h3>
+                        <span id="hubStatusBadge"
+                              class="badge bg-secondary-subtle text-secondary border"
+                              style="font-size:.65rem;">⏳ Đang kết nối</span>
+                    </div>
+                    <small class="text-muted" style="font-size:0.7rem;">App đang mở</small>
+                </div>
+                <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-person-fill fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI: Tổng sạp hàng -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Tổng sạp hàng</p>
+                    <h3 class="fw-bold text-primary mb-0">@(Model.Stats?.TotalStalls ?? 0)</h3>
+                </div>
+                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-shop fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI: Lượt ghé sạp -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-success border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Lượt ghé sạp</p>
+                    <h3 class="fw-bold text-success mb-0">@(Model.Stats?.TotalVisits ?? 0)</h3>
+                </div>
+                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-ear fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI: Lộ trình Tour -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-warning border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Lộ trình Tour</p>
+                    <h3 class="fw-bold text-warning mb-0">@(Model.Stats?.TotalTours ?? 0)</h3>
+                </div>
+                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                    <i class="bi bi-map fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HÀNG 2: Biểu đồ vé theo ngày + Trạng thái sạp -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-graph-up me-2 text-primary"></i>Lượng Khách Mua Vé
+                </h6>
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <select id="quickFilter" class="form-select form-select-sm bg-light"
+                            style="width:130px;" onchange="applyQuickFilter(this.value)">
+                        <option value="">-- Mốc --</option>
+                        <option value="7">7 ngày qua</option>
+                        <option value="30">30 ngày qua</option>
+                        <option value="90">90 ngày qua</option>
+                    </select>
+                    <input type="date" id="startDate" name="StartDate"
+                           value="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                           class="form-control form-control-sm bg-light" style="width:130px;">
+                    <span class="text-muted small">-</span>
+                    <input type="date" id="endDate" name="EndDate"
+                           value="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           class="form-control form-control-sm bg-light" style="width:130px;">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-filter"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div id="visitorChart" style="min-height:350px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-pie-chart me-2 text-primary"></i>Trạng Thái Sạp
+                </h6>
+            </div>
+            <div class="card-body d-flex align-items-center">
+                <div id="stallStatusChart" class="w-100"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HÀNG 3: Top 5 sạp theo Thời gian nghe + Doanh thu Gói vé -->
+<div class="row g-4">
+    <!-- TOP 5 SẠP THEO THỜI GIAN NGHE (load bằng fetch /api/Stats/top5-by-listen) -->
+    <div class="col-12 col-xl-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-trophy me-2 text-warning"></i>Top 5 Sạp Hàng Được Nghe Lâu Nhất
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="topListenChart" style="min-height:280px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOANH THU GÓI VÉ -->
+    <div class="col-12 col-xl-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-wallet2 me-2 text-success"></i>Cơ Cấu Doanh Thu Gói Vé
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="revenueChart" style="min-height:280px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SignalR: đếm Khách Online real-time -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        // ============================================================
+        // SIGNALR — KẾT NỐI ĐẾN DASHBOARDHUB
+        // Hub URL: /dashboardHub (hosted trên Admin Web, port 5287)
+        // Fallback LongPolling để hoạt động với mọi môi trường mạng
+        // ============================================================
+        const hubUrl = window.location.origin + "/dashboardHub";
+
+        const adminConn = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl, {
+                // Thử WebSocket trước, fallback LongPolling nếu bị block bởi proxy/firewall
+                transport: signalR.HttpTransportType.WebSockets |
+                           signalR.HttpTransportType.LongPolling
+            })
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // retry schedule (ms)
+            .configureLogging(signalR.LogLevel.Warning)
+            .build();
+
+        // Lắng nghe sự kiện từ DashboardHub.cs: Clients.Caller.SendAsync("UpdateActiveUsers", count)
+        adminConn.on("UpdateActiveUsers", function (count) {
+            const el   = document.getElementById("activeUsersCount");
+            const card = document.getElementById("activeUsersCard");
+            if (el)   el.innerText = count;
+            if (card) {
+                card.classList.remove("pulse-animation");
+                void card.offsetWidth; // force reflow để reset animation
+                card.classList.add("pulse-animation");
+            }
+        });
+
+        // Cập nhật badge trạng thái kết nối (tuỳ chọn, hữu ích khi debug)
+        function setHubStatus(connected) {
+            const badge = document.getElementById("hubStatusBadge");
+            if (!badge) return;
+            badge.textContent = connected ? "🟢 Live" : "🔴 Offline";
+            badge.className   = connected
+                ? "badge bg-success-subtle text-success border ms-2"
+                : "badge bg-danger-subtle text-danger border ms-2";
+        }
+
+        async function startHub() {
+            try {
+                await adminConn.start();
+                console.log("✅ SignalR Admin kết nối Hub:", hubUrl);
+                setHubStatus(true);
+            } catch (err) {
+                console.error("❌ SignalR kết nối thất bại:", err);
+                setHubStatus(false);
+                // Thử lại sau 5 giây nếu server chưa sẵn sàng
+                setTimeout(startHub, 5000);
+            }
+        }
+
+        adminConn.onreconnecting(() => setHubStatus(false));
+        adminConn.onreconnected(() => setHubStatus(true));
+        adminConn.onclose(() => {
+            setHubStatus(false);
+            setTimeout(startHub, 5000);
+        });
+
+        startHub();
+    </script>
+
+
+    <script>
+        // ================================================================
+        // Dữ liệu inject từ PageModel (vé theo ngày + Doanh thu)
+        // ================================================================
+        const stats = {
+            chartData  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartData   ?? new System.Collections.Generic.List<int>()))'),
+            chartLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartLabels ?? new System.Collections.Generic.List<string>()))'),
+            revData    : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueData  ?? new System.Collections.Generic.List<double>()))'),
+            revLabels  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueLabels ?? new System.Collections.Generic.List<string>()))')
+        };
+
+        function applyQuickFilter(days) {
+            if (!days) return;
+            const end   = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - parseInt(days) + 1);
+            document.getElementById("endDate").value   = end.toISOString().split("T")[0];
+            document.getElementById("startDate").value = start.toISOString().split("T")[0];
+            document.getElementById("startDate").form.submit();
+        }
+
+        $(document).ready(async function () {
+
+            // --- 1. Biểu đồ đường: Lượng khách mua vé ---
+            new ApexCharts(document.querySelector("#visitorChart"), {
+                series     : [{ name: "Vé bán ra", data: stats.chartData }],
+                chart      : { height: 350, type: "area", toolbar: { show: false }, fontFamily: "Inter, sans-serif" },
+                colors     : ["#0d6efd"],
+                stroke     : { curve: "smooth", width: 3 },
+                dataLabels : { enabled: false },
+                xaxis      : {
+                    categories: stats.chartLabels,
+                    labels: { rotate: -45, hideOverlappingLabels: true, style: { fontSize: "11px" } },
+                    tickAmount: 10
+                },
+                fill   : { type: "gradient", gradient: { opacityFrom: 0.6, opacityTo: 0.1 } },
+                tooltip: { shared: true, intersect: false, y: { formatter: (val) => val + " vé" } }
+            }).render();
+
+            // --- 2. Biểu đồ tròn: Trạng thái sạp ---
+            new ApexCharts(document.querySelector("#stallStatusChart"), {
+                series      : [@(Model.Stats?.OpenStalls ?? 0), @(Model.Stats?.ClosedStalls ?? 0)],
+                labels      : ["Đang Mở", "Đang Đóng"],
+                chart       : { type: "donut", height: 320 },
+                colors      : ["#198754", "#dc3545"],
+                dataLabels  : { enabled: false },
+                plotOptions : {
+                    pie: { donut: { labels: { show: true, total: { show: true, label: "Tổng sạp",
+                        formatter: () => "@(Model.Stats?.TotalStalls ?? 0)" } } } }
+                },
+                legend: { position: "bottom" }
+            }).render();
+
+            // --- 3. Biểu đồ cột ngang: Top 5 sạp theo THỜI GIAN NGHE ---
+            //    Gọi API riêng để đảm bảo dữ liệu là ListenDuration (không phải VisitCount)
+            try {
+                const res = await fetch("http://localhost:5297/api/Stats/top5-by-listen");
+                if (res.ok) {
+                    const top5 = await res.json();
+                    const topNames   = top5.map(x => x.stallName);
+                    const topSeconds = top5.map(x => Math.round(x.totalListenSeconds));
+                    const topVisits  = top5.map(x => x.visitCount);
+
+                    new ApexCharts(document.querySelector("#topListenChart"), {
+                        series       : [{ name: "Tổng giây nghe", data: topSeconds }],
+                        chart        : { type: "bar", height: 280, toolbar: { show: false } },
+                        plotOptions  : { bar: { horizontal: true, borderRadius: 5, barHeight: "55%" } },
+                        dataLabels   : { enabled: false },
+                        colors       : ["#f59e0b"],
+                        xaxis        : { categories: topNames, labels: { formatter: (v) => v + "s" } },
+                        tooltip      : {
+                            y: {
+                                formatter: (val, { dataPointIndex }) =>
+                                    `${val}s (${topVisits[dataPointIndex]} lượt ghé)`
+                            }
+                        }
+                    }).render();
+                }
+            } catch (err) {
+                console.warn("Không load được Top 5 Listen:", err);
+            }
+
+            // --- 4. Biểu đồ tròn: Doanh thu gói vé ---
+            new ApexCharts(document.querySelector("#revenueChart"), {
+                series    : stats.revData,
+                labels    : stats.revLabels,
+                chart     : { type: "pie", height: 280 },
+                legend    : { position: "bottom" },
+                dataLabels: { enabled: false },
+                tooltip   : { y: { formatter: (val) => val.toLocaleString("vi-VN") + " đ" } }
+            }).render();
+        });
+    </script>
+}

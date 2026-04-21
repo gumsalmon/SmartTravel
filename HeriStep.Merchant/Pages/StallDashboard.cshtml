@@ -1,0 +1,570 @@
+@page
+@model HeriStep.Merchant.Pages.StallDashboardModel
+@{
+    ViewData["Title"] = "Quản lý Sạp - Hệ thống Loa AI Thông Minh";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h2 class="fw-bold text-primary">⚙️ Bảng điều khiển: @Model.StallInfo.Name</h2>
+        <a asp-page="/Index" class="btn btn-outline-secondary">⬅ Quay lại danh sách</a>
+    </div>
+
+    <ul class="nav nav-pills mb-4 shadow-sm p-2 bg-white rounded" id="stallTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#info">📝 Thông tin & Lời chào</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#menu">🍜 Thực đơn món ăn</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link active fw-bold text-danger" data-bs-toggle="tab" data-bs-target="#broadcast">📢 Hệ thống Loa AI</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="stallTabContent">
+
+        <div class="tab-pane fade" id="info">
+            <div class="card p-4 shadow-sm border-0">
+                <form id="editStallForm">
+                    <input type="hidden" id="editStallId" value="@Model.CurrentStallId" />
+                    <input type="hidden" id="stallOwnerId" value="@Model.StallInfo.OwnerId" />
+                    <input type="hidden" id="stallRadius" value="@Model.StallInfo.RadiusMeter" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tên Sạp</label>
+                            <input type="text" id="stallName" class="form-control" value="@Model.StallInfo.Name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Trạng thái hoạt động</label>
+                            <select class="form-select" id="stallStatus">
+                                @if (Model.StallInfo.IsOpen)
+                                {
+                                    <option value="true" selected>🟢 Đang mở cửa</option>
+                                    <option value="false">🔴 Tạm đóng cửa</option>
+                                }
+                                else
+                                {
+                                    <option value="true">🟢 Đang mở cửa</option>
+                                    <option value="false" selected>🔴 Tạm đóng cửa</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hình Ảnh Sạp (Banner)</label>
+                        <input type="file" id="stallImageFile" class="form-control" accept="image/*">
+                        @if (!string.IsNullOrEmpty(Model.StallInfo.ImageUrl))
+                        {
+                            <div class="mt-2 p-2 border rounded bg-light text-center">
+                                <small class="text-muted d-block mb-1 text-start">Ảnh hiện tại:</small>
+                                <img src="http://127.0.0.1:5297@(Model.StallInfo.ImageUrl)" style="height: 150px; border-radius: 8px; border: 1px solid #ddd;" />
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-success">🔊 Nội dung Thuyết minh tự động (Tiếng Việt)</label>
+                        <textarea id="stallTts" class="form-control" rows="4" placeholder="Nhập lời chào bằng tiếng Việt...">@Model.StallInfo.TtsScript</textarea>
+                        <small class="text-muted mt-2 d-block">💡 Hệ thống AI sẽ tự động dịch nội dung này sang 9 ngôn ngữ khác.</small>
+                    </div>
+                    <button type="button" class="btn btn-success fw-bold w-100 py-2 shadow" onclick="updateStallInfo()">💾 LƯU THÔNG TIN SẠP</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="menu">
+            <div class="row">
+                <div class="col-md-5 mb-4">
+                    <div class="card p-4 shadow-sm border-0 h-100 bg-light">
+                        <h5 class="fw-bold mb-3 text-primary">✨ Thêm món ăn mới</h5>
+                        <form id="addMenuForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Tên món ăn (Tiếng Việt)</label>
+                                <input type="text" id="foodName" class="form-control" placeholder="VD: Ốc hương xào bơ tỏi" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Giá bán (VNĐ)</label>
+                                <input type="number" id="foodPrice" class="form-control" placeholder="VD: 50000" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Ảnh minh họa</label>
+                                <input type="file" id="foodImageFile" class="form-control" accept="image/*" required>
+                            </div>
+                            <button type="button" class="btn btn-primary fw-bold w-100 py-2 shadow-sm" onclick="addFood()">➕ LƯU MÓN ĂN</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-7 mb-4">
+                    <div class="card p-4 shadow-sm border-0 h-100">
+                        <h5 class="fw-bold mb-3">📋 Danh sách thực đơn</h5>
+                        <div class="row g-3" id="foodListContainer">
+                            <div class="col-12 text-center py-4 text-muted" id="emptyMenuMsg">
+                                <em>Chưa có món ăn nào trong thực đơn.</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade show active" id="broadcast">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="card p-4 shadow-sm text-center h-100 border-danger shadow border-2">
+                        <h4 class="fw-bold text-danger">📢 Trình Điều Khiển Loa</h4>
+                        <div class="my-4">
+                            <button id="btnPlayBroadcast" class="btn btn-danger btn-lg rounded-circle shadow-lg" style="width: 100px; height: 100px;" onclick="toggleBroadcast()">
+                                <h1 class="m-0" id="broadcastIcon" style="font-size: 3rem;">▶️</h1>
+                            </button>
+                            <div id="broadcastStatus" class="mt-3 fw-bold text-secondary">Hệ thống đang tắt</div>
+                        </div>
+                        <div class="alert alert-info text-start py-2 small">
+                            <b>Loa đang đọc:</b> <span id="currentPlayingStatus" class="text-danger fw-bold d-block">...</span>
+                        </div>
+                        <div class="bg-white p-3 rounded border shadow-sm text-start">
+                            <b class="d-block mb-2 text-primary border-bottom pb-1 small">🔄 Danh sách chờ (Queue):</b>
+                            <ul id="audioQueueList" class="mb-0 text-primary fw-bold list-unstyled small" style="min-height: 80px;"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card p-4 shadow-sm h-100 bg-light border-0">
+                        <h6 class="fw-bold text-primary mb-3">🧪 Mock Test 1: Thử giọng (Local)</h6>
+                        <div class="row g-2 mb-4" id="langButtonsArea"></div>
+                        <hr />
+                        <h6 class="fw-bold text-danger mb-3">📱 Mock Test 2: Giả lập khách đi qua</h6>
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-danger fw-bold px-4 shadow-sm" onclick="triggerAppSignal('ko', 'FIXED_KOREAN_GUY')">🇰🇷 Khách Hàn</button>
+                            <button class="btn btn-danger fw-bold px-4 shadow-sm" onclick="triggerAppSignal('en', 'FIXED_USA_GUY')">🇺🇸 Khách Mỹ</button>
+                            <button class="btn btn-danger fw-bold px-4 shadow-sm" onclick="triggerAppSignal('ja', 'FIXED_JAPAN_GUY')">🇯🇵 Khách Nhật</button>
+                        </div>
+                        <p class="small text-muted mt-3 mb-1">Mô phỏng bão khách (Tạo ngẫu nhiên)</p>
+                        <div class="input-group mb-3 shadow-sm border rounded">
+                            <span class="input-group-text bg-white fw-bold border-0 text-dark">Số lượng khách:</span>
+                            <input type="number" id="stormCount" class="form-control border-0" value="5" min="1">
+                            <button class="btn btn-dark fw-bold px-3" onclick="simulateStorm()">Tạo Bão Khách 🌪️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editFoodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark rounded-top-4">
+                <h5 class="modal-title fw-bold">✏️ Sửa thông tin món ăn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editFoodId">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Tên món ăn (Tiếng Việt)</label>
+                    <input type="text" id="editFoodName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Giá bán (VNĐ)</label>
+                    <input type="number" id="editFoodPrice" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Thay ảnh mới (Bỏ trống nếu giữ ảnh cũ)</label>
+                    <input type="file" id="editFoodImage" class="form-control" accept="image/*">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning rounded-pill fw-bold px-4" onclick="submitEditFood()">💾 LƯU THAY ĐỔI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
+<script>
+    const stallId = document.getElementById('editStallId').value;
+
+    const mockTranslations = {
+        'en': "Welcome to our food stall! Please come and try our best dishes!",
+        'ja': "いらっしゃいませ！美味しい料理はいかがですか？ぜひご賞味ください！",
+        'ko': "환영합니다! 맛있는 음식이 준비되어 있습니다. 꼭 한번 드셔보세요!",
+        'zh': "欢迎光临！我们有最好的菜肴。请来尝尝吧！",
+        'fr': "Bienvenue à notre stand! N'hésitez pas à goûter notre nourriture.",
+        'es': "¡Bienvenido a nuestro puesto! Por favor, pruebe nuestra comida.",
+        'ru': "Добро пожаловать! Пожалуйста, попробуйте нашу еду.",
+        'th': "ยินดีต้อนรับสู่ร้านของ chúng tôi! เชิญชิมอาหารอร่อยๆ ได้เลยค่ะ",
+        'de': "Willkommen an unserem Stand! Bitte probieren Sie unser leckeres Essen."
+    };
+
+    const langMap = {
+        'vi': { name: "Người Việt", id: "vi-VN", flag: "🇻🇳", prefix: "vi" },
+        'en': { name: "Người Âu Mỹ", id: "en-US", flag: "🇺🇸", prefix: "en" },
+        'ja': { name: "Người Nhật", id: "ja-JP", flag: "🇯🇵", prefix: "ja" },
+        'ko': { name: "Người Hàn", id: "ko-KR", flag: "🇰🇷", prefix: "ko" },
+        'zh': { name: "Người Trung", id: "zh-CN", flag: "🇨🇳", prefix: "zh" },
+        'fr': { name: "Người Pháp", id: "fr-FR", flag: "🇫🇷", prefix: "fr" },
+        'es': { name: "Người TBN", id: "es-ES", flag: "🇪🇸", prefix: "es" },
+        'ru': { name: "Người Nga", id: "ru-RU", flag: "🇷🇺", prefix: "ru" },
+        'th': { name: "Người Thái", id: "th-TH", flag: "🇹🇭", prefix: "th" },
+        'de': { name: "Người Đức", id: "de-DE", flag: "🇩🇪", prefix: "de" }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const langArea = document.getElementById('langButtonsArea');
+        Object.keys(langMap).forEach(key => {
+            langArea.innerHTML += `
+                <div class="col-3">
+                    <button class="btn btn-sm btn-white border w-100 shadow-sm py-2" onclick="simulateTourist('${key}')">
+                        ${langMap[key].flag} ${langMap[key].name}
+                    </button>
+                </div>`;
+        });
+
+        const savedTab = localStorage.getItem('activeStallTab');
+        if (savedTab) {
+            const tabBtn = document.querySelector(`button[data-bs-target="${savedTab}"]`);
+            if (tabBtn) {
+                new bootstrap.Tab(tabBtn).show();
+            }
+            localStorage.removeItem('activeStallTab');
+        }
+
+        loadMenu();
+    });
+
+    let synthVoices = [];
+    window.speechSynthesis.onvoiceschanged = () => { synthVoices = window.speechSynthesis.getVoices(); };
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("http://127.0.0.1:5297/stallHub")
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("OnTouristArrived", (incomingId, langCode) => {
+        if (incomingId.toString() === stallId) triggerAppSignal(langCode, null);
+    });
+    connection.start().catch(err => console.log("SignalR standby"));
+
+    let isBroadcasting = false;
+    let audioQueue = [];
+    let ttsTimeout = null;
+    let isPlayingTourist = false;
+
+    function toggleBroadcast() {
+        if (!isBroadcasting) {
+            isBroadcasting = true;
+            document.getElementById('broadcastIcon').innerText = "⏸️";
+            document.getElementById('broadcastStatus').innerText = "Hệ thống đang bật";
+            document.getElementById('broadcastStatus').className = "mt-3 fw-bold text-success";
+            playNextTTS();
+        } else {
+            isBroadcasting = false;
+            window.speechSynthesis.cancel();
+            clearTimeout(ttsTimeout);
+            isPlayingTourist = false;
+            document.getElementById('broadcastIcon').innerText = "▶️";
+            document.getElementById('broadcastStatus').innerText = "Hệ thống đang tắt";
+            document.getElementById('broadcastStatus').className = "mt-3 fw-bold text-secondary";
+        }
+    }
+
+    async function simulateTourist(langCode) {
+        if (!isBroadcasting) return;
+        document.getElementById('currentPlayingStatus').innerText = "⏳ Đang dịch AI...";
+
+        try {
+            let textToRead = document.getElementById('stallTts').value || "Kính chào quý khách";
+            if (langCode !== 'vi') {
+                try {
+                    const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/tts/${langCode}`);
+                    let apiText = "";
+                    if (res.ok) apiText = (await res.json()).text;
+
+                    if (!apiText || apiText.includes('[AI TTS')) {
+                        const translateRes = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToRead)}&langpair=vi|${langCode}`);
+                        const translateData = await translateRes.json();
+                        textToRead = translateData?.responseData?.translatedText || mockTranslations[langCode];
+                    } else {
+                        textToRead = apiText;
+                    }
+                } catch (apiError) {
+                    textToRead = mockTranslations[langCode];
+                }
+            }
+
+            audioQueue.push({
+                text: textToRead, langId: langMap[langCode].id,
+                name: langMap[langCode].name, prefix: langMap[langCode].prefix
+            });
+            updateQueueUI();
+
+            if (!isPlayingTourist) {
+                window.speechSynthesis.cancel();
+                clearTimeout(ttsTimeout);
+                playNextTTS();
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function playNextTTS() {
+        if (!isBroadcasting) return;
+        clearTimeout(ttsTimeout);
+
+        let item = null;
+        if (audioQueue.length > 0) {
+            item = audioQueue.shift();
+            isPlayingTourist = true;
+            updateQueueUI();
+        } else {
+            isPlayingTourist = false;
+            item = { text: document.getElementById('stallTts').value || "Kính chào", langId: "vi-VN", name: "Tiếng Việt (Lặp lại)", prefix: "vi" };
+        }
+
+        document.getElementById('currentPlayingStatus').innerText = item.name;
+        const msg = new SpeechSynthesisUtterance(item.text);
+        msg.lang = item.langId;
+
+        if (synthVoices.length > 0) {
+            let voice = synthVoices.find(v => v.lang === item.langId && (v.name.includes('Google') || v.name.includes('Microsoft')));
+            if (!voice) voice = synthVoices.find(v => v.lang.startsWith(item.prefix));
+            if (voice) msg.voice = voice;
+        }
+
+        msg.onend = () => {
+            if (isBroadcasting) {
+                if (audioQueue.length === 0) isPlayingTourist = false;
+                ttsTimeout = setTimeout(playNextTTS, 1500);
+            }
+        };
+        window.speechSynthesis.speak(msg);
+    }
+
+    function updateQueueUI() {
+        document.getElementById('audioQueueList').innerHTML = audioQueue.map((it, idx) => `<li>${idx + 1}. Khách ${it.name}</li>`).join('');
+    }
+
+    let recentVisitors = {};
+    async function triggerAppSignal(lang, guestId) {
+        if (!guestId) guestId = "STORM_" + lang.toUpperCase() + "_" + Math.floor(Math.random() * 1000000);
+        const now = new Date().getTime();
+
+        if (recentVisitors[guestId] && (now - recentVisitors[guestId] < 120000)) {
+            Swal.fire({ toast: true, position: 'bottom-end', icon: 'warning', title: `⏳ Chặn Spam: Khách ${lang} vừa vào sạp!`, showConfirmButton: false, timer: 2000 });
+            return;
+        }
+        recentVisitors[guestId] = now;
+        simulateTourist(lang);
+    }
+
+    function simulateStorm() {
+        if (!isBroadcasting) return Swal.fire("⚠️ Chú ý", "Vui lòng BẬT LOA trước!", "warning");
+        let count = parseInt(document.getElementById('stormCount').value) || 1;
+        if (count <= 0) return;
+
+        const codes = Object.keys(langMap).filter(c => c !== 'vi');
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => triggerAppSignal(codes[Math.floor(Math.random() * codes.length)], null), Math.floor(Math.random() * (count * 800)));
+        }
+    }
+
+    async function updateStallInfo() {
+        const btn = document.querySelector('button[onclick="updateStallInfo()"]');
+        const token = localStorage.getItem('token');
+        const name = document.getElementById('stallName').value.trim();
+        const ttsVi = document.getElementById('stallTts').value.trim();
+
+        if (!name) return Swal.fire("Lỗi", "Tên sạp không được để trống!", "error");
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+        const formData = new FormData();
+        formData.append("Id", stallId);
+        formData.append("Name", name);
+        formData.append("IsOpen", document.getElementById('stallStatus').value === 'true');
+        formData.append("TtsScript", ttsVi);
+        formData.append("OwnerId", document.getElementById('stallOwnerId').value);
+        formData.append("RadiusMeter", document.getElementById('stallRadius').value || 50);
+
+        const file = document.getElementById('stallImageFile').files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { btn.disabled = false; btn.innerHTML = '💾 LƯU THÔNG TIN SẠP'; return Swal.fire("Cảnh báo", "Ảnh không quá 5MB!", "warning"); }
+            formData.append("ImageFile", file);
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+            if (response.ok) {
+                await Swal.fire("Thành công", "Đã cập nhật thông tin!", "success");
+                localStorage.setItem('activeStallTab', '#info');
+                window.location.reload();
+            }
+            else { Swal.fire("Thất bại", "Lỗi: " + await response.text(), "error"); }
+        } catch (e) { Swal.fire("Lỗi", "Mất kết nối API!", "error"); }
+        finally { btn.disabled = false; btn.innerHTML = '💾 LƯU THÔNG TIN SẠP'; }
+    }
+
+    async function addFood() {
+        const btn = document.querySelector('button[onclick="addFood()"]');
+        const token = localStorage.getItem('token');
+        const foodName = document.getElementById('foodName').value.trim();
+        const foodPrice = document.getElementById('foodPrice').value;
+        const imageInput = document.getElementById('foodImageFile');
+
+        if (!foodName || !foodPrice || !imageInput.files[0]) return Swal.fire("Chú ý", "Vui lòng nhập đủ thông tin và chọn ảnh!", "warning");
+        if (imageInput.files[0].size > 5 * 1024 * 1024) return Swal.fire("Cảnh báo", "Ảnh không quá 5MB!", "warning");
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+        const fd = new FormData();
+        fd.append("StallId", stallId);
+        fd.append("Name", foodName);
+        fd.append("BasePrice", foodPrice);
+        fd.append("ImageFile", imageInput.files[0]);
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/add-product`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            if (response.ok) {
+                await Swal.fire("Thành công", "Đã thêm món!", "success");
+                localStorage.setItem('activeStallTab', '#menu');
+                window.location.reload();
+            }
+            else Swal.fire("Thất bại", "Lỗi: " + await response.text(), "error");
+        } catch (e) { Swal.fire("Lỗi", "Mất kết nối API!", "error"); }
+        finally { btn.disabled = false; btn.innerHTML = '➕ LƯU MÓN ĂN'; }
+    }
+
+    async function deleteFood(productId, foodName) {
+        const check = await Swal.fire({
+            title: 'Xóa món ăn?',
+            text: `Bạn có chắc muốn xóa món "${foodName}" khỏi thực đơn không?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Có, Xóa nó!',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (!check.isConfirmed) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/delete-product/${productId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                await Swal.fire("Đã xóa!", "Món ăn đã được xóa thành công.", "success");
+                localStorage.setItem('activeStallTab', '#menu');
+                window.location.reload();
+            } else {
+                Swal.fire("Lỗi", await response.text(), "error");
+            }
+        } catch (e) {
+            Swal.fire("Lỗi", "Mất kết nối API!", "error");
+        }
+    }
+
+    // 💡 LOGIC SỬA MÓN ĂN
+    function openEditFoodModal(id, name, price) {
+        document.getElementById('editFoodId').value = id;
+        document.getElementById('editFoodName').value = name;
+        document.getElementById('editFoodPrice').value = price;
+        document.getElementById('editFoodImage').value = ""; // Reset file
+
+        const modal = new bootstrap.Modal(document.getElementById('editFoodModal'));
+        modal.show();
+    }
+
+    async function submitEditFood() {
+        const btn = document.querySelector('button[onclick="submitEditFood()"]');
+        const token = localStorage.getItem('token');
+        const id = document.getElementById('editFoodId').value;
+        const name = document.getElementById('editFoodName').value.trim();
+        const price = document.getElementById('editFoodPrice').value;
+        const file = document.getElementById('editFoodImage').files[0];
+
+        if (!name || !price) return Swal.fire("Chú ý", "Vui lòng nhập đủ tên và giá!", "warning");
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+        const fd = new FormData();
+        fd.append("Name", name);
+        fd.append("BasePrice", price);
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                btn.disabled = false; btn.innerHTML = '💾 LƯU THAY ĐỔI';
+                return Swal.fire("Cảnh báo", "Ảnh không quá 5MB!", "warning");
+            }
+            fd.append("ImageFile", file);
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/update-product/${id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            if (response.ok) {
+                await Swal.fire("Thành công", "Đã cập nhật món ăn!", "success");
+                localStorage.setItem('activeStallTab', '#menu');
+                window.location.reload();
+            } else {
+                Swal.fire("Thất bại", "Lỗi: " + await response.text(), "error");
+            }
+        } catch (e) {
+            Swal.fire("Lỗi", "Mất kết nối API!", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '💾 LƯU THAY ĐỔI';
+        }
+    }
+
+    let tempFoods = [];
+    async function loadMenu() {
+        try {
+            const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/products`);
+            if (res.ok) { tempFoods = await res.json(); renderMenu(); }
+        } catch (e) { console.error("Lỗi:", e); }
+    }
+
+    function renderMenu() {
+        const container = document.getElementById('foodListContainer');
+        document.getElementById('emptyMenuMsg').style.display = tempFoods.length > 0 ? 'none' : 'block';
+        container.innerHTML = tempFoods.map(f => {
+            const safeName = (f.name || 'Món ăn').replace(/'/g, "\\'");
+            return `
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between align-items-center border p-2 rounded shadow-sm bg-white">
+                    <div class="d-flex align-items-center">
+                        <img src="${f.imageUrl ? 'http://127.0.0.1:5297' + f.imageUrl : '/images/default-food.jpg'}"
+                             style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="me-3 border">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">${f.name || 'Món ăn'}</h6>
+                            <span class="text-danger fw-bold fs-6">${parseInt(f.basePrice || 0).toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-warning shadow-sm fw-bold" onclick="openEditFoodModal(${f.id}, '${safeName}', ${f.basePrice})">
+                            <i class="bi bi-pencil-square"></i> Sửa
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger shadow-sm fw-bold" onclick="deleteFood(${f.id}, '${safeName}')">
+                            <i class="bi bi-trash"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+</script>

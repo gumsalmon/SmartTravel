@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.ShopDetailPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#FFF8F5">
+
+    <ScrollView>
+        <VerticalStackLayout>
+            
+            <!-- Header Bar -->
+            <Grid ColumnDefinitions="Auto, *, Auto" Padding="16,24,16,10">
+                <Button Text="❮" FontSize="28" FontAttributes="Bold" TextColor="#FF5722" BackgroundColor="Transparent" Padding="5,0,15,0" Margin="0" Grid.Column="0" Clicked="OnBackButtonClicked"/>
+                <Label Text="Vinh Khanh Guide" FontSize="16" FontAttributes="Bold" TextColor="#1A0A00" HorizontalOptions="Center" VerticalOptions="Center" Grid.Column="1"/>
+                <Label Text="A文" FontSize="18" TextColor="#FF5722" VerticalOptions="Center" Grid.Column="2"/>
+            </Grid>
+
+            <!-- Rounded Hero Image replacing tags -->
+            <Border StrokeShape="RoundRectangle 24" HeightRequest="220" Padding="0" BackgroundColor="#FFE0D6" StrokeThickness="0" Margin="20,5,20,15">
+                <Border.Shadow>
+                    <Shadow Brush="#FF5722" Offset="0,6" Radius="12" Opacity="0.1"/>
+                </Border.Shadow>
+                <Image x:Name="heroImage" Source="https://images.unsplash.com/photo-1548690312-e3b507d8c110?q=80&amp;w=800" Aspect="AspectFill"/>
+            </Border>
+
+            <!-- Shop Info -->
+            <VerticalStackLayout Padding="24,0,24,10" Spacing="8">
+                <Label x:Name="shopName" Text="Ốc Oanh Vĩnh Khánh" FontSize="32" FontAttributes="Bold" TextColor="#1A0A00" LineHeight="1.2"/>
+                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                    <Label Text="📍" FontSize="14" TextColor="#A07060" VerticalOptions="Center"/>
+                    <Label x:Name="lblShopAddress" Text="534 Vinh Khanh, Ward 10" FontSize="14" TextColor="#A07060" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <!-- TTS: localized text handled in code-behind -->
+                <HorizontalStackLayout Spacing="10" Margin="0,12,0,0" VerticalOptions="Center">
+                    <Button x:Name="btnPlayIntro"
+                            Text="🔊"
+                            CornerRadius="14"
+                            BackgroundColor="#FFE0D6"
+                            BorderWidth="0"
+                            TextColor="#FF5722"
+                            FontAttributes="Bold"
+                            FontSize="16"
+                            HeightRequest="48"
+                            HorizontalOptions="FillAndExpand"
+                            Command="{Binding PlayAudioCommand}"
+                            Clicked="OnPlayIntroClicked"/>
+                </HorizontalStackLayout>
+                <Label x:Name="lblTtsStatus"
+                       Text=""
+                       FontSize="11" TextColor="#A07060"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,4,0,0"/>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Padding="24,10,24,40" Spacing="20">
+                
+                <!-- Menu Intro -->
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="lblMenuTitle" Text="Signature Menu" FontSize="20" FontAttributes="Bold" TextColor="#1A0A00"/>
+                    <Label x:Name="lblMenuDesc" Text="Curated flavors from Saigon's most vibrant street food artery." FontSize="13" TextColor="#A07060" LineHeight="1.4"/>
+                </VerticalStackLayout>
+
+                <CollectionView ItemsSource="{Binding MenuItems}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 24" BackgroundColor="White" Padding="0" Stroke="#FFE0D6" StrokeThickness="1" Margin="0,0,0,16">
+                                <Border.Shadow>
+                                    <Shadow Brush="#FF5722" Offset="0,4" Radius="12" Opacity="0.06"/>
+                                </Border.Shadow>
+                                <VerticalStackLayout>
+                                    <Grid>
+                                        <Image Source="{Binding ImageUrl}" HeightRequest="140" Aspect="AspectFill" BackgroundColor="#FFF3EE"/>
+                                        <Border StrokeShape="RoundRectangle 12" BackgroundColor="#FFCCBC" Padding="10,6" StrokeThickness="0" HorizontalOptions="End" VerticalOptions="Start" Margin="15">
+                                            <Label Text="{Binding PriceText}" TextColor="#FF5722" FontSize="12" FontAttributes="Bold"/>
+                                        </Border>
+                                    </Grid>
+                                    <VerticalStackLayout Padding="18" Spacing="6">
+                                        <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" TextColor="#1A0A00"/>
+                                        <Label Text="{Binding Description}" FontSize="13" TextColor="#A07060" LineHeight="1.5"/>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="{Binding MenuEmptyText}" TextColor="#A07060" HorizontalTextAlignment="Center" Margin="0,16,0,0"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

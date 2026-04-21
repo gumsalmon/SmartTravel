@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- HeriStep App Icon — Tropical Sunrise Theme (#FF5722 background) -->
+<svg width="456" height="456" viewBox="0 0 456 456" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background gradient: coral-orange to warm amber -->
+    <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#FF5722;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#FFB300;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+            <stop offset="100%" style="stop-color:#FFE082;stop-opacity:0.9" />
+        </linearGradient>
+    </defs>
+    <!-- Background rounded rect -->
+    <rect x="0" y="0" width="456" height="456" rx="80" ry="80" fill="url(#bgGrad)" />
+    <!-- Map pin silhouette (location icon) -->
+    <circle cx="228" cy="175" r="70" fill="white" opacity="0.95"/>
+    <ellipse cx="228" cy="310" rx="30" ry="12" fill="white" opacity="0.3"/>
+    <!-- Pin point -->
+    <path d="M228,245 L195,170 Q180,115 228,105 Q276,115 261,170 Z" fill="white" opacity="0.95"/>
+    <!-- Inner circle (hole in pin) -->
+    <circle cx="228" cy="175" r="30" fill="url(#bgGrad)"/>
+    <!-- Footstep dots -->
+    <ellipse cx="175" cy="355" rx="18" ry="10" fill="url(#footGrad)" transform="rotate(-20 175 355)"/>
+    <ellipse cx="220" cy="375" rx="18" ry="10" fill="url(#footGrad)" transform="rotate(10 220 375)"/>
+    <ellipse cx="270" cy="358" rx="18" ry="10" fill="url(#footGrad)" transform="rotate(-15 270 358)"/>
+</svg>

@@ -1,0 +1,285 @@
+@page
+@model HeriStep.Admin.Pages.Tours.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Lộ trình";
+}
+
+<div class="container-fluid py-4">
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+
+        <!-- Header -->
+        <div class="p-4 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 bg-white">
+            <h4 class="fw-bold m-0 text-dark">
+                <i class="bi bi-map me-2 text-primary"></i> Danh sách Lộ trình
+            </h4>
+            <div class="d-flex gap-2 flex-wrap">
+                <!-- Nút Tạo Tour Trending -->
+                <form method="post" asp-page-handler="CreateTrending" class="d-inline">
+                    <input type="hidden" name="topX" value="5">
+                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm"
+                            onclick="return confirm('Hệ thống sẽ tự gom Top 5 sạp được nghe nhiều nhất tạo thành 1 Tour HOT. Xác nhận?')">
+                        <i class="bi bi-fire me-1"></i> Tạo Tour Trending
+                    </button>
+                </form>
+
+                <!-- Nút Phân Bổ Sạp Tự Động -->
+                <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                        onclick="autoAssignData()">
+                    <i class="bi bi-magic me-1"></i> Phân Bổ Sạp Tự Động
+                </button>
+
+                <!-- Nút Tạo Tour Mới -->
+                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm"
+                        data-bs-toggle="modal" data-bs-target="#createTourModal">
+                    <i class="bi bi-plus-circle me-1"></i> Tạo Tour Mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Bảng danh sách -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4" style="width:35%">Tên Lộ trình</th>
+                        <th style="width:30%">Mô tả</th>
+                        <th class="text-center">Quy mô</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Tours.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-map fs-2 d-block mb-2"></i>
+                                Chưa có dữ liệu. Hãy bấm "Tạo Tour Mới" để bắt đầu.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var t in Model.Tours)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                    <i class="bi bi-signpost-split text-secondary"></i>
+                                    @t.TourName
+                                    @if (t.IsTopHot)
+                                    {
+                                        <span class="badge rounded-pill bg-danger" style="font-size:0.65rem;">
+                                            <i class="bi bi-fire"></i> HOT
+                                        </span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted small text-truncate d-inline-block" style="max-width:280px;">
+                                    @(string.IsNullOrEmpty(t.Description) ? "Chưa có mô tả" : t.Description)
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(t.StallCount < 4 ? "bg-info-subtle text-info" : "bg-primary-subtle text-primary") rounded-pill px-3 border">
+                                    @t.StallCount sạp
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(t.IsActive == true ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") rounded-pill px-3">
+                                    @(t.IsActive == true ? "Hoạt động" : "Tạm khóa")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <!-- Xem chi tiết -->
+                                    <a href="/Tours/Details/@t.Id"
+                                       class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                        <i class="bi bi-eye me-1"></i> Chi tiết
+                                    </a>
+
+                                    <!-- Sửa (Modal) -->
+                                    <button class="btn btn-sm btn-outline-warning rounded-circle shadow-sm"
+                                            data-bs-toggle="modal" data-bs-target="#editTourModal"
+                                            data-id="@t.Id" data-name="@t.TourName"
+                                            data-desc="@t.Description" data-img="@t.ImageUrl"
+                                            data-active="@(t.IsActive == true ? "true" : "false")"
+                                            data-hot="@(t.IsTopHot ? "true" : "false")"
+                                            onclick="fillEditModal(this)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+
+                                    <!-- Xóa -->
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id"
+                                          onsubmit="return confirm('Xóa lộ trình @t.TourName? Các sạp sẽ được nhả tự do.')">
+                                        <button class="btn btn-sm btn-outline-danger rounded-circle shadow-sm">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Tạo Tour Mới -->
+<div class="modal fade" id="createTourModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-plus-circle me-2 text-primary"></i>Tạo Lộ Trình Mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-0">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Tên lộ trình <span class="text-danger">*</span></label>
+                        <input type="text" asp-for="NewTour.TourName" class="form-control rounded-3"
+                               placeholder="VD: Lộ trình ẩm thực Vĩnh Khánh" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Mô tả</label>
+                        <textarea asp-for="NewTour.Description" class="form-control rounded-3" rows="3"
+                                  placeholder="Giới thiệu ngắn về lộ trình..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">URL Ảnh Cover</label>
+                        <input type="url" asp-for="NewTour.ImageUrl" class="form-control rounded-3"
+                               placeholder="https://...">
+                    </div>
+                    <div class="d-flex gap-4 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="NewTour_IsActive" name="NewTour.IsActive"
+                                   value="true" checked>
+                            <input type="hidden" name="NewTour.IsActive" value="false">
+                            <label class="form-check-label small" for="NewTour_IsActive">Kích hoạt ngay</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" asp-for="NewTour.IsTopHot">
+                            <label class="form-check-label small" for="NewTour_IsTopHot">🔥 Đánh dấu HOT</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-save me-1"></i> Lưu lộ trình
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Sửa Tour -->
+<div class="modal fade" id="editTourModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-pencil-square me-2 text-warning"></i>Chỉnh Sửa Lộ Trình
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-0">
+                    <input type="hidden" id="edit-id" asp-for="EditTour.Id">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Tên lộ trình <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-name" asp-for="EditTour.TourName" class="form-control rounded-3" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Mô tả</label>
+                        <textarea id="edit-desc" asp-for="EditTour.Description" class="form-control rounded-3" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">URL Ảnh Cover</label>
+                        <input type="url" id="edit-img" asp-for="EditTour.ImageUrl" class="form-control rounded-3">
+                    </div>
+                    <div class="d-flex gap-4 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="edit-active" name="EditTour.IsActive"
+                                   value="true">
+                            <input type="hidden" name="EditTour.IsActive" value="false">
+                            <label class="form-check-label small" for="edit-active">Kích hoạt</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="edit-hot" asp-for="EditTour.IsTopHot">
+                            <label class="form-check-label small" for="edit-hot">🔥 HOT</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm text-white">
+                        <i class="bi bi-floppy me-1"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            setTimeout(() => $(".alert").fadeOut("slow"), 3500);
+        });
+
+        function fillEditModal(btn) {
+            const $btn = $(btn);
+            $("#edit-id").val($btn.data("id"));
+            $("#edit-name").val($btn.data("name"));
+            $("#edit-desc").val($btn.data("desc"));
+            $("#edit-img").val($btn.data("img"));
+            $("#edit-active").prop("checked", $btn.data("active") === "true");
+            $("#edit-hot").prop("checked", $btn.data("hot") === "true");
+        }
+
+        async function autoAssignData() {
+            if (!confirm("Hệ thống sẽ phân bổ lại các sạp chưa có lộ trình vào các Tour hiện có. Xác nhận?")) return;
+
+            const btn = event.currentTarget;
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+            try {
+                const res = await fetch("http://localhost:5297/api/Tours/auto-assign", { method: "POST" });
+                const data = await res.json();
+                if (res.ok) {
+                    alert("✅ " + data.message);
+                    location.reload();
+                } else {
+                    alert("⚠️ " + (data.message || "Có lỗi xảy ra."));
+                }
+            } catch {
+                alert("❌ Lỗi kết nối máy chủ API.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }
+        }
+    </script>
+}

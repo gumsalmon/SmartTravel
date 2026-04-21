@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HeriStep.Client.Views.PaymentPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#FFF8F5"
+             x:Name="PageRoot">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,40,20,30" Spacing="25">
+
+            <!-- Header -->
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Frame CornerRadius="20" HeightRequest="40" WidthRequest="40"
+                       BackgroundColor="#FFE0D6" Padding="0"
+                       HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                    <Label Text="←" FontSize="20" TextColor="#FF5722"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackButtonClicked"/>
+                    </Frame.GestureRecognizers>
+                </Frame>
+                <Label Text="{Binding LblTitle}"
+                       FontSize="18" FontAttributes="Bold" TextColor="#1A0A00"
+                       HorizontalOptions="Center" VerticalOptions="Center"
+                       Grid.Column="1"/>
+            </Grid>
+
+            <!-- TÓM TẮT ĐƠN HÀNG -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding LblOrderSummary}"
+                       FontSize="12" FontAttributes="Bold"
+                       TextColor="#FF8A65" CharacterSpacing="1.5"/>
+                <Frame CornerRadius="24" BackgroundColor="White"
+                       Padding="20" BorderColor="Transparent" HasShadow="False">
+                    <Frame.Shadow>
+                        <Shadow Brush="#FF5722" Offset="0,4" Radius="16" Opacity="0.10"/>
+                    </Frame.Shadow>
+                    <Grid ColumnDefinitions="80, *, Auto" ColumnSpacing="15">
+                        <Frame CornerRadius="12" HeightRequest="80" WidthRequest="80"
+                               Padding="0" IsClippedToBounds="True"
+                               BorderColor="Transparent" Grid.Column="0" VerticalOptions="Start">
+                            <Image Source="https://images.unsplash.com/photo-1579294247291-18e4e73b43ae?q=80&amp;w=200"
+                                   Aspect="AspectFill"/>
+                        </Frame>
+                        <VerticalStackLayout Spacing="5" Grid.Column="1">
+                            <!-- Dynamic package name from binding -->
+                            <Label Text="{Binding PackageName}"
+                                   FontSize="17" FontAttributes="Bold"
+                                   TextColor="#1A0A00" LineHeight="1.1"/>
+                            <Label FontSize="11" TextColor="#A07060"
+                                   LineHeight="1.4" Margin="0,4,0,4"
+                                   Text="Truy cập không giới hạn các điểm tham quan cao cấp và hướng dẫn viên AI 24/7."/>
+                            <Frame CornerRadius="12" BackgroundColor="#FFB300"
+                                   Padding="12,4" HasShadow="False"
+                                   BorderColor="Transparent" HorizontalOptions="Start">
+                                <Label Text="{Binding PackageTier}"
+                                       FontSize="9" FontAttributes="Bold" TextColor="White"/>
+                            </Frame>
+                        </VerticalStackLayout>
+                        <!-- Dynamic price from binding -->
+                        <Label Text="{Binding FormattedPrice}"
+                               FontSize="16" FontAttributes="Bold"
+                               TextColor="#FF5722" Grid.Column="2" VerticalOptions="Start"/>
+                    </Grid>
+                </Frame>
+            </VerticalStackLayout>
+
+            <!-- PHƯƠNG THỨC THANH TOÁN -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding LblMethodHeader}"
+                       FontSize="12" FontAttributes="Bold"
+                       TextColor="#FF8A65" CharacterSpacing="1.5"/>
+
+                <!-- Apple Pay -->
+                <Frame x:Name="appleMethodFrame" CornerRadius="16"
+                       BackgroundColor="White" Padding="15,20"
+                       BorderColor="#FF5722" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAppleMethodTapped"/>
+                    </Frame.GestureRecognizers>
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45"
+                               BackgroundColor="#111" Padding="0"
+                               HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="" FontSize="20" TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="{Binding LblApplePay}"
+                                   FontSize="14" FontAttributes="Bold" TextColor="#1A0A00"/>
+                            <Label Text="{Binding LblApplePayDesc}"
+                                   FontSize="11" TextColor="#A07060"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24"
+                               BackgroundColor="Transparent" BorderColor="#FF5722"
+                               HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+
+                <!-- Thẻ Tín Dụng -->
+                <Frame x:Name="cardMethodFrame" CornerRadius="16"
+                       BackgroundColor="#FFF3EE" Padding="15,20"
+                       BorderColor="Transparent" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCardMethodTapped"/>
+                    </Frame.GestureRecognizers>
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45"
+                               BackgroundColor="#FFB300" Padding="0"
+                               HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="💳" FontSize="20"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="{Binding LblCard}"
+                                   FontSize="14" FontAttributes="Bold" TextColor="#1A0A00"/>
+                            <Label Text="{Binding LblCardDesc}"
+                                   FontSize="11" TextColor="#A07060"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24"
+                               BackgroundColor="Transparent" BorderColor="#FF5722"
+                               HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+
+                <!-- MoMo -->
+                <Frame x:Name="momoMethodFrame" CornerRadius="16"
+                       BackgroundColor="#FFF3EE" Padding="15,20"
+                       BorderColor="Transparent" HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnMomoMethodTapped"/>
+                    </Frame.GestureRecognizers>
+                    <Grid ColumnDefinitions="45, *, Auto" ColumnSpacing="15" VerticalOptions="Center">
+                        <Frame CornerRadius="22" HeightRequest="45" WidthRequest="45"
+                               BackgroundColor="#C2185B" Padding="0"
+                               HasShadow="False" BorderColor="Transparent" Grid.Column="0">
+                            <Label Text="M" FontSize="20" FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="{Binding LblMomo}"
+                                   FontSize="14" FontAttributes="Bold" TextColor="#1A0A00"/>
+                            <Label Text="{Binding LblMomoDesc}"
+                                   FontSize="11" TextColor="#A07060"/>
+                        </VerticalStackLayout>
+                        <Frame CornerRadius="12" HeightRequest="24" WidthRequest="24"
+                               BackgroundColor="Transparent" BorderColor="#FF5722"
+                               HasShadow="False" Grid.Column="2"/>
+                    </Grid>
+                </Frame>
+            </VerticalStackLayout>
+
+            <!-- ── Summary ── -->
+            <Frame CornerRadius="24" BackgroundColor="#FFF3EE"
+                   Padding="25" BorderColor="Transparent" HasShadow="False">
+                <VerticalStackLayout Spacing="15">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="{Binding LblSubtotal}"
+                               FontSize="14" TextColor="#A07060" Grid.Column="0"/>
+                        <Label Text="{Binding FormattedSubtotal}"
+                               FontSize="14" TextColor="#A07060" Grid.Column="1"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="{Binding LblFee}"
+                               FontSize="14" TextColor="#A07060" Grid.Column="0"/>
+                        <Label Text="{Binding FeeText}"
+                               FontSize="14" TextColor="#A07060" Grid.Column="1"/>
+                    </Grid>
+                    <BoxView HeightRequest="1" Color="#FFCCBC"/>
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="{Binding LblTotal}"
+                               FontSize="16" FontAttributes="Bold"
+                               TextColor="#1A0A00"
+                               Grid.Column="0" VerticalOptions="Center"/>
+                        <Label Text="{Binding FormattedTotal}"
+                               FontSize="24" FontAttributes="Bold"
+                               TextColor="#FF5722" Grid.Column="1"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Checkout Button -->
+            <Button Text="{Binding LblCta}"
+                    CornerRadius="25" BackgroundColor="#FF5722"
+                    TextColor="White" FontAttributes="Bold"
+                    HeightRequest="56" Clicked="OnCheckoutClicked">
+                <Button.Shadow>
+                    <Shadow Brush="#FF5722" Offset="0,6" Radius="16" Opacity="0.35"/>
+                </Button.Shadow>
+            </Button>
+
+            <!-- Security Footer -->
+            <VerticalStackLayout Spacing="20" Margin="0,10,0,10"
+                                 HorizontalOptions="Center">
+                <Grid ColumnDefinitions="*, *, *" ColumnSpacing="20">
+                    <VerticalStackLayout Spacing="5" Grid.Column="0" HorizontalOptions="Center">
+                        <Label Text="🛡" FontSize="20" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                        <Label Text="SECURE" FontSize="8" FontAttributes="Bold"
+                               TextColor="#A07060" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="5" Grid.Column="1" HorizontalOptions="Center">
+                        <Label Text="☑" FontSize="20" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                        <Label Text="PCI COMPLIANT" FontSize="8" FontAttributes="Bold"
+                               TextColor="#A07060" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="5" Grid.Column="2" HorizontalOptions="Center">
+                        <Label Text="🔒" FontSize="20" TextColor="#A07060"
+                               HorizontalOptions="Center"/>
+                        <Label Text="256-BIT SSL" FontSize="8" FontAttributes="Bold"
+                               TextColor="#A07060" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Grid>
+                <Label Text="{Binding LblSecure}"
+                       FontSize="10" TextColor="#A07060"
+                       HorizontalTextAlignment="Center" LineHeight="1.5"/>
+                <Label Text="© 2024 VINH KHANH GUIDE • HERI STEP"
+                       FontSize="8" FontAttributes="Bold" TextColor="#A07060"
+                       HorizontalTextAlignment="Center" CharacterSpacing="1"
+                       Margin="0,20,0,0"/>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

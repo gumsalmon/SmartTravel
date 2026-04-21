@@ -1,0 +1,174 @@
+@page "{id:int}"
+@model HeriStep.Admin.Pages.Stalls.DetailModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Chi tiết Sạp #{Model.Stall?.Id}";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="container-fluid py-4" style="max-width: 900px;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Index">Tổng quan</a></li>
+            <li class="breadcrumb-item"><a href="/Stalls/Index">Sạp hàng</a></li>
+            <li class="breadcrumb-item active">Chi tiết #@Model.Stall?.Id</li>
+        </ol>
+    </nav>
+
+    @if (Model.Stall == null)
+    {
+        <div class="alert alert-warning rounded-4">
+            <i class="bi bi-exclamation-triangle me-2"></i> Không tìm thấy thông tin sạp.
+        </div>
+        return;
+    }
+
+    <!-- Header Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="row g-0">
+            <!-- Ảnh sạp -->
+            <div class="col-md-4 bg-light d-flex align-items-center justify-content-center"
+                 style="min-height: 220px;">
+                @if (!string.IsNullOrEmpty(Model.Stall.ImageUrl))
+                {
+                    <img src="@Model.Stall.ImageUrl" alt="@Model.Stall.Name"
+                         class="img-fluid rounded-start"
+                         style="object-fit:cover; width:100%; height:220px;"
+                         onerror="this.src='https://via.placeholder.com/400x220?text=No+Image'">
+                }
+                else
+                {
+                    <div class="text-center text-muted">
+                        <i class="bi bi-shop" style="font-size: 3rem;"></i>
+                        <p class="small mt-2">Chưa có ảnh</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Thông tin chính -->
+            <div class="col-md-8">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1">@Model.Stall.Name</h4>
+                            <span class="text-muted small">ID: #@Model.Stall.Id</span>
+                        </div>
+                        <span class="badge @(Model.Stall.IsOpen ? "bg-success" : "bg-danger") fs-6 rounded-pill px-3">
+                            @(Model.Stall.IsOpen ? "🟢 Đang Mở" : "🔴 Đóng Cửa")
+                        </span>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Vĩ độ (Lat)</p>
+                            <p class="fw-bold font-monospace text-primary">@Model.Stall.Latitude.ToString("F6")</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Kinh độ (Lng)</p>
+                            <p class="fw-bold font-monospace text-primary">@Model.Stall.Longitude.ToString("F6")</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Bán kính geofence</p>
+                            <p class="fw-bold">@Model.Stall.RadiusMeter <span class="text-muted fw-normal">mét</span></p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Chủ sạp (Owner ID)</p>
+                            <p class="fw-bold">
+                                @if (Model.Stall.OwnerId.HasValue)
+                                {
+                                    <span class="badge bg-info-subtle text-info border">#@Model.Stall.OwnerId</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có chủ</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Tour đang gán</p>
+                            <p class="fw-bold">
+                                @if (Model.Stall.TourID.HasValue)
+                                {
+                                    <a href="/Tours/Details/@Model.Stall.TourID" class="badge bg-primary-subtle text-primary border text-decoration-none">
+                                        <i class="bi bi-map me-1"></i>Tour #@Model.Stall.TourID
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa gán vào Tour</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p class="text-muted small mb-1 fw-bold text-uppercase">Cập nhật lần cuối</p>
+                            <p class="fw-bold">
+                                @(Model.Stall.UpdatedAt.HasValue
+                                    ? Model.Stall.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                    : "—")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <a href="/Stalls/Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Quay lại
+                        </a>
+                        <a href="/AdminMap" class="btn btn-outline-primary rounded-pill px-4">
+                            <i class="bi bi-map me-1"></i> Xem trên Bản đồ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Map: Hiển thị vị trí sạp trên bản đồ (View-only) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom pt-3 pb-2">
+            <h6 class="fw-bold m-0 text-dark">
+                <i class="bi bi-geo-alt-fill me-2 text-danger"></i>Vị trí trên bản đồ
+                <span class="badge bg-warning-subtle text-warning border ms-2" style="font-size:0.7rem;">
+                    Bán kính @Model.Stall.RadiusMeter m
+                </span>
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div id="stallDetailMap" style="height: 320px; z-index:1;"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const lat = @Model.Stall.Latitude;
+        const lng = @Model.Stall.Longitude;
+        const radius = @Model.Stall.RadiusMeter;
+        const stallName = "@Html.Raw(Model.Stall.Name?.Replace("\"", "\\\""))";
+
+        const map = L.map('stallDetailMap').setView([lat, lng], 18);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap — HeriStep'
+        }).addTo(map);
+
+        // Marker vị trí sạp
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker.bindPopup(`<b>${stallName}</b><br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`).openPopup();
+
+        // Vòng tròn geofence
+        L.circle([lat, lng], {
+            radius     : radius,
+            color      : '#dc3545',
+            fillColor  : '#dc3545',
+            fillOpacity: 0.10,
+            weight     : 2,
+            dashArray  : '6 4'
+        }).addTo(map);
+    </script>
+}

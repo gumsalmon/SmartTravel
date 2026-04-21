@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="HeriStep.Client.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:HeriStep.Client"
+    xmlns:views="clr-namespace:HeriStep.Client.Views"
+    Title="HeriStep"
+    TabBarBackgroundColor="#1C1C1C"
+    TabBarUnselectedColor="#6B5B4E"
+    TabBarTitleColor="#FF8C00"
+    TabBarForegroundColor="#FF8C00"
+    FlyoutBehavior="Disabled">
+
+    <TabBar>
+        <!-- Tab 1: Explore — Hero + Voice Studio -->
+        <Tab x:Name="tabExplore" Title="Explore">
+            <Tab.Icon>
+                <FontImageSource Glyph="&#x1F9ED;" Color="#D35400" />
+            </Tab.Icon>
+            <ShellContent
+                Title="Explore"
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="MainPage" />
+        </Tab>
+
+        <!-- Tab 2: Map — Interactive map with search + geofencing -->
+        <Tab x:Name="tabMap" Title="Map">
+            <Tab.Icon>
+                <FontImageSource Glyph="&#x1F5FA;" Color="#D35400" />
+            </Tab.Icon>
+            <ShellContent
+                Title="Map"
+                ContentTemplate="{DataTemplate views:MapPage}"
+                Route="MapPage" />
+        </Tab>
+
+        <!-- Tab 3: Profile — Settings, language, history -->
+        <Tab x:Name="tabProfile" Title="Profile">
+            <Tab.Icon>
+                <FontImageSource Glyph="&#x1F464;" Color="#D35400" />
+            </Tab.Icon>
+            <ShellContent
+                Title="Profile"
+                ContentTemplate="{DataTemplate views:ProfilePage}"
+                Route="ProfilePage" />
+        </Tab>
+    </TabBar>
+
+</Shell>

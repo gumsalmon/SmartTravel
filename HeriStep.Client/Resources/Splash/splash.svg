@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- HeriStep Splash Screen — Tropical Sunrise branded -->
+<svg width="456" height="456" viewBox="0 0 456 456" version="1.1"
+     xmlns="http://www.w3.org/2000/svg"
+     style="fill-rule:evenodd;clip-rule:evenodd;">
+    <defs>
+        <linearGradient id="splashFootGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#FFE082;stop-opacity:0.85" />
+        </linearGradient>
+    </defs>
+    <!-- Map pin outer circle -->
+    <circle cx="228" cy="178" r="72" fill="white" opacity="0.97"/>
+    <!-- Pin body pointing down -->
+    <path d="M228,250 L194,172 Q178,112 228,108 Q278,112 262,172 Z" fill="white" opacity="0.97"/>
+    <!-- Pin inner hole -->
+    <circle cx="228" cy="178" r="28" fill="#00BCD4" opacity="0.85"/>
+    <!-- "H" letter -->
+    <text x="228" y="191" font-family="Arial,sans-serif" font-size="34" font-weight="bold" fill="white"
+          text-anchor="middle" dominant-baseline="middle">H</text>
+    <!-- Drop shadow -->
+    <ellipse cx="228" cy="318" rx="28" ry="10" fill="white" opacity="0.25"/>
+    <!-- Footsteps -->
+    <ellipse cx="168" cy="368" rx="20" ry="11" fill="url(#splashFootGrad)" transform="rotate(-22 168 368)"/>
+    <ellipse cx="218" cy="389" rx="20" ry="11" fill="url(#splashFootGrad)" transform="rotate(8 218 389)"/>
+    <ellipse cx="272" cy="370" rx="20" ry="11" fill="url(#splashFootGrad)" transform="rotate(-18 272 370)"/>
+</svg>

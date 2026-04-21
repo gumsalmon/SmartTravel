@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>HeriStep Sequence Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'forest' });</script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f7f6; }
+        h2 { color: #2c3e50; border-left: 5px solid #27ae60; padding-left: 10px; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>1. Chức năng Xem Bản Đồ Nhiệt (Heatmap)</h2>
+        <div class="mermaid">
+            sequenceDiagram
+                autonumber
+                actor Admin as Quản trị viên
+                participant Web as Web Admin (Frontend)
+                participant API as Analytics API (Backend)
+                participant DB as SQL Server (Database)
+
+                Admin->>Web: Tích chọn "Hiện bản đồ nhiệt"
+                Web->>API: GET /api/analytics/heatmap
+                activate API
+                API->>DB: SELECT Latitude, Longitude FROM TouristTrajectories
+                activate DB
+                DB-->>API: Danh sách hàng ngàn tọa độ
+                deactivate DB
+                API-->>Web: Trả về JSON (List of Coordinates)
+                deactivate API
+                Web->>Web: Render L.heatLayer (Leaflet.heat)
+                Web-->>Admin: Hiển thị vùng mật độ đỏ/cam trên bản đồ
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>2. Chức năng Xem Tuyến Đi Ẩn Danh (Route Tracking)</h2>
+        <div class="mermaid">
+            sequenceDiagram
+                autonumber
+                actor Admin as Quản trị viên
+                participant Web as Web Admin (Frontend)
+                participant API as Analytics API (Backend)
+                participant DB as SQL Server (Database)
+
+                Admin->>Web: Nhập Device ID & Bấm "Vẽ Tuyến Đi"
+                Web->>API: GET /api/analytics/route/{deviceId}
+                activate API
+                API->>DB: SELECT * FROM TouristTrajectories WHERE DeviceId = id ORDER BY RecordedAt
+                activate DB
+                DB-->>API: Danh sách tọa độ theo thời gian
+                deactivate DB
+                API-->>Web: Trả về JSON (Sorted List of Points)
+                deactivate API
+                Web->>Web: Vẽ L.polyline nối các điểm
+                Web->>Web: Đánh dấu Start/End Marker
+                Web-->>Admin: Hiển thị đường di chuyển của khách
+        </div>
+    </div>
+
+</body>
+</html>

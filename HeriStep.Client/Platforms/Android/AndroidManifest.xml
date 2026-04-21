@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<queries>
+		<intent>
+			<action android:name="android.intent.action.TTS_SERVICE" />
+		</intent>
+	</queries>
+
+	<application android:allowBackup="true"
+                 android:supportsRtl="true"
+                 android:label="FoodStreet"
+                 android:icon="@mipmap/appicon"
+                 android:usesCleartextTraffic="true">
+
+		<!-- ══════════════════════════════════════════════════════════
+		     GPS DISCOVERY FOREGROUND SERVICE
+		     foregroundServiceType="location" bắt buộc Android 10+.
+		     exported="false": chỉ App nội bộ mới start được.
+		     ══════════════════════════════════════════════════════════ -->
+		<service
+			android:name="com.sgu.myapp.GpsDiscoveryForegroundService"
+			android:foregroundServiceType="location"
+			android:exported="false"
+			android:enabled="true" />
+
+	</application>
+
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+	<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+	<!-- Giữ CPU tỉnh khi màn hình tắt (bắt buộc cho vòng lặp GPS 5s) -->
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+	<!-- Android 13+ (API 33): phải xin quyền hiện notification -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+	<uses-feature android:name="android.hardware.location.gps" android:required="true" />
+
+</manifest>

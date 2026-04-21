@@ -1,0 +1,417 @@
+@page
+@model HeriStep.Merchant.Pages.IndexModel
+@{
+    ViewData["Title"] = "Chọn Sạp Quản Lý";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    .hover-zoom {
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+        .hover-zoom:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.15) !important;
+        }
+</style>
+
+<div class="container py-5">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm text-center fw-bold" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-dark">Xin chào, <span class="text-primary" id="lblGreetingName">Chủ sạp</span>! 👋</h2>
+        <p class="text-muted fs-5">Hôm nay bạn muốn quản lý sạp hàng nào?</p>
+
+        <div class="d-flex justify-content-center flex-wrap gap-2 mt-3">
+            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addStallModal">
+                <i class="bi bi-shop window me-1"></i> Mở thêm sạp mới
+            </button>
+
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                <i class="bi bi-shield-lock-fill me-1"></i> Đổi mật khẩu
+            </button>
+
+            <a href="/Login?handler=Logout" class="btn btn-light btn-sm rounded-pill px-3 shadow-sm border text-decoration-none text-dark">
+                <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center g-4">
+        @if (Model.MyStalls != null && Model.MyStalls.Any())
+        {
+            foreach (var stall in Model.MyStalls)
+            {
+                <div class="col-md-4 col-sm-6">
+                    @if (stall.IsExpired)
+                    {
+                        <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom opacity-75">
+                            <div style="position: relative;">
+                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "http://127.0.0.1:5297" + stall.ImageUrl)"
+                                     class="card-img-top rounded-top-4" style="height: 200px; object-fit: cover; filter: grayscale(100%);">
+
+                                <div class="d-flex align-items-center justify-content-center"
+                                     style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); border-radius: 15px 15px 0 0;">
+                                    <button class="btn btn-warning fw-bold shadow" onclick="showPaymentModal(@stall.Id, '@(stall.Name ?? "Sạp")')">
+                                        <i class="bi bi-cart-x-fill me-1"></i> Cần thanh toán
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body text-center p-4">
+                                <h5 class="card-title fw-bold text-dark mb-2">@stall.Name</h5>
+                                <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-2 rounded-pill">
+                                    ⏳ Đã hết hạn gói cước
+                                </span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <a href="/StallDashboard?stallId=@stall.Id" class="text-decoration-none">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom">
+                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "http://127.0.0.1:5297" + stall.ImageUrl)"
+                                     class="card-img-top rounded-top-4" alt="@stall.Name" style="height: 200px; object-fit: cover;">
+                                <div class="card-body text-center p-4">
+                                    <h5 class="card-title fw-bold text-dark mb-2">@stall.Name</h5>
+                                    @if (stall.IsOpen)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                            🟢 Đang mở cửa
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">
+                                            🔴 Đã đóng cửa
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5">
+                <div class="alert alert-warning d-inline-block px-5 shadow-sm rounded-4 border-0">
+                    <h5 class="fw-bold">Sếp chưa có sạp hàng nào!</h5>
+                    <p class="mb-0 text-muted">Bấm vào nút <b class="text-success">Mở thêm sạp mới</b> ở trên để tạo sạp ngay nhé.</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="addStallModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-success text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shop"></i> Đăng ký Sạp mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info small rounded-3">
+                    Phí khởi tạo sạp mới (bao gồm 30 ngày sử dụng hệ thống) là <b>2.000 VNĐ</b>.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Tên Sạp mới <span class="text-danger">*</span></label>
+                    <input type="text" id="newStallName" class="form-control rounded-pill px-3" placeholder="Vd: Sạp ốc Vĩnh Khánh (CN 2)">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Vị trí sạp <span class="text-danger">*</span></label>
+                    
+                    <button type="button" id="btnIndexGps" class="btn btn-outline-success btn-sm w-100 rounded-pill mb-2 fw-bold">
+                        <i class="bi bi-geo-alt"></i> Lấy vị trí GPS hiện tại
+                    </button>
+                    <div id="indexMap" class="stall-location-map mb-2 border border-1" style="height: 250px; border-radius: 8px; z-index: 1;"></div>
+                    
+                    <div class="row gx-2 mt-2">
+                        <div class="col-6">
+                            <input type="text" id="newLat" class="form-control rounded-pill px-3 bg-light text-center" readonly placeholder="Vĩ độ (Lat)">
+                        </div>
+                        <div class="col-6">
+                            <input type="text" id="newLng" class="form-control rounded-pill px-3 bg-light text-center" readonly placeholder="Kinh độ (Lng)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success rounded-pill fw-bold px-4" id="btnBuyStall" onclick="executeBuyExtraStall()">
+                    TIẾN HÀNH THANH TOÁN
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark rounded-top-4">
+                <h5 class="modal-title fw-bold">💳 Thanh toán hệ thống</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="window.location.reload()"></button>
+            </div>
+            <div class="modal-body p-4 text-center" id="paymentModalBody">
+                <i class="bi bi-qr-code-scan display-1 text-secondary mb-3"></i>
+                <h5 class="fw-bold" id="payStallName">Đang tải mã QR...</h5>
+                <div class="spinner-border text-primary mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold">🔐 Đổi mật khẩu tài khoản</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mật khẩu hiện tại</label>
+                    <input type="password" id="oldPass" class="form-control rounded-pill px-3">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mật khẩu mới</label>
+                    <input type="password" id="newPass" class="form-control rounded-pill px-3">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Xác nhận mật khẩu</label>
+                    <input type="password" id="confirmPass" class="form-control rounded-pill px-3">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill fw-bold px-4" onclick="executeChangePassword()">XÁC NHẬN ĐỔI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    // --- HÀM 1: KHỞI TẠO BẢN ĐỒ LEAFLET ---
+    function initLocationPicker(mapContainerId, latInputId, lngInputId, gpsButtonId) {
+    const defaultLat = 10.7618;
+    const defaultLng = 106.7040;
+        
+    const map = L.map(mapContainerId).setView([defaultLat, defaultLng], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+        
+    const latInput = document.getElementById(latInputId);
+    const lngInput = document.getElementById(lngInputId);
+
+    function updateInputs(lat, lng) {
+    if(latInput) { latInput.value = parseFloat(lat).toFixed(6); latInput.dispatchEvent(new Event('change')); }
+    if(lngInput) { lngInput.value = parseFloat(lng).toFixed(6); lngInput.dispatchEvent(new Event('change')); }
+    }
+
+    updateInputs(defaultLat, defaultLng);
+
+    marker.on('dragend', function(e) {
+    const p = marker.getLatLng();
+    updateInputs(p.lat, p.lng);
+    });
+
+    map.on('click', function(e) {
+    marker.setLatLng(e.latlng);
+    updateInputs(e.latlng.lat, e.latlng.lng);
+    });
+
+    if (gpsButtonId) {
+    const btnGPS = document.getElementById(gpsButtonId);
+    if (btnGPS) {
+    btnGPS.addEventListener('click', function(e) {
+    e.preventDefault();
+    Swal.fire({ title: 'Đang tìm vị trí...', text: 'Vui lòng bấm "Cho phép" trên trình duyệt!', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+    if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+    (position) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    map.flyTo([lat, lng], 18);
+    marker.setLatLng([lat, lng]);
+    updateInputs(lat, lng);
+    Swal.fire({ icon: "success", title: "Thành công", text: "Đã lấy được tọa độ chuẩn xác!", timer: 2000, showConfirmButton: false });
+    },
+    (error) => { Swal.fire("Lỗi GPS", "Không thể lấy được vị trí. Vui lòng cấp quyền GPS!", "error"); },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+    } else {
+    Swal.fire("Lỗi", "Trình duyệt không hỗ trợ Geolocation!", "error");
+    }
+    });
+    }
+    }
+    return map;
+    }
+
+    // --- BIẾN TOÀN CỤC ---
+    let isLocationFetched = false;
+    let paymentPollingInterval = null;
+    let locationMapInstance = null;
+
+    // --- SỰ KIỆN KHI TRANG TẢI XONG ---
+    document.addEventListener("DOMContentLoaded", () => {
+    // 1. Lấy tên hiển thị
+    const uname = localStorage.getItem('username');
+    if (uname) document.getElementById('lblGreetingName').innerText = uname;
+
+    // 2. Khởi tạo bản đồ trong modal
+    locationMapInstance = initLocationPicker('indexMap', 'newLat', 'newLng', 'btnIndexGps');
+        
+    // 3. Fix lỗi bản đồ bị xám khi mở modal
+    const modalEl = document.getElementById('addStallModal');
+    if (modalEl) {
+    modalEl.addEventListener('shown.bs.modal', () => {
+    if (locationMapInstance) { locationMapInstance.invalidateSize(); }
+    });
+    }
+
+    // 4. Theo dõi đã có tọa độ chưa
+    const latInput = document.getElementById('newLat');
+    if (latInput) {
+    latInput.addEventListener('change', function() { isLocationFetched = !!this.value; });
+    }
+    });
+
+    // --- HÀM 2: POLLING KIỂM TRA THANH TOÁN ---
+    function startRealtimePaymentCheck(orderId) {
+    if(paymentPollingInterval) clearInterval(paymentPollingInterval);
+    paymentPollingInterval = setInterval(async () => {
+    try {
+    let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+    let statusData = await res.json();
+    if (statusData.isPaid) {
+    clearInterval(paymentPollingInterval);
+    const payModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+    if(payModal) payModal.hide();
+    Swal.fire({
+    title: "🎉 Thanh toán thành công!", text: "Hệ thống đã tự động cập nhật.", icon: "success", showConfirmButton: false, timer: 2000
+    }).then(() => window.location.reload());
+    }
+    } catch (e) { console.log(e); }
+    }, 3000);
+    }
+
+    // --- HÀM 3: MUA THÊM SẠP MỚI ---
+    async function executeBuyExtraStall() {
+    const name = document.getElementById('newStallName').value.trim();
+    const userId = parseInt("@Model.CurrentUserId");
+    const lat = parseFloat(document.getElementById('newLat').value);
+    const lng = parseFloat(document.getElementById('newLng').value);
+
+    if (!name) return Swal.fire("Chú ý", "Vui lòng nhập tên sạp hàng!", "warning");
+    if (isNaN(lat) || isNaN(lng)) return Swal.fire("Chú ý", "Bắt buộc lấy tọa độ hoặc chọn trên bản đồ!", "warning");
+
+    const btn = document.getElementById('btnBuyStall');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+
+    try {
+    const response = await fetch('http://127.0.0.1:5297/api/Payments/buy-extra-stall', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ OwnerId: userId, StallName: name, Latitude: lat, Longitude: lng })
+    });
+    const data = await response.json();
+    if (response.ok && data.qrUrl) {
+    bootstrap.Modal.getInstance(document.getElementById('addStallModal')).hide();
+    new bootstrap.Modal(document.getElementById('paymentModal')).show();
+                
+    document.getElementById('paymentModalBody').innerHTML = `
+    <h5 class="fw-bold text-success mb-3">Sạp: ${name}</h5>
+    <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px; border: 2px solid #28a745;">
+    <p class="small text-danger fw-bold mt-2">
+    <i class="spinner-border spinner-border-sm me-1"></i> Hệ thống đang chờ thanh toán...
+    </p>`;
+    startRealtimePaymentCheck(data.orderId);
+    } else {
+    Swal.fire("Lỗi", data.message || "Lỗi tạo QR!", "error");
+    }
+    } catch (e) {
+    Swal.fire("Lỗi", "Mất kết nối!", "error");
+    } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'TIẾN HÀNH THANH TOÁN';
+    }
+    }
+
+    // --- HÀM 4: GIA HẠN SẠP CŨ ---
+    async function showPaymentModal(stallId, stallName) {
+    const myModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    myModal.show();
+    const bodyContent = document.getElementById('paymentModalBody');
+    bodyContent.innerHTML = `<h5 class="fw-bold">${stallName}</h5><div class="spinner-border text-primary"></div>`;
+
+    try {
+    const res = await fetch(`http://127.0.0.1:5297/api/Payments/get-renewal-qr/${stallId}`);
+    const data = await res.json();
+    bodyContent.innerHTML = `
+    <h5 class="fw-bold">${stallName}</h5>
+    <img src="${data.qrUrl}" alt="QR Code" class="img-fluid rounded-4 shadow-sm mb-3" style="max-width: 250px;">
+    <p class="small text-danger fw-bold mt-2">
+    <i class="spinner-border spinner-border-sm me-1"></i> Đang chờ tiền vào tài khoản...
+    </p>`;
+    startRealtimePaymentCheck(data.orderId);
+    } catch(e) {
+    bodyContent.innerHTML = `<p class="text-danger">Lỗi không thể tải mã QR.</p>`;
+    }
+    }
+
+    // --- HÀM 5: ĐỔI MẬT KHẨU ---
+    async function executeChangePassword() {
+    const oldPass = document.getElementById('oldPass').value;
+    const newPass = document.getElementById('newPass').value;
+    const confirmPass = document.getElementById('confirmPass').value;
+    const userId = parseInt("@Model.CurrentUserId");
+
+    if (!oldPass || !newPass) return Swal.fire("Chú ý", "Vui lòng nhập đủ mật khẩu!", "warning");
+    if (newPass !== confirmPass) return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp!", "error");
+    if (!userId) return Swal.fire("Lỗi", "Không xác định được danh tính!", "error");
+
+    const btn = document.querySelector('button[onclick="executeChangePassword()"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang đổi...';
+
+    try {
+    const response = await fetch('http://127.0.0.1:5297/api/Auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ UserId: userId, OldPassword: oldPass, NewPassword: newPass })
+    });
+
+    if (response.ok) {
+    await Swal.fire("Thành công", "🎉 Đổi mật khẩu thành công!", "success");
+    window.location.reload();
+    } else {
+    const err = await response.json();
+    Swal.fire("Thất bại", err.message || "Kiểm tra lại mật khẩu cũ!", "error");
+    }
+    } catch (e) {
+    Swal.fire("Lỗi", "Không kết nối được API!", "error");
+    } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'XÁC NHẬN ĐỔI';
+    }
+    }
+</script>

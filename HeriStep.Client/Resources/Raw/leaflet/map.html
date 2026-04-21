@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="leaflet.css" />
+    <style>
+        /* ═══ TROPICAL SUNRISE MAP THEME ═══ */
+        body { padding: 0; margin: 0; background-color: #FFF8F5; }
+        html, body, #map { height: 100%; width: 100vw; }
+
+        /* ── Marker colours ── */
+        /* Active (rented) stall → Coral Orange */
+        .amber-marker {
+            background-color: #FF5722;
+            border: 2.5px solid white;
+            border-radius: 50%;
+            opacity: 0.92;
+            box-shadow: 0 2px 6px rgba(255,87,34,0.45);
+        }
+        /* Vacant slot → Fresh green (unchanged, good contrast) */
+        .green-marker {
+            background-color: #43A047;
+            border: 2px solid white;
+            border-radius: 50%;
+            opacity: 0.9;
+        }
+        /* Expired / closed → Muted warm grey */
+        .gray-marker {
+            background-color: #A07060;
+            border: 2px solid white;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+        /* User location → Sunny Amber pulse */
+        .user-marker {
+            background-color: #FFB300;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(255,179,0,0.7);
+        }
+
+        /* ── Tooltip / label ── */
+        .marker-label {
+            color: #1A0A00;
+            font-weight: bold;
+            font-size: 11px;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
+            white-space: nowrap;
+        }
+
+        /* ── Leaflet controls ── */
+        .leaflet-control-attribution {
+            background-color: rgba(255,248,245,0.85) !important;
+            color: #A07060 !important;
+            font-size: 10px;
+        }
+        .leaflet-control-zoom a {
+            background-color: #FFF8F5 !important;
+            color: #FF5722 !important;
+            border: 1px solid #FFE0D6 !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background-color: #FFE0D6 !important;
+        }
+
+        /* ── Popup styling ── */
+        .leaflet-popup-content-wrapper {
+            background: #FFF8F5;
+            border: 1px solid #FFE0D6;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(255,87,34,0.12);
+        }
+        .leaflet-popup-tip { background: #FFF8F5; }
+        .leaflet-popup-content {
+            color: #1A0A00;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* ── Pulse animation for highlighted stall ── */
+        @keyframes pulse {
+            0%   { transform: scale(1);   box-shadow: 0 0 0  0px rgba(255,87,34, 0.7); }
+            70%  { transform: scale(1.25); box-shadow: 0 0 0 12px rgba(255,87,34, 0); }
+            100% { transform: scale(1);   box-shadow: 0 0 0  0px rgba(255,87,34, 0); }
+        }
+        .highlighted-marker {
+            animation: pulse 1.4s infinite;
+            border-color: #FFB300 !important;
+            border-width: 3px !important;
+            z-index: 999 !important;
+        }
+    </style>
+    <script src="leaflet.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map', { 
+            zoomControl: false,
+            preferCanvas: true // BUỘC vẽ lên Canvas để tối ưu hiệu năng Android
+        }).setView([10.7595, 106.7025], 16);
+        
+        // Lớp bản đồ chính (Online) - CartoDB Voyager (bright, warm style)
+        var baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            minZoom: 0,
+            attribution: '&copy; OpenStreetMap &amp; CARTO'
+        }).addTo(map);
+
+        // Logic Hybrid: Nếu tải từ Internet thất bại (Offline), tự động tìm ảnh trong bộ nhớ App
+        baseLayer.on('tileerror', function(e) {
+            var z = e.coords.z;
+            var x = e.coords.x;
+            var y = e.coords.y;
+            e.tile.src = 'tiles/' + z + '/' + x + '/' + y + '.png';
+        });
+
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+        var markers = {};
+        var userMarker = null;
+        var accuracyCircle = null;
+        var highlightedStallId = null;
+        var isMapMoving = false;
+
+        function notifyInteraction(isStarting) {
+            window.location.href = isStarting ? "maui://interaction/start" : "maui://interaction/stop";
+        }
+
+        map.on('movestart zoomstart', function() { 
+            isMapMoving = true; 
+            notifyInteraction(true);
+        });
+        map.on('moveend zoomend', function() { 
+            isMapMoving = false; 
+            notifyInteraction(false);
+        });
+
+        var mapDiv = map.getContainer();
+        ['touchstart', 'mousedown', 'pointerdown'].forEach(function(evt) {
+            mapDiv.addEventListener(evt, function() { 
+                isMapMoving = true;
+                notifyInteraction(true); 
+            }, {passive: true});
+        });
+
+        ['touchend', 'mouseup', 'pointerup'].forEach(function(evt) {
+            mapDiv.addEventListener(evt, function() { 
+                notifyInteraction(false); 
+            }, {passive: true});
+        });
+
+        function highlightStall(stallId) {
+            if (isMapMoving) return;
+            if (highlightedStallId !== null && markers[highlightedStallId]) {
+                var el = markers[highlightedStallId].getElement();
+                if (el) {
+                    var inner = el.querySelector('div');
+                    if(inner) inner.classList.remove('highlighted-marker');
+                }
+            }
+            highlightedStallId = stallId;
+            if (highlightedStallId !== null && markers[highlightedStallId]) {
+                var el = markers[highlightedStallId].getElement();
+                if (el) {
+                    var inner = el.querySelector('div');
+                    if(inner) inner.classList.add('highlighted-marker');
+                }
+            }
+        }
+
+        function updateStalls(stallsJson) {
+            if (isMapMoving) return;
+            try {
+                var stalls = stallsJson;
+                while (typeof stalls === 'string' && stalls.length > 0) {
+                    stalls = JSON.parse(stalls);
+                }
+                if (!Array.isArray(stalls)) return;
+
+                stalls.forEach(function(s) {
+                    // Tropical Sunrise colour scheme:
+                    // Open + rented  → #FF5722 Coral Orange
+                    // Open + vacant  → #43A047 Fresh Green
+                    // Closed/expired → #A07060 Warm Muted
+                    var color = "#A07060";
+                    if(s.IsOpen) {
+                        color = s.OwnerId != null ? "#FF5722" : "#43A047";
+                    }
+
+                    if(markers[s.Id]) {
+                        markers[s.Id].setLatLng([s.Latitude, s.Longitude]);
+                        markers[s.Id].setStyle({ fillColor: color, color: "#FFFFFF" });
+                    } else {
+                        markers[s.Id] = L.circleMarker([s.Latitude, s.Longitude], {
+                            radius: 8,
+                            fillColor: color,
+                            color: "#FFFFFF",
+                            weight: 2.5,
+                            opacity: 1,
+                            fillOpacity: 0.92
+                        }).addTo(map);
+
+                        markers[s.Id].bindTooltip(s.Name, { 
+                            permanent: false, 
+                            direction: 'top',
+                            className: 'marker-label'
+                        });
+
+                        markers[s.Id].on('click', function() {
+                            window.location.href = "maui://stallclick/" + s.Id;
+                        });
+                    }
+                });
+            } catch (e) {
+                console.error("Update stalls error:", e);
+            }
+        }
+
+        var isFirstLocation = true;
+        function updateUserLocation(lat, lon, isRealGPS) {
+            if (isMapMoving && !isFirstLocation) return;
+            var latLng = [lat, lon];
+            if(!userMarker) {
+                var icon = L.divIcon({
+                    className: 'user-marker',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                // Accuracy circle: Sunny Amber ring
+                accuracyCircle = L.circle(latLng, {
+                    color: '#FFB300',
+                    fillColor: '#FFB300',
+                    fillOpacity: 0.12,
+                    radius: isRealGPS ? 20 : 0,
+                    weight: 1.5
+                }).addTo(map);
+                
+                userMarker = L.marker(latLng, {icon: icon, zIndexOffset: 1000}).addTo(map);
+            } else {
+                userMarker.setLatLng(latLng);
+                if(accuracyCircle) {
+                    accuracyCircle.setLatLng(latLng);
+                    accuracyCircle.setRadius(isRealGPS ? 20 : 0);
+                }
+            }
+
+            if(isFirstLocation && lat !== 0) {
+                map.setView(latLng, 17);
+                isFirstLocation = false;
+            }
+        }
+
+        function centerOnUser() {
+            if(userMarker) {
+                map.setView(userMarker.getLatLng(), 17);
+            }
+        }
+    </script>
+</body>
+</html>

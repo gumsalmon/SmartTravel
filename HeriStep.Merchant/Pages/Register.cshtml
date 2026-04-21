@@ -1,0 +1,169 @@
+@page
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Đăng ký Sạp mới - HeriStep</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); min-height: 100vh; }
+        .register-card { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body class="d-flex align-items-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card register-card p-4 bg-white">
+
+                    <div id="registerFormSection">
+                        <div class="text-center mb-4">
+                            <h3 class="fw-bold text-success">Mở Sạp Mới</h3>
+                            <p class="text-muted">Đăng ký kinh doanh tại Vĩnh Khánh</p>
+                        </div>
+
+                        <form id="frmRegister" onsubmit="executeRegister(event)">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Họ và tên chủ sạp</label>
+                                <input type="text" id="FullName" class="form-control rounded-pill px-3" required placeholder="Ví dụ: Nguyễn Văn A" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Số điện thoại (Dùng để đăng nhập)</label>
+                                <input type="text" id="Phone" class="form-control rounded-pill px-3" required placeholder="09xx..." />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Mật khẩu</label>
+                                <input type="password" id="Password" class="form-control rounded-pill px-3" required placeholder="******" />
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-muted small">Tên Sạp / Quán</label>
+                                <input type="text" id="StallName" class="form-control rounded-pill px-3" required placeholder="Ví dụ: Ốc Oanh" />
+                            </div>
+
+                            <div class="mb-4 p-3 bg-light rounded-4 border">
+                                <label class="form-label fw-bold text-success small mb-2"><i class="bi bi-geo-alt-fill"></i> Chọn vị trí sạp</label>
+                                <button type="button" id="btnGpsRegister" class="btn btn-outline-success btn-sm w-100 mb-2 rounded-pill fw-bold">
+                                    <i class="bi bi-crosshair"></i> Lấy vị trí GPS hiện tại
+                                </button>
+                                <div id="registerMap" style="height: 250px; border-radius: 8px; z-index: 1;"></div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <input type="text" id="Lat" class="form-control form-control-sm text-center" readonly placeholder="Vĩ độ">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" id="Lng" class="form-control form-control-sm text-center" readonly placeholder="Kinh độ">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btnSubmit" class="btn btn-success w-100 rounded-pill py-2 fw-bold shadow-sm">
+                                ĐĂNG KÝ VÀ THANH TOÁN
+                            </button>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <a href="/Login" class="text-muted text-decoration-none small"><i class="bi bi-arrow-left"></i> Quay lại đăng nhập</a>
+                        </div>
+                    </div>
+
+                    <div id="qrPaymentSection" class="text-center d-none">
+                        <h4 class="fw-bold text-success mb-3">🎉 Đăng ký thành công!</h4>
+                        <p class="text-muted small mb-4">Để hoàn tất mở sạp, vui lòng quét mã thanh toán phí <strong class="text-danger">2.000 VNĐ</strong>.</p>
+                        <div class="bg-light p-3 rounded-4 mb-4 shadow-sm border">
+                            <img id="qrImage" src="" alt="Mã QR Thanh Toán" class="img-fluid rounded-3" style="max-width: 250px;">
+                        </div>
+                        <p class="small text-danger fw-bold mb-4">
+                            <i class="spinner-border spinner-border-sm me-1"></i> Hệ thống đang chờ thanh toán...
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/location-picker.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+        // Gọi hàm vẽ bản đồ khi trang vừa tải xong
+        initLocationPicker('registerMap', 'Lat', 'Lng', 'btnGpsRegister');
+        });
+
+        let pollingInterval = null;
+
+        async function executeRegister(event) {
+        event.preventDefault();
+            
+        const latVal = parseFloat(document.getElementById('Lat').value);
+        const lngVal = parseFloat(document.getElementById('Lng').value);
+
+        if (isNaN(latVal) || isNaN(lngVal)) {
+        Swal.fire("Chú ý", "Vui lòng chọn vị trí sạp trên bản đồ!", "warning");
+        return;
+        }
+
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+
+        const payload = {
+        FullName: document.getElementById('FullName').value,
+        Phone: document.getElementById('Phone').value,
+        Password: document.getElementById('Password').value,
+        StallName: document.getElementById('StallName').value,
+        Latitude: latVal,
+        Longitude: lngVal
+        };
+
+        try {
+        const res = await fetch('http://127.0.0.1:5297/api/Payments/register-new-merchant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+        document.getElementById('registerFormSection').classList.add('d-none');
+        document.getElementById('qrPaymentSection').classList.remove('d-none');
+        document.getElementById('qrImage').src = data.qrUrl;
+        startPaymentPolling(data.orderId, '/Login');
+        } else {
+        Swal.fire("Lỗi", data.message || "Số điện thoại đã tồn tại!", "error");
+        btn.disabled = false;
+        btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
+        }
+        } catch (e) {
+        Swal.fire("Lỗi", "Không thể kết nối tới Server!", "error");
+        btn.disabled = false;
+        btn.innerHTML = 'ĐĂNG KÝ VÀ THANH TOÁN';
+        }
+        }
+
+        function startPaymentPolling(orderId, redirectUrl) {
+        if(pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(async () => {
+        try {
+        let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+        let statusData = await res.json();
+        if (statusData.isPaid) {
+        clearInterval(pollingInterval);
+        Swal.fire({
+        title: "🎉 Thanh toán thành công!",
+        text: "Hệ thống đã tạo tài khoản và mở sạp.",
+        icon: "success",
+        confirmButtonText: "Đăng nhập ngay"
+        }).then(() => window.location.href = redirectUrl);
+        }
+        } catch (e) { console.log(e); }
+        }, 3000);
+        }
+    </script>
+</body>
+</html>

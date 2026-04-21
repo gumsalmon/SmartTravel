@@ -1,0 +1,137 @@
+﻿@page
+@model HeriStep.Admin.Pages.Users.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý tài khoản";
+}
+
+<div class="container-fluid py-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="p-4 border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+            <h4 class="fw-bold m-0 text-dark text-nowrap"><i class="bi bi-people-fill me-2 text-primary"></i> Tài khoản chủ sạp</h4>
+
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" asp-for="SearchTerm" class="form-control bg-light" placeholder="Tìm SĐT, Họ tên...">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-search me-1"></i> Tìm</button>
+
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <a href="/Users/Index" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">Tài khoản (SĐT)</th>
+                        <th class="py-3">Họ tên chủ sạp</th>
+                        <th class="text-center py-3">Số sạp quản lý</th>
+                        <th class="text-center py-3">Quyền hạn</th>
+                        <th class="text-center py-3">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.UserList.Any())
+                    {
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Chưa có tài khoản chủ sạp nào được tìm thấy.</td></tr>
+                    }
+                    @foreach (var user in Model.UserList)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">@user.Username</td>
+                            <td>@user.FullName</td>
+                            <td class="text-center">
+                                <span class="badge @(user.StallCount > 0 ? "bg-success-subtle text-success border border-success" : "bg-light text-muted border") rounded-pill px-3">
+                                    @user.StallCount sạp
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info-subtle text-info border border-info px-3">@user.Role</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <form method="post" asp-page-handler="ResetPassword" asp-route-id="@user.Id"
+                                          onsubmit="return confirm('Mật khẩu của @user.FullName sẽ quay về 123456. Tiếp tục?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning rounded-circle" style="width: 32px; height: 32px;" title="Reset mật khẩu">
+                                            <i class="bi bi-shield-lock"></i>
+                                        </button>
+                                    </form>
+
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id"
+                                          onsubmit="return confirm('Xóa tài khoản này sẽ làm sạp hàng của họ bị vô chủ. Tiếp tục?')">
+                                        <button class="btn btn-sm btn-outline-danger rounded-circle" style="width: 32px; height: 32px;"><i class="bi bi-trash3"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Trang <strong>@Model.CurrentPage</strong> / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</span>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Users/Index?PageNumber=@(Model.CurrentPage - 1)&SearchTerm=@Model.SearchTerm">Trước</a>
+                        </li>
+
+                        @{
+                            int startPage = Math.Max(1, Model.CurrentPage - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4)
+                            {
+                                startPage = Math.Max(1, endPage - 4);
+                            }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link shadow-none" href="/Users/Index?PageNumber=@i&SearchTerm=@Model.SearchTerm">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link shadow-none" href="/Users/Index?PageNumber=@(Model.CurrentPage + 1)&SearchTerm=@Model.SearchTerm">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.setTimeout(function() {
+            $(".alert").fadeTo(500, 0).slideUp(500, function(){ $(this).remove(); });
+        }, 4000);
+    </script>
+}

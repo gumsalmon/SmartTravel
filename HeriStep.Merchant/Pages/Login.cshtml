@@ -1,0 +1,78 @@
+﻿@page
+@model HeriStep.Merchant.Pages.LoginModel
+@{
+    Layout = null; // Không dùng layout chung để trang login sạch sẽ
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Đăng nhập - HeriStep Chủ Sạp</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+        }
+
+        .login-card {
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card login-card p-4 bg-white">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-primary">HeriStep</h3>
+                        <p class="text-muted">Dành cho Chủ sạp hàng</p>
+                    </div>
+
+                    <form method="post">
+                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            <div id="error-alert" class="alert alert-danger py-2 small shadow-sm mb-3">
+                                @Model.ErrorMessage
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small">Tên đăng nhập</label>
+                            <input type="text" asp-for="Username" class="form-control rounded-pill px-3" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small">Mật khẩu</label>
+                            <input type="password" asp-for="Password" class="form-control rounded-pill px-3" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">ĐĂNG NHẬP</button>
+                        <div class="text-center mt-4">
+                            <span class="text-muted small">Chưa có sạp hàng?</span>
+                            <a href="/Register" class="text-primary fw-bold text-decoration-none ms-1">Đăng ký sạp mới ngay</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tự động ẩn thông báo lỗi sau 5 giây (5000ms)
+        window.onload = function() {
+            var errorAlert = document.getElementById('error-alert');
+            if (errorAlert) {
+                setTimeout(function() {
+                    errorAlert.style.transition = "opacity 0.5s ease";
+                    errorAlert.style.opacity = "0";
+                    setTimeout(function() {
+                        errorAlert.style.display = "none";
+                    }, 500); // Đợi hiệu ứng mờ dần rồi mới ẩn hẳn
+                }, 5000);
+            }
+        };
+    </script>
+</body>
+</html>
