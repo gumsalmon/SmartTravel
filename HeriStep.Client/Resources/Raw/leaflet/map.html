@@ -92,6 +92,7 @@
         }
     </style>
     <script src="leaflet.js"></script>
+    <script src="leaflet-heat.js"></script>
 </head>
 <body>
     <div id="map"></div>
@@ -123,6 +124,33 @@
         var accuracyCircle = null;
         var highlightedStallId = null;
         var isMapMoving = false;
+        var heatLayer = null;
+
+        function toggleHeatmap(pointsJson, isEnabled) {
+            if (isEnabled) {
+                if (heatLayer) map.removeLayer(heatLayer);
+                
+                try {
+                    var rows = JSON.parse(pointsJson);
+                    var heatPoints = (rows || [])
+                        .map(function(x) { return [Number(x.lat || x.latitude), Number(x.lng || x.longitude), 0.9]; })
+                        .filter(function(p) { return !Number.isNaN(p[0]) && !Number.isNaN(p[1]); });
+
+                    heatLayer = L.heatLayer(heatPoints, {
+                        blur: 15,
+                        maxZoom: 17,
+                        radius: 25
+                    }).addTo(map);
+                } catch (e) {
+                    console.error("Heatmap draw error:", e);
+                }
+            } else {
+                if (heatLayer) {
+                    map.removeLayer(heatLayer);
+                    heatLayer = null;
+                }
+            }
+        }
 
         function notifyInteraction(isStarting) {
             window.location.href = isStarting ? "maui://interaction/start" : "maui://interaction/stop";

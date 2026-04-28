@@ -47,6 +47,7 @@ public partial class MapPage : ContentPage
         InitializeComponent();
         _audioService = audioService;
         _audioManager = audioManager;
+        _localDb = localDb; // FIXED: Gán LocalDb để không bị Null
         _trackingService = trackingService;
 
         LoadLeafletMap();
@@ -132,10 +133,17 @@ public partial class MapPage : ContentPage
 
         _ = _audioService.WarmUpAsync();
 
-        if (Compass.Default.IsSupported && !Compass.Default.IsMonitoring)
+        try
         {
-            Compass.Default.ReadingChanged += OnCompassReadingChanged;
-            Compass.Default.Start(SensorSpeed.UI);
+            if (Compass.Default.IsSupported && !Compass.Default.IsMonitoring)
+            {
+                Compass.Default.ReadingChanged += OnCompassReadingChanged;
+                Compass.Default.Start(SensorSpeed.UI);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[COMPASS] Error: {ex.Message}");
         }
     }
 
@@ -248,7 +256,14 @@ public partial class MapPage : ContentPage
                     RunJsAsync($"if(typeof updateUserLocation === 'function') updateUserLocation({_lastUserLat}, {_lastUserLon}, {(isRealGPS ? "true" : "false")});");
                 }
                 
-                CheckNearbyStalls(_lastUserLat, _lastUserLon);
+                try
+                {
+                    CheckNearbyStalls(_lastUserLat, _lastUserLon);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[MAP_LOOP] CheckNearbyStalls error: {ex.Message}");
+                }
                 
                 System.Diagnostics.Debug.WriteLine($"[MAP_LOOP] Stalls count: {_allStalls?.Count ?? 0}. Waiting 10s...");
 
@@ -458,7 +473,7 @@ public partial class MapPage : ContentPage
 
             if (poiList?.Count > 0)
             {
-                _allStalls = poiList.Select(p => new Stall
+                _allStalls = poiList.Where(p => p.OwnerId != null).Select(p => new Stall
                 {
                     Id = p.Id, Name = p.Name, Latitude = p.Latitude, Longitude = p.Longitude,
                     RadiusMeter = p.RadiusMeter, IsOpen = p.IsOpen, ImageUrl = p.ImageUrl,
@@ -477,7 +492,7 @@ public partial class MapPage : ContentPage
                 var offlineStalls = await _localDb.GetStallsAsync();
                 if (offlineStalls != null && offlineStalls.Count > 0)
                 {
-                    _allStalls = offlineStalls.Select(ls => new Stall {
+                    _allStalls = offlineStalls.Where(ls => ls.HasOwner).Select(ls => new Stall {
                         Id = ls.Id, Name = ls.Name, Latitude = ls.Latitude, Longitude = ls.Longitude,
                         RadiusMeter = (int)ls.RadiusMeter, IsOpen = ls.IsOpen, ImageUrl = ls.ImageUrl, Description = ls.Description,
                         OwnerId = ls.HasOwner ? 1 : null
@@ -647,6 +662,38 @@ public partial class MapPage : ContentPage
             Console.WriteLine($"[ANALYTICS_SYNC] SaveListenDurationToLocalAsync failed: {ex.Message}");
         }
     }
+    private bool _isHeatmapEnabled = false;
+
+    private async void ToggleHeatmap_Clicked(object sender, EventArgs e)
+    {
+        _isHeatmapEnabled = !_isHeatmapEnabled;
+        
+        if (_isHeatmapEnabled)
+        {
+            btnToggleHeatmap.BackgroundColor = Color.FromArgb("#FFE0D6"); // Highlight
+            try
+            {
+                var response = await _sharedHttpClient.GetAsync($"{AppConstants.BaseApiUrl}/api/analytics/heatmap");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    RunJsAsync($"if(typeof toggleHeatmap === 'function') toggleHeatmap('{json}', true);");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[HEATMAP] Fetch error: {ex.Message}");
+                _isHeatmapEnabled = false;
+                btnToggleHeatmap.BackgroundColor = Color.FromArgb("#EEFFFFFF");
+            }
+        }
+        else
+        {
+            btnToggleHeatmap.BackgroundColor = Color.FromArgb("#EEFFFFFF");
+            RunJsAsync($"if(typeof toggleHeatmap === 'function') toggleHeatmap('[]', false);");
+        }
+    }
+
     private void CenterUser_Clicked(object sender, EventArgs e)
     {
         // Gần như ngay lập tức cập nhật toạ độ và căn giữa (bỏ qua cooldown)

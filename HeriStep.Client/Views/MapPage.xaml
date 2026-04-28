@@ -82,6 +82,11 @@
         </Border>
 
         <!-- ── FLOAT BUTTONS ── -->
+        <Button x:Name="btnToggleHeatmap" Text="🔥" FontSize="20"
+                BackgroundColor="#EEFFFFFF" CornerRadius="22" WidthRequest="44" HeightRequest="44"
+                HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,144"
+                Padding="0" Clicked="ToggleHeatmap_Clicked" />
+
         <ImageButton x:Name="btnCenterUser" Source="https://cdn-icons-png.flaticon.com/512/9356/9356230.png"
                      BackgroundColor="#EEFFFFFF" CornerRadius="20" WidthRequest="44" HeightRequest="44"
                      HorizontalOptions="End" VerticalOptions="End" Margin="0,0,14,90"

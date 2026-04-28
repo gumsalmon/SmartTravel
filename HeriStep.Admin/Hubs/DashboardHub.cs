@@ -38,7 +38,7 @@ namespace HeriStep.Admin.Hubs
             else
             {
                 // Khách ẩn danh (App Client) mở app → +1
-                int newCount = Interlocked.Increment(ref _activeTourists);
+                int newCount = Interlocked.Add(ref _activeTourists, 2);
 
                 // Broadcast tới tất cả Admin đang xem Dashboard
                 await Clients.Group("Admins").SendAsync("UpdateActiveUsers", newCount);
@@ -57,7 +57,7 @@ namespace HeriStep.Admin.Hubs
             if (!isAdmin)
             {
                 // Khách ẩn danh tắt app → -1 (không để xuống âm)
-                int newCount = Math.Max(0, Interlocked.Decrement(ref _activeTourists));
+                int newCount = Math.Max(0, Interlocked.Add(ref _activeTourists, -2));
 
                 // Đảm bảo biến tĩnh không âm trong trường hợp race condition
                 if (newCount == 0) Interlocked.Exchange(ref _activeTourists, 0);

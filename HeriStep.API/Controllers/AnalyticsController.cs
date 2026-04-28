@@ -1,4 +1,5 @@
 using HeriStep.API.Data;
+using HeriStep.API.Services;
 using HeriStep.Shared.Models;
 using HeriStep.Shared.Models.DTOs.Requests;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,12 @@ namespace HeriStep.API.Controllers
     public class AnalyticsController : ControllerBase
     {
         private readonly HeriStepDbContext _context;
+        private readonly VisitQueueService _visitQueueService;
 
-        public AnalyticsController(HeriStepDbContext context)
+        public AnalyticsController(HeriStepDbContext context, VisitQueueService visitQueueService)
         {
             _context = context;
+            _visitQueueService = visitQueueService;
         }
 
         // ==========================================================
@@ -67,6 +70,28 @@ namespace HeriStep.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "Lỗi khi lưu tracking data.", Error = ex.Message });
+            }
+        }
+
+        // ==========================================================
+        // 1.5. LOG LƯỢT NGHE AUDIO TẠI SẠP (REAL-TIME, BATCHING)
+        // ==========================================================
+        [HttpPost("stall-visit")]
+        public async Task<IActionResult> LogVisit([FromBody] StallVisit payload)
+        {
+            if (payload == null)
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ." });
+
+            try
+            {
+                // Đẩy vào hàng đợi RAM cực nhanh thay vì ghi thẳng DB
+                await _visitQueueService.EnqueueVisitAsync(payload);
+                
+                return Ok(new { Message = "Ghi nhận thành công, đang xử lý ngầm." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Lỗi hệ thống.", Error = ex.Message });
             }
         }
 

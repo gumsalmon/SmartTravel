@@ -84,6 +84,9 @@ builder.Services.AddHttpClient<TranslationService>();
 builder.Services.AddHostedService<TranslationWorker>();
 builder.Services.AddMemoryCache(); // 💡 Thêm dòng này
 
+builder.Services.AddSingleton<VisitQueueService>();
+builder.Services.AddHostedService<VisitProcessingWorker>();
+
 // --- 1.4 JWT Authentication ---
 var jwtKeyString = builder.Configuration["Jwt:Key"] ?? "superSecretKey_NeedToChange_InProduction_123456789";
 var key = Encoding.ASCII.GetBytes(jwtKeyString);
