@@ -44,7 +44,7 @@ namespace HeriStep.API.Controllers
                 stats.ActiveDevices = await _context.Subscriptions.AsNoTracking()
                     .CountAsync(s => s.IsActive == true && (s.ExpiryDate == null || s.ExpiryDate > now));
 
-                stats.TotalVisits = await _context.StallVisits.AsNoTracking().CountAsync();
+                stats.TotalVisits = (await _context.StallVisits.AsNoTracking().CountAsync()) ;
 
                 stats.TotalLanguages = await _context.Languages.AsNoTracking()
                     .CountAsync(l => l.IsDeleted == false);

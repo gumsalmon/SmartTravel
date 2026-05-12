@@ -65,10 +65,10 @@ namespace HeriStep.API.Controllers
         [HttpPost("track-visit")]
         public async Task<IActionResult> TrackVisit([FromBody] TrackVisitDto dto)
         {
-            // Bỏ qua nếu thời gian nghe chưa tới 5 giây để tránh nhiễu dữ liệu báo cáo
-            if (dto.Duration < 5)
+            // Bỏ qua nếu duration âm (call lỗi) - cho phép duration=1 (start tracking) và duration>=5 (thực tế)
+            if (dto.Duration < 1)
             {
-                return Ok(new { message = "Skipped tracking (duration < 5s)" });
+                return Ok(new { message = "Skipped tracking (invalid duration)" });
             }
 
             var visit = new StallVisit

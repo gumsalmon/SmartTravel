@@ -35,7 +35,7 @@ namespace HeriStep.Admin.Pages.Analytics
             try
             {
                 var avgData = await _http.GetFromJsonAsync<List<AvgListenItem>>(
-                    "http://localhost:5297/api/analytics/avg-listen-time")
+                    "api/analytics/avg-listen-time")
                     ?? new List<AvgListenItem>();
 
                 // Biểu đồ Bar: Top 10 sạp theo số lượt (VisitCount)

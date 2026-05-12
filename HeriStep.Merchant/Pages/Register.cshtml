@@ -123,7 +123,7 @@
         };
 
         try {
-        const res = await fetch('http://127.0.0.1:5297/api/Payments/register-new-merchant', {
+        const res = await fetch('/api/Payments/register-new-merchant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -150,7 +150,7 @@
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(async () => {
         try {
-        let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+        let res = await fetch(`/api/Payments/check-status/${orderId}`);
         let statusData = await res.json();
         if (statusData.isPaid) {
         clearInterval(pollingInterval);

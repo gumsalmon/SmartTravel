@@ -55,7 +55,7 @@
                     {
                         <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom opacity-75">
                             <div style="position: relative;">
-                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "http://127.0.0.1:5297" + stall.ImageUrl)"
+                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "/api" + stall.ImageUrl)"
                                      class="card-img-top rounded-top-4" style="height: 200px; object-fit: cover; filter: grayscale(100%);">
 
                                 <div class="d-flex align-items-center justify-content-center"
@@ -77,7 +77,7 @@
                     {
                         <a href="/StallDashboard?stallId=@stall.Id" class="text-decoration-none">
                             <div class="card h-100 border-0 shadow-sm rounded-4 hover-zoom">
-                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "http://127.0.0.1:5297" + stall.ImageUrl)"
+                                <img src="@(string.IsNullOrEmpty(stall.ImageUrl) ? "/images/default-stall.jpg" : "/api" + stall.ImageUrl)"
                                      class="card-img-top rounded-top-4" alt="@stall.Name" style="height: 200px; object-fit: cover;">
                                 <div class="card-body text-center p-4">
                                     <h5 class="card-title fw-bold text-dark mb-2">@stall.Name</h5>
@@ -299,7 +299,7 @@
     if(paymentPollingInterval) clearInterval(paymentPollingInterval);
     paymentPollingInterval = setInterval(async () => {
     try {
-    let res = await fetch(`http://127.0.0.1:5297/api/Payments/check-status/${orderId}`);
+    let res = await fetch(`https://vinhkhanh.click/api/Payments/check-status/${orderId}`);
     let statusData = await res.json();
     if (statusData.isPaid) {
     clearInterval(paymentPollingInterval);
@@ -328,7 +328,7 @@
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
 
     try {
-    const response = await fetch('http://127.0.0.1:5297/api/Payments/buy-extra-stall', {
+    const response = await fetch('https://vinhkhanh.click/api/Payments/buy-extra-stall', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ OwnerId: userId, StallName: name, Latitude: lat, Longitude: lng })
@@ -364,7 +364,7 @@
     bodyContent.innerHTML = `<h5 class="fw-bold">${stallName}</h5><div class="spinner-border text-primary"></div>`;
 
     try {
-    const res = await fetch(`http://127.0.0.1:5297/api/Payments/get-renewal-qr/${stallId}`);
+    const res = await fetch(`https://vinhkhanh.click/api/Payments/get-renewal-qr/${stallId}`);
     const data = await res.json();
     bodyContent.innerHTML = `
     <h5 class="fw-bold">${stallName}</h5>
@@ -394,7 +394,7 @@
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang đổi...';
 
     try {
-    const response = await fetch('http://127.0.0.1:5297/api/Auth/change-password', {
+    const response = await fetch('https://vinhkhanh.click/api/Auth/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ UserId: userId, OldPassword: oldPass, NewPassword: newPass })

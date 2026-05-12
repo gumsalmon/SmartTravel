@@ -1,8 +1,35 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Yarp.ReverseProxy.Configuration;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
+
+// 💡 Cấu hình Proxy để chuyển hướng các yêu cầu /api sang API Project (Port 5297)
+builder.Services.AddReverseProxy()
+    .LoadFromMemory(
+        routes: new[]
+        {
+            new RouteConfig
+            {
+                RouteId = "api-route",
+                ClusterId = "api-cluster",
+                Match = new RouteMatch { Path = "/api/{**remainder}" }
+            }
+        },
+        clusters: new[]
+        {
+            new ClusterConfig
+            {
+                ClusterId = "api-cluster",
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    { "api-destination", new DestinationConfig { Address = "http://127.0.0.1:5297/" } }
+                }
+            }
+        });
+
 
 // 1. ĐÃ FIX: Đăng ký HttpClient chuẩn chỉ
 builder.Services.AddHttpClient();
@@ -63,5 +90,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapReverseProxy();
+
 
 app.Run();

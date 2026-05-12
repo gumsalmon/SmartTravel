@@ -16,7 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. ĐĂNG KÝ DỊCH VỤ (SERVICES)
 // ==========================================================
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All);
+    });
 builder.Services.AddOpenApi();
 
 // --- 1.1 Cấu hình Database (💡 LỚP BẢO VỆ SỐ 1: Bắt lỗi ConnectionString) ---

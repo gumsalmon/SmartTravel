@@ -2,63 +2,61 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>HeriStep Sequence Diagram</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ Sequence Analytics - HeriStep</title>
+    <!-- Nhúng thư viện Mermaid.js -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-    <script>mermaid.initialize({ startOnLoad: true, theme: 'forest' });</script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f7f6; }
-        h2 { color: #2c3e50; border-left: 5px solid #27ae60; padding-left: 10px; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 15px; shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 30px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>1. Chức năng Xem Bản Đồ Nhiệt (Heatmap)</h2>
+        <h2>Sơ đồ Sequence: Quản lý Thời gian nghe trung bình</h2>
+        
         <div class="mermaid">
             sequenceDiagram
                 autonumber
-                actor Admin as Quản trị viên
-                participant Web as Web Admin (Frontend)
-                participant API as Analytics API (Backend)
-                participant DB as SQL Server (Database)
+                actor User as Khách Du Lịch (App/Web)
+                participant Client as HeriStep Client
+                participant API as HeriStep.API (AnalyticsController)
+                participant Worker as VisitProcessingWorker (Background)
+                participant DB as SQL Server (StallVisits Table)
+                actor Admin as Quản Trị Viên (Admin Web)
 
-                Admin->>Web: Tích chọn "Hiện bản đồ nhiệt"
-                Web->>API: GET /api/analytics/heatmap
-                activate API
-                API->>DB: SELECT Latitude, Longitude FROM TouristTrajectories
-                activate DB
-                DB-->>API: Danh sách hàng ngàn tọa độ
-                deactivate DB
-                API-->>Web: Trả về JSON (List of Coordinates)
-                deactivate API
-                Web->>Web: Render L.heatLayer (Leaflet.heat)
-                Web-->>Admin: Hiển thị vùng mật độ đỏ/cam trên bản đồ
-        </div>
-    </div>
+                Note over User, DB: GIAI ĐOẠN 1: GHI NHẬN THỜI GIAN NGHE
+                User->>Client: Ấn nút "Nghe thuyết minh"
+                Client->>Client: Bắt đầu tính giờ (Timer Start)
+                User->>Client: Ấn "Dừng" hoặc chuyển trang
+                Client->>Client: Tính tổng thời gian (giây)
+                
+                alt Nếu là Mobile App (Gửi qua Queue)
+                    Client->>API: Gửi POST /api/Listen/TrackVisit (StallId, Duration)
+                    API->>Worker: Đẩy thông tin vào Hàng đợi (VisitQueue)
+                    Worker->>DB: Lưu bản ghi mới vào bảng [StallVisits]
+                else Nếu là Web (Gửi trực tiếp)
+                    Client->>API: Gửi POST /api/Listen/TrackVisit
+                    API->>DB: INSERT trực tiếp vào bảng [StallVisits]
+                end
 
-    <div class="container">
-        <h2>2. Chức năng Xem Tuyến Đi Ẩn Danh (Route Tracking)</h2>
-        <div class="mermaid">
-            sequenceDiagram
-                autonumber
-                actor Admin as Quản trị viên
-                participant Web as Web Admin (Frontend)
-                participant API as Analytics API (Backend)
-                participant DB as SQL Server (Database)
-
-                Admin->>Web: Nhập Device ID & Bấm "Vẽ Tuyến Đi"
-                Web->>API: GET /api/analytics/route/{deviceId}
-                activate API
-                API->>DB: SELECT * FROM TouristTrajectories WHERE DeviceId = id ORDER BY RecordedAt
-                activate DB
-                DB-->>API: Danh sách tọa độ theo thời gian
-                deactivate DB
-                API-->>Web: Trả về JSON (Sorted List of Points)
-                deactivate API
-                Web->>Web: Vẽ L.polyline nối các điểm
-                Web->>Web: Đánh dấu Start/End Marker
-                Web-->>Admin: Hiển thị đường di chuyển của khách
+                Note over User, DB: GIAI ĐOẠN 2: TRUY XUẤT THỐNG KÊ TRUNG BÌNH
+                Admin->>Admin: Truy cập trang Analytics
+                Admin->>API: Gửi GET /api/Analytics/avg-listen-time
+                
+                Note right of API: SQL Logic: SELECT AVG(listen_duration_seconds)
+                
+                API->>DB: Query: AVG() theo StallId
+                DB-->>API: Trả về kết quả (giây)
+                
+                API->>API: Format Giây -> Phút:Giây
+                API-->>Admin: Trả về JSON (stallName, avgDuration)
+                Admin->>Admin: Hiển thị lên biểu đồ
         </div>
     </div>
 

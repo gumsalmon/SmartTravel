@@ -31,5 +31,16 @@ namespace HeriStep.API.Services
         {
             return _queue.Reader.ReadAllAsync(cancellationToken);
         }
+
+        // Dùng cho Batch Worker: chờ (blocking) cho đến khi có ít nhất 1 item
+        public ValueTask<StallVisit> DequeueAsync(CancellationToken cancellationToken)
+            => _queue.Reader.ReadAsync(cancellationToken);
+
+        // Dùng cho Batch Worker: đọc không chờ (non-blocking), drain hết queue
+        public bool TryDequeue(out StallVisit visit)
+            => _queue.Reader.TryRead(out visit!);
+
+        // Tiện ích: kiểm tra số item đang chờ trong queue
+        public int PendingCount => _queue.Reader.Count;
     }
 }

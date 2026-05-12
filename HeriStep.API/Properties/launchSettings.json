@@ -5,7 +5,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "http://0.0.0.0:5297",
+      "applicationUrl": "http://127.0.0.1:5297",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "1"

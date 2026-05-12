@@ -88,22 +88,9 @@ namespace HeriStep.Client
 
         private async void BtnShop_Clicked(object sender, EventArgs e)
         {
-            Console.WriteLine("[CRITICAL_LOG] BtnShop_Clicked invoked.");
-            try
-            {
-                var stall = new HeriStep.Shared.Models.Stall
-                {
-                    Id = 1, Name = "Ốc Oanh Vĩnh Khánh",
-                    ImageUrl = "https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=600"
-                };
-                Console.WriteLine("[CRITICAL_LOG] Attempting to PushAsync(new ShopDetailPage(stall, _audioService))...");
-                await Navigation.PushAsync(new ShopDetailPage(stall, _audioService));
-                Console.WriteLine("[CRITICAL_LOG] PushAsync succeeded.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[CRITICAL_LOG] FATAL CRASH IN NAV TO ShopDetailPage:\n{ex.Message}\n{ex.StackTrace}");
-            }
+            // Xem tất cả quán — dùng lại FilterResultPage với toàn bộ danh sách
+            var allStalls = _homeViewModel.AllPoints.ToList();
+            await Navigation.PushAsync(new FilterResultPage("Tất Cả Quán", allStalls, _audioService));
         }
 
         private async void Promo_Clicked(object sender, EventArgs e)

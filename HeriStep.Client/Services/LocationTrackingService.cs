@@ -63,8 +63,9 @@ public class LocationTrackingService : IAsyncDisposable
                 await _trackLock.WaitAsync(token);
                 try
                 {
-                    // FIXED: Chỉ lấy LastKnownLocation để không bắt ép phần cứng GPS (tránh Crash 10s trên Emulator)
+                    // CHỈ sử dụng GetLastKnownLocationAsync để an toàn 100% trên mọi loại máy ảo/thiết bị thực.
                     var location = await Geolocation.Default.GetLastKnownLocationAsync();
+
                     if (location != null)
                     {
                         var payload = new TrackPayload

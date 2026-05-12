@@ -1,5 +1,7 @@
 using HeriStep.Admin.Hubs;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Yarp.ReverseProxy.Configuration;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,14 +9,40 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. HTTP CLIENT (gọi Backend API)
 // ================================================================
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton(System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All));
 builder.Services.AddScoped(sp =>
 {
     var client = new HttpClient
     {
-        BaseAddress = new Uri("http://localhost:5297/") // Port của HeriStep.API
+        BaseAddress = new Uri("http://127.0.0.1:5297/") // Port của HeriStep.API
     };
     return client;
 });
+
+// 💡 Cấu hình Proxy để chuyển hướng /api sang API Project
+builder.Services.AddReverseProxy()
+    .LoadFromMemory(
+        routes: new[]
+        {
+            new RouteConfig
+            {
+                RouteId = "api-route",
+                ClusterId = "api-cluster",
+                Match = new RouteMatch { Path = "/api/{**remainder}" }
+            }
+        },
+        clusters: new[]
+        {
+            new ClusterConfig
+            {
+                ClusterId = "api-cluster",
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    { "api-destination", new DestinationConfig { Address = "http://127.0.0.1:5297/" } }
+                }
+            }
+        });
+
 
 // ================================================================
 // 2. AUTHENTICATION (Cookie-based cho Admin Web)
@@ -96,6 +124,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapReverseProxy();
+
 
 // ================================================================
 // 6. MAP SIGNALR HUB — PHẦN BỊ THIẾU THỨ 2!

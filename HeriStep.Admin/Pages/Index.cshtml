@@ -7,6 +7,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
+<div class="d-flex justify-content-end mb-3 gap-2">
+    <a href="/downloads/HeriStep.apk" download class="btn btn-sm btn-success rounded-pill px-3">
+        <i class="bi bi-android2 me-1"></i> Tải APK mới nhất
+    </a>
+</div>
+
+
 <style>
     @@keyframes pulseFlash {
         0%   { background-color: white; }
@@ -63,7 +70,7 @@
         <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-success border-4">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <p class="text-muted small fw-bold text-uppercase mb-1">Lượt ghé sạp</p>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Lượt nghe</p>
                     <h3 class="fw-bold text-success mb-0">@(Model.Stats?.TotalVisits ?? 0)</h3>
                 </div>
                 <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
@@ -241,10 +248,10 @@
         // Dữ liệu inject từ PageModel (vé theo ngày + Doanh thu)
         // ================================================================
         const stats = {
-            chartData  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartData   ?? new System.Collections.Generic.List<int>()))'),
-            chartLabels: JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.ChartLabels ?? new System.Collections.Generic.List<string>()))'),
-            revData    : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueData  ?? new System.Collections.Generic.List<double>()))'),
-            revLabels  : JSON.parse('@Html.Raw(Json.Serialize(Model.Stats?.RevenueLabels ?? new System.Collections.Generic.List<string>()))')
+            chartData  : @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats?.ChartData   ?? new System.Collections.Generic.List<int>())),
+            chartLabels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats?.ChartLabels ?? new System.Collections.Generic.List<string>())),
+            revData    : @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats?.RevenueData  ?? new System.Collections.Generic.List<double>())),
+            revLabels  : @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats?.RevenueLabels ?? new System.Collections.Generic.List<string>()))
         };
 
         function applyQuickFilter(days) {
@@ -292,7 +299,7 @@
             // --- 3. Biểu đồ cột ngang: Top 5 sạp theo THỜI GIAN NGHE ---
             //    Gọi API riêng để đảm bảo dữ liệu là ListenDuration (không phải VisitCount)
             try {
-                const res = await fetch("http://localhost:5297/api/Stats/top5-by-listen");
+                const res = await fetch("/api/Stats/top5-by-listen");
                 if (res.ok) {
                     const top5 = await res.json();
                     const topNames   = top5.map(x => x.stallName);

@@ -59,7 +59,7 @@
                         {
                             <div class="mt-2 p-2 border rounded bg-light text-center">
                                 <small class="text-muted d-block mb-1 text-start">Ảnh hiện tại:</small>
-                                <img src="http://127.0.0.1:5297@(Model.StallInfo.ImageUrl)" style="height: 150px; border-radius: 8px; border: 1px solid #ddd;" />
+                                <img src="/api@(Model.StallInfo.ImageUrl)" style="height: 150px; border-radius: 8px; border: 1px solid #ddd;" />
                             </div>
                         }
                     </div>
@@ -242,7 +242,7 @@
     window.speechSynthesis.onvoiceschanged = () => { synthVoices = window.speechSynthesis.getVoices(); };
 
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl("http://127.0.0.1:5297/stallHub")
+        .withUrl("/api/stallHub")
         .withAutomaticReconnect()
         .build();
 
@@ -282,7 +282,7 @@
             let textToRead = document.getElementById('stallTts').value || "Kính chào quý khách";
             if (langCode !== 'vi') {
                 try {
-                    const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/tts/${langCode}`);
+                    const res = await fetch(`/api/Stalls/${stallId}/tts/${langCode}`);
                     let apiText = "";
                     if (res.ok) apiText = (await res.json()).text;
 
@@ -399,7 +399,7 @@
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+            const response = await fetch(`/api/Stalls/${stallId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
             if (response.ok) {
                 await Swal.fire("Thành công", "Đã cập nhật thông tin!", "success");
                 localStorage.setItem('activeStallTab', '#info');
@@ -430,7 +430,7 @@
         fd.append("ImageFile", imageInput.files[0]);
 
         try {
-            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/add-product`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            const response = await fetch(`/api/Stalls/add-product`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
             if (response.ok) {
                 await Swal.fire("Thành công", "Đã thêm món!", "success");
                 localStorage.setItem('activeStallTab', '#menu');
@@ -457,7 +457,7 @@
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/delete-product/${productId}`, {
+            const response = await fetch(`/api/Stalls/delete-product/${productId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -510,7 +510,7 @@
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:5297/api/Stalls/update-product/${id}`, {
+            const response = await fetch(`/api/Stalls/update-product/${id}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: fd
@@ -533,7 +533,7 @@
     let tempFoods = [];
     async function loadMenu() {
         try {
-            const res = await fetch(`http://127.0.0.1:5297/api/Stalls/${stallId}/products`);
+            const res = await fetch(`/api/Stalls/${stallId}/products`);
             if (res.ok) { tempFoods = await res.json(); renderMenu(); }
         } catch (e) { console.error("Lỗi:", e); }
     }
@@ -547,7 +547,7 @@
             <div class="col-md-6 mb-2">
                 <div class="d-flex justify-content-between align-items-center border p-2 rounded shadow-sm bg-white">
                     <div class="d-flex align-items-center">
-                        <img src="${f.imageUrl ? 'http://127.0.0.1:5297' + f.imageUrl : '/images/default-food.jpg'}"
+                        <img src="${f.imageUrl ? '/api' + f.imageUrl : '/images/default-food.jpg'}"
                              style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="me-3 border">
                         <div>
                             <h6 class="mb-1 fw-bold text-dark">${f.name || 'Món ăn'}</h6>

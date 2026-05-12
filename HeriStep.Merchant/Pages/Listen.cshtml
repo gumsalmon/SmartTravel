@@ -12,58 +12,169 @@
     <title>Nghe thuyết minh - HeriStep</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            width: 100%;
+        }
         body {
-            background-color: #f8f9fa;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f6fb;
+            font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ===== HEADER HERO ===== */
+        .hero-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FF5722 0%, #FF8A65 100%);
         }
         .cover-img {
             width: 100%;
-            height: 250px;
+            height: 100%;
             object-fit: cover;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: block;
         }
-        .stall-info {
-            margin-top: -40px;
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.45) 100%);
+        }
+
+        /* ===== STALL CARD (floats over hero) ===== */
+        .stall-card-wrapper {
+            padding: 0 16px;
+            margin-top: -48px;
             position: relative;
             z-index: 10;
         }
         .stall-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 20px 20px 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        .stall-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        /* ===== SECTION TITLE ===== */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #555;
+            text-align: center;
+            margin: 24px 0 14px;
+        }
+
+        /* ===== LANGUAGE GRID ===== */
+        .langs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 16px;
         }
         .lang-btn {
-            border-radius: 12px;
+            background: #ffffff;
+            border-radius: 16px;
             border: 2px solid transparent;
-            transition: all 0.2s ease;
+            padding: 16px 10px 12px;
+            text-align: center;
             cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+            position: relative;
+            overflow: hidden;
         }
         .lang-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.96);
         }
         .lang-btn.active {
-            border-color: #0d6efd;
-            background-color: #e9ecef;
+            border-color: #FF5722;
+            background: #fff5f2;
+            box-shadow: 0 4px 16px rgba(255,87,34,0.18);
         }
-        .flag-icon {
-            font-size: 2.5rem;
+        .lang-btn.loading-lang {
+            opacity: 0.7;
+        }
+        .flag-wrap {
+            font-size: 2.4rem;
             line-height: 1;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 44px;
         }
+        .flag-wrap img {
+            width: 44px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .lang-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+        .lang-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            background: #f0f0f0;
+            color: #777;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .lang-badge.auto {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .lang-badge.native {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .lang-status {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #FF5722;
+            display: none;
+        }
+        .lang-btn.active .lang-status {
+            display: block;
+        }
+
+        /* ===== VISUALIZER ===== */
         .visualizer-container {
-            display: none; /* hidden by default */
+            display: none;
             height: 40px;
             align-items: center;
             justify-content: center;
             gap: 5px;
         }
         .bar {
-            width: 6px;
+            width: 5px;
             height: 10px;
-            background-color: #0d6efd;
+            background-color: #FF5722;
             border-radius: 3px;
             animation: bounce 0.5s infinite alternate;
         }
@@ -75,253 +186,400 @@
         @@keyframes bounce {
             to { height: 35px; }
         }
+
+        /* ===== PLAYING STATUS ===== */
+        #playingStatus {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* ===== STOP BTN ===== */
+        #btnStop {
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        /* ===== DOWNLOAD BANNER ===== */
+        .dl-banner {
+            margin: 28px 16px 40px;
+            background: linear-gradient(135deg, #FF5722 0%, #FF8A65 100%);
+            border-radius: 22px;
+            padding: 24px 20px;
+            color: #fff;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(255,87,34,0.30);
+        }
+        .dl-banner h5 {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+        .dl-banner p {
+            font-size: 0.8rem;
+            opacity: 0.88;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .dl-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            color: #FF5722;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 30px;
+            padding: 10px 24px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.18s;
+        }
+        .dl-btn:hover { transform: scale(1.03); color: #e64a19; }
+
+        /* ===== LOADING / TRANSLATE SPINNER ===== */
+        .translate-spinner {
+            display: none;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.78rem;
+            color: #888;
+        }
+        .translate-spinner.show { display: block; }
     </style>
 </head>
 <body>
-    <div id="loading" class="text-center mt-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted fw-bold">Đang tải thông tin sạp...</p>
+
+    <!-- LOADING STATE -->
+    <div id="loading" class="text-center" style="padding-top: 80px;">
+        <div class="spinner-border text-warning" role="status"></div>
+        <p class="mt-3 text-muted fw-semibold" style="font-size:0.9rem;">Đang tải thông tin sạp...</p>
     </div>
 
-    <div id="main-content" style="display:none; padding-bottom: 50px;">
-<img id="stallImage" src="https://via.placeholder.com/800x400?text=HeriStep" class="cover-img" alt="Stall Cover" />
-        
-        <div class="container stall-info">
-            <div class="stall-card text-center mb-4">
-                <h3 id="stallName" class="fw-bold text-dark mb-1">...</h3>
-                <p class="text-muted small mb-0"><i class="bi bi-geo-alt-fill text-danger"></i> Quét từ mã QR</p>
-                
-                <div id="visualizer" class="visualizer-container mt-3">
+    <!-- MAIN CONTENT -->
+    <div id="main-content" style="display:none;">
+
+        <!-- HERO IMAGE -->
+        <div class="hero-wrapper" id="heroWrapper">
+            <img id="stallImage" src="" class="cover-img" alt="Stall Cover" />
+            <div class="hero-overlay"></div>
+        </div>
+
+        <!-- STALL INFO CARD -->
+        <div class="stall-card-wrapper">
+            <div class="stall-card text-center">
+                <div class="stall-name" id="stallName">...</div>
+                <p class="text-muted mb-2" style="font-size:0.8rem;">
+                    <i class="bi bi-geo-alt-fill text-danger"></i> Quét từ mã QR
+                </p>
+
+                <!-- VISUALIZER -->
+                <div id="visualizer" class="visualizer-container mt-2">
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
                 </div>
-                <div id="playingStatus" class="mt-2 fw-bold text-primary" style="display:none;">🔊 Đang phát thuyết minh...</div>
-                
-                <button id="btnStop" class="btn btn-outline-danger w-100 rounded-pill mt-3 fw-bold border-2 shadow-sm" style="display:none;" onclick="stopAudio()">
+
+                <!-- PLAYING STATUS -->
+                <div id="playingStatus" class="mt-2 text-warning" style="display:none;">
+                    🔊 Đang phát thuyết minh...
+                </div>
+
+                <!-- STOP BUTTON -->
+                <button id="btnStop" class="btn btn-outline-danger w-100 mt-3 border-2 shadow-sm"
+                        style="display:none;" onclick="stopAudio()">
                     <i class="bi bi-stop-circle-fill me-1"></i> DỪNG PHÁT ÂM
                 </button>
             </div>
-
-            <h5 class="fw-bold text-secondary text-center mb-3 mt-4">Chọn ngôn ngữ để bắt đầu nghe</h5>
-            <div class="row g-3" id="langsContainer">
-                <!-- Data rendered by JS -->
-            </div>
-
-            <div class="card mt-5 border-0 shadow-sm" style="background: linear-gradient(135deg, #FF5722 0%, #FF8A65 100%); border-radius: 20px;">
-                <div class="card-body text-white text-center py-4">
-                    <h5 class="fw-bold mb-2">Trải Nghiệm Toàn Diện Nhất</h5>
-                    <p class="small mb-3 text-white-50 fw-semibold" style="line-height: 1.4;">Tải app HeriStep để xem bản đồ du lịch độc quyền, và chế độ rảnh tay tự động phát thanh khi đến gần các sạp.</p>
-                    <a href="https://admin.vinhkhanh.click/downloads/HeriStep.apk" class="btn btn-light rounded-pill shadow-sm py-2 px-4 fw-bold" style="color: #FF5722;">
-                        <i class="bi bi-android2 me-2 fs-5 align-middle"></i><span class="align-middle">Tải App (Android APK)</span>
-                    </a>
-                </div>
-            </div>
         </div>
+
+        <!-- LANGUAGE SECTION -->
+        <div class="section-title">Chọn ngôn ngữ để bắt đầu nghe</div>
+        <div class="translate-spinner" id="translateSpinner">
+            <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+            Đang dịch tự động...
+        </div>
+        <div class="langs-grid" id="langsContainer">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- DOWNLOAD BANNER -->
+        <div class="dl-banner">
+            <h5>Trải Nghiệm Toàn Diện Nhất</h5>
+            <p>Tải app HeriStep để xem bản đồ du lịch độc quyền, và chế độ rảnh tay tự động phát thanh khi đến gần các sạp.</p>
+            <a href="https://admin.vinhkhanh.click/downloads/HeriStep.apk" class="dl-btn">
+                <i class="bi bi-android2 fs-5"></i> Tải App (Android APK)
+            </a>
+        </div>
+
     </div>
+
     <script>
-        // Tự động nhận diện domain. Nếu đang chạy local (localhost:5006) thì trỏ API sang cổng 5297.
+        // === CONFIG ===
         const DOMAIN = window.location.origin;
-        const API_BASE = DOMAIN.includes('localhost') ? 'http://localhost:5297/api/Listen' : `${DOMAIN}/api/Listen`;
+        const API_BASE = '/api/Listen';
         const stallId = @Model.StallId;
-        
+
         let deviceId = localStorage.getItem('deviceId');
         if (!deviceId) {
             deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('deviceId', deviceId);
         }
 
-        let availableLangs = [];
         let synth = window.speechSynthesis;
-        let playStartTime = 0;
         let isSpeaking = false;
+        let playStartTime = 0;
+        let currentLangData = null;
+        let visitTracked = false; // Cờ chống ghi trùng trong cùng phiên
 
-        const langCodeMap = {
-            'vi': 'vi-VN', 'en': 'en-US', 'ja': 'ja-JP', 'ko': 'ko-KR',
-            'zh': 'zh-CN', 'fr': 'fr-FR', 'es': 'es-ES', 'ru': 'ru-RU',
-            'th': 'th-TH', 'de': 'de-DE'
-        };
+        // === 10 FIXED LANGUAGES ===
+        const ALL_LANGS = [
+            { code: 'vi', bcp47: 'vi-VN', name: 'Tiếng Việt',   flag: '🇻🇳' },
+            { code: 'en', bcp47: 'en-US', name: 'English',       flag: '🇺🇸' },
+            { code: 'ja', bcp47: 'ja-JP', name: '日本語',         flag: '🇯🇵' },
+            { code: 'ko', bcp47: 'ko-KR', name: '한국어',          flag: '🇰🇷' },
+            { code: 'zh', bcp47: 'zh-CN', name: '中文',           flag: '🇨🇳' },
+            { code: 'fr', bcp47: 'fr-FR', name: 'Français',      flag: '🇫🇷' },
+            { code: 'es', bcp47: 'es-ES', name: 'Español',       flag: '🇪🇸' },
+            { code: 'ru', bcp47: 'ru-RU', name: 'Русский',       flag: '🇷🇺' },
+            { code: 'th', bcp47: 'th-TH', name: 'ภาษาไทย',        flag: '🇹🇭' },
+            { code: 'de', bcp47: 'de-DE', name: 'Deutsch',       flag: '🇩🇪' },
+        ];
 
-        window.onload = async () => {
+        // script cache: { 'vi': 'bản gốc tiếng Việt', 'en': '...', ... }
+        const scriptCache = {};
+        let baseViScript = ''; // Vietnamese original script from API
+
+        // === INIT ===
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Pre-load voices
+            if (synth.getVoices().length === 0) {
+                await new Promise(resolve => {
+                    synth.onvoiceschanged = () => { synth.onvoiceschanged = null; resolve(); };
+                    setTimeout(resolve, 1200);
+                });
+            }
+
             try {
                 const res = await fetch(`${API_BASE}/info/${stallId}`);
                 if (!res.ok) {
-                    document.getElementById('loading').innerHTML = '<h5 class="text-danger mt-5">Sạp không tồn tại hoặc tạm ngưng hoạt động.</h5>';
+                    document.getElementById('loading').innerHTML =
+                        '<h5 class="text-danger mt-5 px-3">Sạp không tồn tại hoặc tạm ngưng hoạt động.</h5>';
                     return;
                 }
                 const data = await res.json();
-                
-                document.getElementById('stallName').innerText = data.stallName;
-                
-                const stallImgElement = document.getElementById('stallImage');
-                
-                // Ẩn ảnh nếu load bị lỗi (404)
-                stallImgElement.onerror = function() {
-                    this.onerror = null;
-                    this.style.display = 'none';
-                };
 
-                // Xử lý link ảnh
+                // Stall name
+                document.getElementById('stallName').textContent = data.stallName || '(Không có tên)';
+
+                // Hero image
+                const imgEl = document.getElementById('stallImage');
                 if (data.imageUrl && data.imageUrl.trim() !== '') {
                     const cleanPath = data.imageUrl.startsWith('/') ? data.imageUrl : '/' + data.imageUrl;
-                    stallImgElement.src = DOMAIN + cleanPath;
+                    imgEl.src = DOMAIN + cleanPath;
+                    imgEl.onerror = () => {
+                        imgEl.style.display = 'none';
+                        document.getElementById('heroWrapper').style.height = '80px';
+                    };
                 } else {
-                    // Nếu API trả về null/empty, lập tức ẩn luôn ảnh
-                    stallImgElement.style.display = 'none';
+                    imgEl.style.display = 'none';
+                    document.getElementById('heroWrapper').style.height = '80px';
                 }
-                
-                availableLangs = data.availableLanguages;
-                renderLanguages();
-                
+
+                // Build script cache from API languages (native scripts)
+                if (data.availableLanguages && data.availableLanguages.length > 0) {
+                    data.availableLanguages.forEach(l => {
+                        if (l.langCode && l.ttsScript) {
+                            scriptCache[l.langCode] = l.ttsScript;
+                        }
+                    });
+                }
+
+                // Extract Vietnamese base script (for auto-translation)
+                baseViScript = scriptCache['vi'] || '';
+
+                // Show page
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
 
-            } catch (error) {
-                console.error(error);
-                document.getElementById('loading').innerHTML = '<h5 class="text-danger mt-5">Lỗi kết nối máy chủ. Vui lòng quét lại.</h5>';
-            }
-        };
+                // Render 10 language buttons
+                renderLanguages();
 
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').innerHTML =
+                    '<h5 class="text-danger mt-5 px-3">Lỗi kết nối máy chủ. Vui lòng quét lại.</h5>';
+            }
+        });
+
+        // === RENDER 10 LANGUAGE CARDS ===
         function renderLanguages() {
             const container = document.getElementById('langsContainer');
-            if (!availableLangs || availableLangs.length === 0) {
-                container.innerHTML = `<div class="col-12 text-center text-muted">Sạp này chưa cấu hình nội dung thuyết minh.</div>`;
-                return;
-            }
-
-            container.innerHTML = availableLangs.map((lang, index) => {
-                let flagHtml = '<span style="font-size: 2.5rem;">🌐</span>'; 
-                if (lang.flagIconUrl) {
-                    if (lang.flagIconUrl.includes('.')) {
-                        const cleanFlagPath = lang.flagIconUrl.startsWith('/') ? lang.flagIconUrl : '/' + lang.flagIconUrl;
-                        // Replace img to outerHTML span emoji to prevent blank flag
-                        flagHtml = `<img src="${DOMAIN}${cleanFlagPath}" alt="${lang.langName}" style="width: 40px; height: 30px; object-fit: cover; border-radius: 4px;" onerror="this.onerror=null; this.outerHTML='<span style=&quot;font-size: 2.5rem;&quot;>🌐</span>';" />`;
-                    } else {
-                        flagHtml = `<span style="font-size: 2.5rem;">${lang.flagIconUrl}</span>`;
-                    }
-                }
-
+            container.innerHTML = ALL_LANGS.map((lang, idx) => {
+                const hasNative = !!scriptCache[lang.code];
+                const badgeText = hasNative ? 'Bản gốc' : 'Tự động dịch';
+                const badgeClass = hasNative ? 'native' : 'auto';
                 return `
-                <div class="col-6">
-                    <div class="card lang-btn text-center shadow-sm h-100 py-4" onclick="playAudio(${index}, this)">
-                        <div class="flag-icon mb-2 d-flex justify-content-center align-items-center" style="height: 40px;">
-                            ${flagHtml}
-                        </div>
-                        <h6 class="fw-bold mb-0 text-dark">${lang.langName}</h6>
-                        <small class="text-muted mt-1" style="font-size: 0.75rem; background: #e9ecef; padding: 2px 8px; border-radius: 10px;">Nghe ngay</small>
-                    </div>
-                </div>
-                `;
+                <div class="lang-btn" id="langBtn_${idx}" onclick="selectLanguage(${idx})">
+                    <span class="lang-status">▶ PHÁT</span>
+                    <div class="flag-wrap">${lang.flag}</div>
+                    <div class="lang-name">${lang.name}</div>
+                    <span class="lang-badge ${badgeClass}">${badgeText}</span>
+                </div>`;
             }).join('');
         }
 
-        function playAudio(index, btnElement) {
-            if (isSpeaking) {
-                stopAudio();
+        // === SELECT LANGUAGE ===
+        async function selectLanguage(idx) {
+            const lang = ALL_LANGS[idx];
+
+            // Get or auto-translate script
+            let script = scriptCache[lang.code];
+
+            if (!script) {
+                // Need to auto-translate
+                if (!baseViScript) {
+                    alert('Sạp này chưa có nội dung thuyết minh tiếng Việt để dịch tự động.');
+                    return;
+                }
+
+                // Show spinner
+                document.getElementById('translateSpinner').classList.add('show');
+                const btn = document.getElementById(`langBtn_${idx}`);
+                btn.classList.add('loading-lang');
+
+                try {
+                    script = await translateText(baseViScript, 'vi', lang.code);
+                    scriptCache[lang.code] = script; // cache for later
+                } catch (e) {
+                    script = baseViScript; // fallback to Vietnamese
+                    console.warn('Translation failed, using Vietnamese fallback', e);
+                } finally {
+                    document.getElementById('translateSpinner').classList.remove('show');
+                    btn.classList.remove('loading-lang');
+                }
             }
 
-            const langData = availableLangs[index];
-            const textToSpeak = langData.ttsScript;
-            if (!textToSpeak) return;
+            if (!script) {
+                alert('Không có nội dung thuyết minh.');
+                return;
+            }
 
-            const bcp47Code = langCodeMap[langData.langCode] || langData.langCode;
-            
-            const startSpeech = () => {
-                const voices = synth.getVoices();
-                console.log("Available voices:", voices); // In ra để user kiểm tra console
-                
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = bcp47Code;
-                utterance.volume = 1;
-                utterance.rate = 1;
+            // Stop current audio
+            if (isSpeaking) stopAudio();
 
-                let matchingVoice = voices.find(v => v.lang === bcp47Code || v.lang.replace('_', '-') === bcp47Code);
-                if (!matchingVoice) {
-                    matchingVoice = voices.find(v => v.lang.startsWith(langData.langCode));
+            currentLangData = { ...lang, script };
+            playScript(idx);
+        }
+
+        // === TRANSLATE via MyMemory API (free, no key needed) ===
+        async function translateText(text, fromLang, toLang) {
+            // MyMemory supports: vi, en, ja, ko, zh-CN, fr, es, ru, th, de
+            const langPair = `${fromLang}|${toLang === 'zh' ? 'zh-CN' : toLang}`;
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langPair)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Translation API error');
+            const data = await res.json();
+            if (data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
+                return data.responseData.translatedText;
+            }
+            throw new Error('No translation result');
+        }
+
+        // === PLAY SPEECH ===
+        function playScript(idx) {
+            const lang = currentLangData;
+            if (!lang || !lang.script) return;
+
+            const utterance = new SpeechSynthesisUtterance(lang.script);
+            utterance.lang = lang.bcp47;
+            utterance.volume = 1;
+            utterance.rate = 0.95;
+
+            // Find best matching voice
+            const voices = synth.getVoices();
+            let voice = voices.find(v => v.lang === lang.bcp47 || v.lang.replace('_', '-') === lang.bcp47);
+            if (!voice) voice = voices.find(v => v.lang.startsWith(lang.code));
+            if (!voice && lang.code === 'th' && voices.length > 0) {
+                voice = voices.find(v => v.default) || voices[0];
+            }
+            if (voice) utterance.voice = voice;
+
+            utterance.onstart = () => {
+                isSpeaking = true;
+                playStartTime = Date.now();
+                document.getElementById('visualizer').style.display = 'flex';
+                document.getElementById('playingStatus').style.display = 'block';
+                document.getElementById('btnStop').style.display = 'block';
+
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                const btn = document.getElementById(`langBtn_${idx}`);
+                if (btn) btn.classList.add('active');
+
+                // ✅ Ghi nhận ngay khi bắt đầu nghe (đáng tin cậy hơn onend)
+                if (!visitTracked) {
+                    visitTracked = true;
+                    trackVisit(1);
                 }
-
-                // Force default behavior for Thai
-                if (!matchingVoice && langData.langCode === 'th' && voices.length > 0) {
-                    matchingVoice = voices.find(v => v.default) || voices[0];
-                    console.log("Fallback with default voice for Thai:", matchingVoice.name);
-                }
-
-                if (matchingVoice) {
-                    utterance.voice = matchingVoice;
-                }
-
-                utterance.onstart = () => {
-                    isSpeaking = true;
-                    playStartTime = Date.now();
-                    document.getElementById('visualizer').style.display = 'flex';
-                    document.getElementById('playingStatus').style.display = 'block';
-                    document.getElementById('btnStop').style.display = 'block';
-                    
-                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-                    btnElement.classList.add('active');
-                };
-
-                utterance.onend = () => finishAudio();
-                utterance.onerror = (e) => {
-                    console.error("SpeechSynthesis Error", e);
-                    finishAudio();
-                };
-
-                synth.speak(utterance);
             };
 
-            if (synth.getVoices().length === 0) {
-                synth.onvoiceschanged = () => {
-                    synth.onvoiceschanged = null; // Tránh lặp vô tận
-                    startSpeech();
-                };
-                
-                // Fallback nếu browser chặn onvoiceschanged
-                setTimeout(() => {
-                    if (!isSpeaking) startSpeech();
-                }, 500);
-            } else {
-                startSpeech();
-            }
+            utterance.onend = () => finishAudio(true);
+            utterance.onerror = (e) => { console.error('SpeechSynthesis Error', e); finishAudio(false); };
+
+            synth.speak(utterance);
         }
 
+        // === STOP ===
         function stopAudio() {
             synth.cancel();
-            finishAudio();
+            finishAudio(false);
         }
 
-        function finishAudio() {
+        // === FINISH ===
+        function finishAudio(completed = false) {
             if (!isSpeaking) return;
             isSpeaking = false;
-            
+
             document.getElementById('visualizer').style.display = 'none';
             document.getElementById('playingStatus').style.display = 'none';
             document.getElementById('btnStop').style.display = 'none';
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
 
-            const durationMs = Date.now() - playStartTime;
-            const durationSec = Math.floor(durationMs / 1000);
-
-            trackVisit(durationSec);
-        }
-
-        async function trackVisit(duration) {
-            try {
-                await fetch(`${API_BASE}/track-visit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        stallId: stallId,
-                        deviceId: deviceId,
-                        duration: duration
-                    })
-                });
-            } catch (err) {
-                console.error("Tracking failure", err);
+            // Ghi lại thời gian nghe thực tế (chỉ khi nghe đủ lâu và đã không ghi lúc start)
+            if (completed) {
+                const durationSec = Math.floor((Date.now() - playStartTime) / 1000);
+                if (durationSec >= 5) {
+                    trackVisit(durationSec);
+                }
             }
         }
-        
-        if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = () => synth.getVoices();
+
+        // === TRACK VISIT — Gửi lên API ===
+        async function trackVisit(duration) {
+            try {
+                const payload = JSON.stringify({ stallId, deviceId, duration });
+                // Thử fetch bình thường trước
+                const res = await fetch(`${API_BASE}/track-visit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload
+                });
+                if (!res.ok) console.warn('trackVisit HTTP', res.status);
+            } catch (err) {
+                // Fallback: sendBeacon (hoạt động ngay cả khi đóng tab)
+                navigator.sendBeacon(`${API_BASE}/track-visit`,
+                    new Blob([JSON.stringify({ stallId, deviceId, duration })],
+                    { type: 'application/json' }));
+            }
         }
+
+        // === DỰ PHÒNG: Ghi lại khi người dùng đóng tab đột ngột ===
+        window.addEventListener('beforeunload', () => {
+            if (isSpeaking) {
+                const dur = Math.floor((Date.now() - playStartTime) / 1000);
+                navigator.sendBeacon(`${API_BASE}/track-visit`,
+                    new Blob([JSON.stringify({ stallId, deviceId, duration: dur })],
+                    { type: 'application/json' }));
+            }
+        });
     </script>
 </body>
 </html>

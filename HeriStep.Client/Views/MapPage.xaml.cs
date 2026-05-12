@@ -242,6 +242,7 @@ public partial class MapPage : ContentPage
                     // LẤY VỊ TRÍ CUỐI CÙNG thay vì gửi yêu cầu GetLocationAsync mới.
                     // Yêu cầu phần cứng mới sẽ gây Deadlock với LocationTrackingService đang chạy ngầm.
                     var loc = await Geolocation.Default.GetLastKnownLocationAsync();
+                    
                     if (loc != null) 
                     { 
                         _lastUserLat = loc.Latitude; 
@@ -253,7 +254,9 @@ public partial class MapPage : ContentPage
 
                 if (_isMapReady && _isPageActive)
                 {
-                    RunJsAsync($"if(typeof updateUserLocation === 'function') updateUserLocation({_lastUserLat}, {_lastUserLon}, {(isRealGPS ? "true" : "false")});");
+                    var latStr = _lastUserLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var lonStr = _lastUserLon.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    RunJsAsync($"if(typeof updateUserLocation === 'function') updateUserLocation({latStr}, {lonStr}, {(isRealGPS ? "true" : "false")});");
                 }
                 
                 try
@@ -265,9 +268,9 @@ public partial class MapPage : ContentPage
                     Console.WriteLine($"[MAP_LOOP] CheckNearbyStalls error: {ex.Message}");
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"[MAP_LOOP] Stalls count: {_allStalls?.Count ?? 0}. Waiting 10s...");
+                System.Diagnostics.Debug.WriteLine($"[MAP_LOOP] Stalls count: {_allStalls?.Count ?? 0}. Waiting 2s...");
 
-                try { await Task.Delay(10000, token); }
+                try { await Task.Delay(2000, token); }
                 catch (TaskCanceledException) { break; }
             }
         }, token);
@@ -662,42 +665,14 @@ public partial class MapPage : ContentPage
             Console.WriteLine($"[ANALYTICS_SYNC] SaveListenDurationToLocalAsync failed: {ex.Message}");
         }
     }
-    private bool _isHeatmapEnabled = false;
 
-    private async void ToggleHeatmap_Clicked(object sender, EventArgs e)
-    {
-        _isHeatmapEnabled = !_isHeatmapEnabled;
-        
-        if (_isHeatmapEnabled)
-        {
-            btnToggleHeatmap.BackgroundColor = Color.FromArgb("#FFE0D6"); // Highlight
-            try
-            {
-                var response = await _sharedHttpClient.GetAsync($"{AppConstants.BaseApiUrl}/api/analytics/heatmap");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    RunJsAsync($"if(typeof toggleHeatmap === 'function') toggleHeatmap('{json}', true);");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[HEATMAP] Fetch error: {ex.Message}");
-                _isHeatmapEnabled = false;
-                btnToggleHeatmap.BackgroundColor = Color.FromArgb("#EEFFFFFF");
-            }
-        }
-        else
-        {
-            btnToggleHeatmap.BackgroundColor = Color.FromArgb("#EEFFFFFF");
-            RunJsAsync($"if(typeof toggleHeatmap === 'function') toggleHeatmap('[]', false);");
-        }
-    }
 
     private void CenterUser_Clicked(object sender, EventArgs e)
     {
+        var latStr = _lastUserLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lonStr = _lastUserLon.ToString(System.Globalization.CultureInfo.InvariantCulture);
         // Gần như ngay lập tức cập nhật toạ độ và căn giữa (bỏ qua cooldown)
-        RunJsAsync($"if(typeof updateUserLocation === 'function') updateUserLocation({_lastUserLat}, {_lastUserLon}, true);", force: true);
+        RunJsAsync($"if(typeof updateUserLocation === 'function') updateUserLocation({latStr}, {lonStr}, true);", force: true);
         RunJsAsync("if(typeof centerOnUser === 'function') centerOnUser();", force: true);
     }
 
